@@ -1,4 +1,3 @@
-#include "ValueTypes.h"
 #include "Decoder.h"
 #include "bencodeVisitor.h"
 #include "Utility.h"
@@ -13,6 +12,7 @@
 #include <iostream>
 #include <stdexcept>
 
+using namespace utility;
 
 int main(int argc, char* argv[])
 {
@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
 
 	std::time_t creationDate = boost::get<integer>(torrent.at("creation date"));
 
-	//boost::apply_visitor(bencodeVisitor(), torrent.at("creation date"));
+	//boost::apply_visitor(bencodeVisitor(), torrent.at("info"));
 
 	auto result = unixTime_to_ptime(creationDate);
 	auto result2 = ptime_to_unixTime(result);

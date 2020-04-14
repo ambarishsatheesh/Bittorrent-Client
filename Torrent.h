@@ -41,7 +41,6 @@ public:
 	Torrent(valueDictionary torrent);
 
 private:
-
 	//get general info
 	std::string getComment();
 	std::string getCreatedBy();

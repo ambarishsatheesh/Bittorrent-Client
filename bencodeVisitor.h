@@ -21,9 +21,7 @@ public:
 private:
 	std::string getSpace() const;
 
-	bool isAscii(int c) const;
-
-	bool isAscii(const std::string& value) const;
+	bool isUTF8(const std::string& value) const;
 
 	int indentation_;
 };

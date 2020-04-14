@@ -1,11 +1,14 @@
 #include "ValueTypes.h"
 #include "bencodeVisitor.h"
+#include "Utility.h"
 
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/static_visitor.hpp>
 #include <boost/variant/variant.hpp>
 
 #include <iostream>
+
+using namespace utility;
 
 bencodeVisitor::bencodeVisitor(int indentation)
 	: indentation_(indentation)
@@ -22,17 +25,17 @@ std::string bencodeVisitor::getSpace() const
 	return std::string(getIndentation() * 2, ' ');
 }
 
-bool bencodeVisitor::isAscii(int c) const
+bool bencodeVisitor::isUTF8(const std::string& value) const
 {
-	return (c >= 9 && c <= 13) || (c >= 32 && c <= 126);
-}
-
-bool bencodeVisitor::isAscii(const std::string& value) const
-{
+	std::vector<int> data;
 	for (unsigned int i = 0; i < value.size(); i++)
-		if (!isAscii(static_cast<int>(value[i])))
-			return false;
-
+	{
+		data.push_back(static_cast<int>(value[i]));
+	}
+	if (!isValidUtf8(data))
+	{
+		return false;
+	}
 	return true;
 }
 
@@ -43,7 +46,7 @@ void bencodeVisitor::operator()(const integer t) const
 
 void bencodeVisitor::operator()(const std::string& t) const
 {
-	if (!isAscii(t))
+	if (!isUTF8(t))
 		std::cout << "BINARY DATA (length: " << t.size() << ")" << std::endl;
 	else {
 		const int MAX_STRING_LENGTH = 100;
