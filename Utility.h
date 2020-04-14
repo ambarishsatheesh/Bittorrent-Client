@@ -99,3 +99,28 @@ namespace utility
         return true;
     }
 }
+
+inline std::string urlEncode(std::string& s)
+{
+    static std::vector<char> lookup = { '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f' };
+    std::stringstream e;
+    for (size_t i = 0; i < s.size(); i++)
+    {
+        const char& c = s.at(i);
+        if ((48 <= c && c <= 57) ||//0-9
+            (65 <= c && c <= 90) ||//abc...xyz
+            (97 <= c && c <= 122) || //ABC...XYZ
+            (c == '-' || c == '_' || c == '.' || c == '~')
+            )
+        {
+            e << c;
+        }
+        else
+        {
+            e << '%';
+            e << lookup.at((c & 0xF0) >> 4);
+            e << lookup.at((c & 0x0F));
+        }
+    }
+    return e.str();
+}

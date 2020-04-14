@@ -1,3 +1,5 @@
+// TODO: clean up utility functions
+
 #include "Decoder.h"
 #include "bencodeVisitor.h"
 #include "Utility.h"
@@ -32,7 +34,7 @@ int main(int argc, char* argv[])
 
 	std::time_t creationDate = boost::get<integer>(torrent.at("creation date"));
 
-	//boost::apply_visitor(bencodeVisitor(), torrent.at("info"));
+	boost::apply_visitor(bencodeVisitor(), torrent.at("info"));
 
 	auto result = unixTime_to_ptime(creationDate);
 	auto result2 = ptime_to_unixTime(result);
@@ -49,6 +51,13 @@ int main(int argc, char* argv[])
 		subTorrent3 =
 			boost::get<valueDictionary>(files[i]);
 	}
+
+	std::string pieces =
+		boost::get<std::string>(info.at("pieces"));
+
+
+	std::cout << pieces << std::endl;
+	std::cout << urlencode(pieces) << std::endl;
 
 
 	boost::apply_visitor(bencodeVisitor(), subTorrent3.at("path"));

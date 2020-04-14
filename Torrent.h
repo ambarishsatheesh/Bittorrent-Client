@@ -33,9 +33,9 @@ public:
 	//std::vector<std::vector<byte>> pieceHashes;
 
 	////hashes
-	//std::vector<byte> infoHash;
+	std::vector<byte> infoHash;
 	//std::string hexStringInfoHash;
-	//std::string urlSafeStringInfoHash;
+	std::string urlSafeStringInfoHash;
 
 	Torrent();
 	Torrent(valueDictionary torrent);
