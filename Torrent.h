@@ -1,57 +1,46 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <ctime>
 #include <memory>
-#include "fileObj.h"
-#include "trackerObj.h"
-#include "ValueTypes.h"
 
-using byte = uint8_t;
+#include "fileObj.h"
+#include "TorrentGeneral.h"
+#include "TorrentPieces.h"
+#include "TorrentHashes.h"
+#include "TorrentStatus.h"
+
 
 class Torrent
 {
 public:
-
 	valueDictionary decodedTorrent;
 
 	//general info
-	//std::vector<trackerObj> trackerList;
-	std::string comment;
-	std::string createdBy;
-	//POSIX time
-	std::time_t creationDate;
-	std::string encoding; //unsure
+	TorrentGeneral generalData;
 
 	//file info
 	std::vector<fileObj> fileList;
-	//std::string fileName;
-	//bool isPrivate;
-	//int pieceSize;
-	//int blockSize;
-	long totalSize;
-	//std::vector<std::vector<byte>> pieceHashes;
+	std::string fileName;
+	bool isPrivate;
 
-	////hashes
-	std::vector<byte> infoHash;
-	//std::string hexStringInfoHash;
-	std::string urlSafeStringInfoHash;
+	//pieces & blocks
+	TorrentPieces piecesData;
 
-	Torrent();
-	Torrent(valueDictionary torrent);
+	//hashes
+	TorrentHashes hashesData;
+
+	//Status
+	TorrentStatus statusData;
+
+	//constructor
+	Torrent(const valueDictionary& torrent);
+	//no default constructor - requires parameter
+	Torrent() = delete;
 
 private:
-	//get general info
-	std::string getComment();
-	std::string getCreatedBy();
-	std::time_t getCreationDate();
-	std::string getEncoding();
-
 	//get file info
 	std::vector<fileObj> getFileList();
-	long getTotalSize();
-
-
+	bool getIsPrivate();
 
 };
 

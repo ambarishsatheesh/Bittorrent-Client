@@ -2,13 +2,13 @@
 #include "Decoder.h"
 #include <iostream>
 #include <boost/variant/get.hpp>
+#include <boost/variant/get.hpp>
 
-Torrent::Torrent(){}
-
-Torrent::Torrent(valueDictionary torrent)
-	: decodedTorrent{ torrent }, createdBy{ getCreatedBy() }, 
-	creationDate{ getCreationDate() }, fileList{ getFileList() }, 
-	totalSize{ getTotalSize() } {}
+Torrent::Torrent(const valueDictionary& torrent)
+	: decodedTorrent{ torrent }, fileList{ getFileList() },
+	isPrivate{ getIsPrivate() }, generalData( decodedTorrent), piecesData( decodedTorrent, fileList ),
+	hashesData(decodedTorrent), statusData( piecesData, decodedTorrent)
+{}
 
 std::vector<fileObj> Torrent::getFileList()
 {
@@ -19,32 +19,17 @@ std::vector<fileObj> Torrent::getFileList()
 	return vec;
 }
 
-std::string Torrent::getComment()
+bool Torrent::getIsPrivate()
 {
-	return boost::get<std::string>(decodedTorrent.at("comment"));
-}
-
-std::string Torrent::getEncoding()
-{
-	return boost::get<std::string>(decodedTorrent.at("encoding"));
-}
-
-long Torrent::getTotalSize()
-{
-	long total = 0;
-	for (auto file : fileList)
+	valueDictionary info =
+		boost::get<valueDictionary>(decodedTorrent.at("info"));
+	if (info.count("private"))
 	{
-		total += file.fileSize;
+		if (boost::get<integer>(info.at("private")) == 1)
+		{
+			return true;
+		}
+		return false;
 	}
-	return total;
-}
-
-std::string Torrent::getCreatedBy()
-{
-	return boost::get<std::string>(decodedTorrent.at("created by"));
-}
-
-std::time_t Torrent::getCreationDate()
-{
-	return static_cast<std::time_t>(boost::get<integer>(decodedTorrent.at("creation date")));
+	return false;
 }

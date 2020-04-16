@@ -1,3 +1,4 @@
+// TODO: refactor torrent class into subclasses - too many parameters (long member initialisation list)
 // TODO: clean up utility functions
 
 #include "Decoder.h"
@@ -57,15 +58,19 @@ int main(int argc, char* argv[])
 
 
 	std::cout << pieces << std::endl;
-	std::cout << urlencode(pieces) << std::endl;
+	std::cout << urlEncode(pieces) << std::endl;
 
 
 	boost::apply_visitor(bencodeVisitor(), subTorrent3.at("path"));
 
 	Torrent testTorrent(torrent);
 
-	std::cout << "created by " << testTorrent.createdBy << std::endl;
-	std::cout << "created on " << testTorrent.creationDate << std::endl;
+
+	std::cout << "created by: " << testTorrent.generalData.createdBy << std::endl;
+	std::cout << "created on: " << testTorrent.generalData.creationDate << std::endl;
+	std::cout << "encoding: " << testTorrent.generalData.encoding << std::endl;
+
+	//std::cout << humanReadableBytes(829083) <<std::endl;
 
 	return 0;
 }

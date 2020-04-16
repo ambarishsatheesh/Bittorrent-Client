@@ -24,6 +24,10 @@
     <ClCompile Include="bencodeVisitor.cpp" />
     <ClCompile Include="Tokenizer.cpp" />
     <ClCompile Include="Torrent.cpp" />
+    <ClCompile Include="TorrentGeneral.cpp" />
+    <ClCompile Include="TorrentHashes.cpp" />
+    <ClCompile Include="TorrentPieces.cpp" />
+    <ClCompile Include="TorrentStatus.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Decoder.h" />
@@ -31,6 +35,10 @@
     <ClInclude Include="fileObj.h" />
     <ClInclude Include="Tokenizer.h" />
     <ClInclude Include="Torrent.h" />
+    <ClInclude Include="TorrentGeneral.h" />
+    <ClInclude Include="TorrentHashes.h" />
+    <ClInclude Include="TorrentPieces.h" />
+    <ClInclude Include="TorrentStatus.h" />
     <ClInclude Include="trackerObj.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="ValueTypes.h" />

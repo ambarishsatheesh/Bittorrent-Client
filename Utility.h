@@ -1,11 +1,12 @@
 #pragma once
 #include <string>
 #include <boost/lexical_cast.hpp>
+#include <fstream>
+#include <cerrno>
+
 #include "ValueTypes.h"
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include "boost/date_time/posix_time/conversion.hpp"
-#include <fstream>
-#include <cerrno>
 
 namespace utility 
 {
@@ -98,29 +99,44 @@ namespace utility
         }
         return true;
     }
-}
 
-inline std::string urlEncode(std::string& s)
-{
-    static std::vector<char> lookup = { '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f' };
-    std::stringstream e;
-    for (size_t i = 0; i < s.size(); i++)
+    inline std::string urlEncode(std::string& s)
     {
-        const char& c = s.at(i);
-        if ((48 <= c && c <= 57) ||//0-9
-            (65 <= c && c <= 90) ||//abc...xyz
-            (97 <= c && c <= 122) || //ABC...XYZ
-            (c == '-' || c == '_' || c == '.' || c == '~')
-            )
+        static std::vector<char> lookup = { '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f' };
+        std::stringstream e;
+        for (size_t i = 0; i < s.size(); i++)
         {
-            e << c;
+            const char& c = s.at(i);
+            if ((48 <= c && c <= 57) ||//0-9
+                (65 <= c && c <= 90) ||//abc...xyz
+                (97 <= c && c <= 122) || //ABC...XYZ
+                (c == '-' || c == '_' || c == '.' || c == '~')
+                )
+            {
+                e << c;
+            }
+            else
+            {
+                e << '%';
+                e << lookup.at((c & 0xF0) >> 4);
+                e << lookup.at((c & 0x0F));
+            }
         }
-        else
-        {
-            e << '%';
-            e << lookup.at((c & 0xF0) >> 4);
-            e << lookup.at((c & 0x0F));
-        }
+        return e.str();
     }
-    return e.str();
+
+    inline std::string humanReadableBytes(long bytes)
+    {
+        std::vector<std::string> units = { "B", "KiB", "MiB", "GiB", "TiB" };
+        if (bytes == 0)
+        {
+            return "0" + units.at(0);
+        }
+        const int multiple = static_cast<const int>(std::log(bytes) / std::log(1024));
+        const float value = static_cast<const float>(bytes / std::pow(1024, multiple));
+        const float multiplier = static_cast<const float>(std::pow(10, 2));
+        const float res = (std::round(value * multiplier))/ multiplier;
+        return boost::lexical_cast<std::string>(res) + units.at(multiple);
+    }
+
 }

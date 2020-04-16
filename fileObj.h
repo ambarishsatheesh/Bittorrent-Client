@@ -1,11 +1,24 @@
 #pragma once
 #include <string>
+#include "Utility.h"
 
-struct fileObj
+using namespace utility;
+
+class fileObj
+	
 {
 public:
+
+	fileObj() : readableFileSize{ getReadableFileSize() } {}
+
 	std::string filePath;
 	long fileSize;
 	long fileOffset;
+	std::string readableFileSize;
+
+	std::string getReadableFileSize()
+	{
+		return humanReadableBytes(fileSize);
+	}
 };
 
