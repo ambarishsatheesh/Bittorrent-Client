@@ -4,32 +4,68 @@
 #include <boost/variant/get.hpp>
 #include <boost/variant/get.hpp>
 
-Torrent::Torrent(const valueDictionary& torrent)
-	: decodedTorrent{ torrent }, fileList{ getFileList() },
-	isPrivate{ getIsPrivate() }, generalData( decodedTorrent), piecesData( decodedTorrent, fileList ),
+Torrent::Torrent(const char* fullFilePath, const valueDictionary& torrent)
+	: decodedTorrent{ torrent }, generalData(fullFilePath, decodedTorrent),
+	fileList{ }, piecesData( decodedTorrent, fileList ), 
 	hashesData(decodedTorrent), statusData( piecesData, decodedTorrent)
-{}
-
-std::vector<fileObj> Torrent::getFileList()
 {
-	//redo
-	std::vector<fileObj> vec;
-	//std::string test = boost::get<std::string>(decodedTorrent.at("info"));
-	//std::cout << test << std::endl;
-	return vec;
+	setFileList(torrent);
 }
 
-bool Torrent::getIsPrivate()
+void Torrent::setFileList(const valueDictionary& torrent)
 {
-	valueDictionary info =
-		boost::get<valueDictionary>(decodedTorrent.at("info"));
-	if (info.count("private"))
+	valueDictionary info = boost::get<valueDictionary>(torrent.at("info"));
+	fileObj resObj;
+	//if torrent contains only one file
+	if (info.count("name") && info.count("length"))
 	{
-		if (boost::get<integer>(info.at("private")) == 1)
-		{
-			return true;
-		}
-		return false;
+		resObj.filePath = boost::get<std::string>(info.at("name"));
+		resObj.fileSize = static_cast<long>(boost::get<integer>(info.at("length")));
+		fileList.push_back(resObj);
 	}
-	return false;
+	//if torrent contains multiple files
+	else if (info.count("files"))
+	{
+		long runningOffset = 0;
+		valueList list = boost::get<valueList>(info.at("files"));
+		for (size_t i = 0; i < list.size(); ++i)
+		{
+			valueDictionary fileData =
+				boost::get<valueDictionary>(list.at(i));
+			if (fileData.empty() || !fileData.count("length") || !fileData.count("path"))
+			{
+				throw std::invalid_argument("Error: incorrect file specification!");
+			}
+			//get file size and offset
+			if (fileData.count("length"))
+			{
+				long size = static_cast<long>(boost::get<integer>(fileData.at("length")));
+				resObj.fileSize = size;
+				resObj.setReadableFileSize();
+				resObj.fileOffset = runningOffset;
+				//add to running size total
+				runningOffset += size;
+			}
+			//get file path
+			if (fileData.count("path"))
+			{
+				valueList pathList = boost::get<valueList>(fileData.at("path"));
+				std::string fullPath;
+				for (auto path : pathList)
+				{
+					fullPath += boost::get<std::string>(path);
+					fullPath += "/";
+				}
+				fullPath.erase(fullPath.find_last_of("/"));
+				resObj.filePath = fullPath;
+			}
+			fileList.push_back(resObj);
+		}
+	}
+	else
+	{
+		throw std::invalid_argument("Error: no files specified in torrent!");
+	}
+	//std::string test = boost::get<std::string>(decodedTorrent.at("info"));
+	//std::cout << test << std::endl;
 }

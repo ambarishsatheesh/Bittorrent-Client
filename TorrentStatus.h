@@ -25,6 +25,6 @@ public:
 
 private:
 
-	long getRemaining(const TorrentPieces& pieces);
+	long setRemaining(const TorrentPieces& pieces);
 };
 

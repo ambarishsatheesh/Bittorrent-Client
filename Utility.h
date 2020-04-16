@@ -5,11 +5,52 @@
 #include <cerrno>
 
 #include "ValueTypes.h"
-#include "boost/date_time/posix_time/posix_time.hpp"
-#include "boost/date_time/posix_time/conversion.hpp"
+#include "boost/algorithm/string/find.hpp"
 
 namespace utility 
 {
+
+    inline std::string setFileDirectory(const char* filePath)
+    {
+        std::string strPath = filePath;
+        //remove name and extension
+        const auto lastSlashIndex = strPath.find_last_of("/\\");
+        if (std::string::npos != lastSlashIndex)
+        {
+            return strPath.substr(0, lastSlashIndex + 1);
+        }
+        else
+        {
+            throw std::invalid_argument("Invalid file path! No slashes!");
+        }
+    }
+
+    inline std::string setFileName(const char* filePath)
+    {
+        std::string strPath = filePath;
+        //remove slashes
+       const auto lastSlashIndex = strPath.find_last_of("/\\");
+        if (std::string::npos != lastSlashIndex)
+        {
+            strPath.erase(0, lastSlashIndex + 1);
+        }
+        else
+        {
+            throw std::invalid_argument("Invalid file path! No slashes!");
+        }
+        //remove extension
+       const auto periodIndex = strPath.rfind('.');
+        if (std::string::npos != periodIndex)
+        {
+            strPath.erase(periodIndex);
+        }
+        else
+        {
+            throw std::invalid_argument("No file extension!");
+        }
+        return strPath;
+    }
+
     inline std::string get_file_contents(const char* filename)
     {
         std::ifstream read(filename, std::ios::in | std::ios::binary);
@@ -24,20 +65,6 @@ namespace utility
             return(contents);
         }
         throw(errno);
-    }
-
-    inline boost::posix_time::ptime unixTime_to_ptime(std::time_t unixTime)
-    {
-        auto result = boost::posix_time::from_time_t(unixTime);
-        std::cout << result << std::endl;
-        return result;
-    }
-
-    inline std::time_t ptime_to_unixTime(boost::posix_time::ptime ptime)
-    {
-        auto result = boost::posix_time::to_time_t(ptime);
-        std::cout << result << std::endl;
-        return result;
     }
 
     inline bool is10x(int a)

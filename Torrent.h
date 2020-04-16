@@ -20,8 +20,6 @@ public:
 
 	//file info
 	std::vector<fileObj> fileList;
-	std::string fileName;
-	bool isPrivate;
 
 	//pieces & blocks
 	TorrentPieces piecesData;
@@ -33,14 +31,13 @@ public:
 	TorrentStatus statusData;
 
 	//constructor
-	Torrent(const valueDictionary& torrent);
+	Torrent(const char* fullFilePath, const valueDictionary& torrent);
 	//no default constructor - requires parameter
 	Torrent() = delete;
 
 private:
 	//get file info
-	std::vector<fileObj> getFileList();
-	bool getIsPrivate();
+	void setFileList(const valueDictionary& torrent);
 
 };
 

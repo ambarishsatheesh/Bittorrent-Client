@@ -5,5 +5,5 @@ class trackerObj
 {
 public:
 	std::string trackerAddress;
-	trackerObj(std::string address) : trackerAddress{ address } {}
+	trackerObj() : trackerAddress{ "" } {}
 };

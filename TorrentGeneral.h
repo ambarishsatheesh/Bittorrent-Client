@@ -1,30 +1,32 @@
 #pragma once
 #include "ValueTypes.h"
 #include "trackerObj.h"
+#include "Utility.h"
+#include "boost/date_time/posix_time/posix_time.hpp"
+#include "boost/date_time/posix_time/conversion.hpp"
 
 #include <ctime>
 
 class TorrentGeneral
 {
 public:
+	std::string fileName;
+	std::string downloadDirectory; //TODO: check how this works
 	std::vector<trackerObj> trackerList;
 	std::string comment;
 	std::string createdBy;
-	//POSIX time
-	std::time_t creationDate;
+	boost::posix_time::ptime creationDate;
 	std::string encoding; //unsure
+	bool isPrivate;
 
 	//constructor
-	TorrentGeneral(const valueDictionary& torrent);
+	TorrentGeneral(const char* fullFilePath, const valueDictionary& torrent);
 	//no default constructor - requires parameter
 	TorrentGeneral() = delete;
 
 private:
 	//get general info
-	std::string getComment(const valueDictionary& torrent) const;
-	std::string getCreatedBy(const valueDictionary& torrent) const;
-	std::time_t getCreationDate(const valueDictionary& torrent) const;
-	std::string getEncoding(const valueDictionary& torrent) const;
+	void torrentToGeneralObj(const char* fullFilePath, const valueDictionary& torrent);
 
 };
 

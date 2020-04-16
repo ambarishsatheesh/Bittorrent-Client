@@ -8,17 +8,23 @@ class fileObj
 	
 {
 public:
-
-	fileObj() : readableFileSize{ getReadableFileSize() } {}
-
+	//directory structure of files
 	std::string filePath;
 	long fileSize;
+	//sum of previous files in list
 	long fileOffset;
 	std::string readableFileSize;
 
-	std::string getReadableFileSize()
+	fileObj() : filePath{ "" }, fileSize{ 0 }, fileOffset{ 0 },
+		readableFileSize{ "" }
+	{}
+
+private:
+	void setReadableFileSize()
 	{
-		return humanReadableBytes(fileSize);
+		readableFileSize = humanReadableBytes(fileSize);
 	}
+	//let only Torrent class access setter
+	friend class Torrent;
 };
 

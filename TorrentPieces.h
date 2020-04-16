@@ -11,15 +11,17 @@ public:
 	std::string readablePieceSize;
 	long totalSize;
 	std::string readableTotalSize;
+	int pieceCount;
 
 	//constructor
-	TorrentPieces(valueDictionary torrent, std::vector<fileObj> fileList);
+	TorrentPieces(const valueDictionary& torrent, const std::vector<fileObj>& fileList);
 	//no default constructor - requires parameter
 	TorrentPieces() = delete;
 
 private:
-	long getTotalSize(std::vector<fileObj> fileList);
-	std::string getReadablePieceSize();
-	std::string getReadableTotalSize();
+	void torrentToPiecesObj(const valueDictionary& torrent, const std::vector<fileObj>& fileList);
+	int setPieceSize(int piece);
+	int setBlockSize(int piece, int block);
+	int setBlockCount(int piece);
 
 };

@@ -1,37 +1,76 @@
 #include "TorrentGeneral.h"
 #include "boost/variant/get.hpp"
 
-TorrentGeneral::TorrentGeneral(const valueDictionary& torrent)
-	: comment{ getComment(torrent) }, createdBy{ getCreatedBy(torrent) },
-	creationDate{ getCreationDate(torrent) }, 
-	encoding{ getEncoding(torrent) }
-{}
+using namespace utility;
 
-std::string TorrentGeneral::getComment(const valueDictionary& torrent) const
+TorrentGeneral::TorrentGeneral(const char* fullFilePath, const valueDictionary& torrent)
+	: fileName{ "" },
+	downloadDirectory{ "" },
+	comment{ "" }, createdBy{ "" },
+	creationDate{ },
+	encoding{ "" }, isPrivate{ false }
 {
+	torrentToGeneralObj(fullFilePath, torrent);
+}
+
+void TorrentGeneral::torrentToGeneralObj(const char* fullFilePath, const valueDictionary& torrent)
+{
+	fileName = setFileName(fullFilePath);
+	downloadDirectory = setFileDirectory(fullFilePath);
+
+	//get trackers
+	trackerObj tracker;
+	if (torrent.count("announce-list"))
+	{
+		valueList list = boost::get<valueList>(torrent.at("announce-list"));
+		for (size_t i = 0; i < list.size(); ++i)
+		{
+			valueList subList = boost::get<valueList>(list.at(i));
+			tracker.trackerAddress = boost::get<std::string>(subList.at(0));
+			trackerList.push_back(tracker);
+		}
+	}
+	else if (torrent.count("announce"))
+	{
+		tracker.trackerAddress = boost::get<std::string>(torrent.at("announce"));
+		trackerList.push_back(tracker);
+	}
+	else
+	{
+		throw std::invalid_argument("Error: no trackers specified in torrent!");
+	}
+
 	if (torrent.count("comment"))
 	{
-		return boost::get<std::string>(torrent.at("comment"));
+		comment = boost::get<std::string>(torrent.at("comment"));
 	}
-	return "N/A";
-}
 
-std::string TorrentGeneral::getCreatedBy(const valueDictionary& torrent) const
-{
-	return boost::get<std::string>(torrent.at("created by"));
-}
+	if (torrent.count("created by"))
+	{
+		createdBy = boost::get<std::string>(torrent.at("created by"));
+	}
 
-std::time_t TorrentGeneral::getCreationDate(const valueDictionary& torrent) const
-{
-	return static_cast<std::time_t>
-		(boost::get<integer>(torrent.at("creation date")));
-}
+	if (torrent.count("creation date"))
+	{
+		creationDate = boost::posix_time::from_time_t(boost::get<integer>
+			(torrent.at("creation date")));
+	}
 
-std::string TorrentGeneral::getEncoding(const valueDictionary& torrent) const
-{
 	if (torrent.count("encoding"))
 	{
-		return boost::get<std::string>(torrent.at("encoding"));
+		encoding = boost::get<std::string>(torrent.at("encoding"));
 	}
-	return "N/A";
+
+	valueDictionary info =
+		boost::get<valueDictionary>(torrent.at("info"));
+	if (info.count("private"))
+	{
+		if (boost::get<integer>(info.at("private")) == 1)
+		{
+			isPrivate = true;
+		}
+		isPrivate = false;
+	}
+	isPrivate = false;
+
 }

@@ -3,32 +3,56 @@
 
 using namespace utility;
 
-TorrentPieces::TorrentPieces(valueDictionary torrent, std::vector<fileObj> fileList)
-	: totalSize{ getTotalSize(fileList) }, 
-	readablePieceSize { getReadablePieceSize() },
-	readableTotalSize{ getReadableTotalSize() }
+TorrentPieces::TorrentPieces(const valueDictionary& torrent, 
+	const std::vector<fileObj>& fileList)
+	: totalSize{ 0 },
+	readablePieceSize { "" },
+	readableTotalSize{ "" }
 {
+	torrentToPiecesObj(torrent, fileList);
 }
 
-long TorrentPieces::getTotalSize(std::vector<fileObj> fileList)
+void TorrentPieces::torrentToPiecesObj(const valueDictionary& torrent, 
+	const std::vector<fileObj>& fileList)
 {
-	long total = 0;
 	for (auto file : fileList)
 	{
-		total += file.fileSize;
+		totalSize += file.fileSize;
 	}
-	return total;
+
+	readablePieceSize = humanReadableBytes(pieceSize);
+
+	readableTotalSize = humanReadableBytes(totalSize);
 }
 
 
-std::string TorrentPieces::getReadablePieceSize()
+int TorrentPieces::setPieceSize(int piece)
 {
-	return humanReadableBytes(pieceSize);
+	if (piece == pieceCount - 1)
+	{
+		const int remainder = totalSize % pieceSize;
+		if (remainder != 0)
+		{
+			return remainder;
+		}
+		return pieceSize;
+	}
 }
 
-
-
-std::string TorrentPieces::getReadableTotalSize()
+int TorrentPieces::setBlockSize(int piece, int block)
 {
-	return humanReadableBytes(totalSize);
+	if (piece == setBlockCount(piece) - 1)
+	{
+		const int remainder = setPieceSize(piece) % blockSize;
+		if (remainder != 0)
+		{
+			return remainder;
+		}
+		return blockSize;
+	}
+}
+
+int TorrentPieces::setBlockCount(int piece)
+{
+	return std::ceil(setPieceSize(piece) / static_cast<double>(blockSize));
 }

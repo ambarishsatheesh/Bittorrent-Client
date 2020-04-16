@@ -1,11 +1,11 @@
 #include "TorrentStatus.h"
 
 TorrentStatus::TorrentStatus(const TorrentPieces& pieces, const valueDictionary& torrent)
-	: remaining{ getRemaining(pieces) }
+	: remaining{ setRemaining(pieces) }
 {
 }
 
-long TorrentStatus::getRemaining(const TorrentPieces& pieces)
+long TorrentStatus::setRemaining(const TorrentPieces& pieces)
 {
 	return pieces.totalSize - downloaded;
 }
