@@ -20,13 +20,15 @@ public:
 	bool isPrivate;
 
 	//constructor
-	TorrentGeneral(const char* fullFilePath, const valueDictionary& torrent);
+	TorrentGeneral(const char* fullFilePath);
 	//no default constructor - requires parameter
 	TorrentGeneral() = delete;
 
+	//fill general info
+	void torrentToGeneralData(const char* fullFilePath, const valueDictionary& torrent);
+
 private:
-	//get general info
-	void torrentToGeneralObj(const char* fullFilePath, const valueDictionary& torrent);
+
 
 };
 

@@ -5,12 +5,11 @@
 #include <cerrno>
 
 #include "ValueTypes.h"
-#include "boost/algorithm/string/find.hpp"
 
 namespace utility 
 {
 
-    inline std::string setFileDirectory(const char* filePath)
+    inline std::string getFileDirectory(const char* filePath)
     {
         std::string strPath = filePath;
         //remove name and extension
@@ -25,7 +24,7 @@ namespace utility
         }
     }
 
-    inline std::string setFileName(const char* filePath)
+    inline std::string getFileName(const char* filePath)
     {
         std::string strPath = filePath;
         //remove slashes
@@ -51,6 +50,28 @@ namespace utility
         return strPath;
     }
 
+    inline std::string getFileNameAndExtension(const char* filePath)
+    {
+        std::string strPath = filePath;
+        //remove slashes
+        const auto lastSlashIndex = strPath.find_last_of("/\\");
+        if (std::string::npos != lastSlashIndex)
+        {
+            strPath.erase(0, lastSlashIndex + 1);
+        }
+        else
+        {
+            throw std::invalid_argument("Invalid file path! No slashes!");
+        }
+        //check extension
+        const auto periodIndex = strPath.rfind('.');
+        if (std::string::npos == periodIndex)
+        {
+            throw std::invalid_argument("No file extension!");
+        }
+        return strPath;
+    }
+
     inline std::string get_file_contents(const char* filename)
     {
         std::ifstream read(filename, std::ios::in | std::ios::binary);
@@ -60,7 +81,7 @@ namespace utility
             read.seekg(0, std::ios::end);
             contents.resize(read.tellg());
             read.seekg(0, std::ios::beg);
-            read.read(&contents[0], contents.size());
+            read.read(&contents.at(0), contents.size());
             read.close();
             return(contents);
         }
@@ -152,7 +173,7 @@ namespace utility
         return e.str();
     }
 
-    inline std::string humanReadableBytes(long bytes)
+    inline std::string humanReadableBytes(long long bytes)
     {
         std::vector<std::string> units = { "B", "KiB", "MiB", "GiB", "TiB" };
         if (bytes == 0)
@@ -164,6 +185,61 @@ namespace utility
         const float multiplier = static_cast<const float>(std::pow(10, 2));
         const float res = (std::round(value * multiplier))/ multiplier;
         return boost::lexical_cast<std::string>(res) + units.at(multiple);
+    }
+
+    //used http://torrentinvites.org/f29/piece-size-guide-167985/
+    inline long long recommendedPieceSize(long long totalSize)
+    {
+        //up to 50MiB
+        if (totalSize <= 52428800)
+        {
+            return 32768;
+        }
+        //50 to 150
+        if (52428800 < totalSize && totalSize <= 157286400)
+        {
+            return 65536;
+        }
+        //150 to 350
+        if (157286400 < totalSize && totalSize <= 367001600)
+        {
+            return 131072;
+        }
+        //350 to 512
+        if (367001600 < totalSize && totalSize <= 536870912)
+        {
+            return 262144;
+        }
+        //512MiB to 1GiB
+        if (536870912 < totalSize && totalSize <= 1073741824)
+        {
+            return 524288;
+        }
+        //1 to 2
+        if (1073741824 < totalSize && totalSize <= 2147483648)
+        {
+            return 1048576;
+        }
+        //2 to 4
+        if (2147483648 < totalSize && totalSize <= 4294967296)
+        {
+            return 2097152;
+        }
+        //4 to 8
+        if (4294967296 < totalSize && totalSize <= 8589934592)
+        {
+            return 4194304;
+        }
+        //8 to 16
+        if (8589934592 < totalSize && totalSize <= 17179869184)
+        {
+            return 8388608;
+        }
+        //16 to 32
+        if (17179869184 < totalSize && totalSize <= 34359738368)
+        {
+            return 16777216;
+        }
     }
 
 }

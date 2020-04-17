@@ -20,6 +20,8 @@ public:
 
 	//constructor
 	TorrentStatus(const TorrentPieces& pieces, const valueDictionary& torrent);
+	//temp
+	TorrentStatus(const TorrentPieces& pieces);
 	//no default constructor - requires parameter
 	TorrentStatus() = delete;
 

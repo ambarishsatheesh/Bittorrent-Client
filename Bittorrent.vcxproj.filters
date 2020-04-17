@@ -80,5 +80,8 @@
     <ClInclude Include="TorrentGeneral.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TorrentManipulation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

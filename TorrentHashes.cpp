@@ -1,5 +1,12 @@
 #include "TorrentHashes.h"
 
-TorrentHashes::TorrentHashes(const valueDictionary& torrent)
+TorrentHashes::TorrentHashes()
 	: hexStringInfoHash{"test"}
-{}
+{
+
+}
+
+void TorrentHashes::torrentToHashesData(const valueDictionary& torrent)
+{
+
+}

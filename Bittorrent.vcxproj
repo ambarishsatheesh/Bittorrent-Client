@@ -37,6 +37,7 @@
     <ClInclude Include="Torrent.h" />
     <ClInclude Include="TorrentGeneral.h" />
     <ClInclude Include="TorrentHashes.h" />
+    <ClInclude Include="TorrentManipulation.h" />
     <ClInclude Include="TorrentPieces.h" />
     <ClInclude Include="TorrentStatus.h" />
     <ClInclude Include="trackerObj.h" />

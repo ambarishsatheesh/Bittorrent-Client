@@ -5,11 +5,17 @@
 #include <boost/variant/get.hpp>
 
 Torrent::Torrent(const char* fullFilePath, const valueDictionary& torrent)
-	: decodedTorrent{ torrent }, generalData(fullFilePath, decodedTorrent),
-	fileList{ }, piecesData( decodedTorrent, fileList ), 
-	hashesData(decodedTorrent), statusData( piecesData, decodedTorrent)
+	: generalData(fullFilePath), fileList{ }, piecesData(), hashesData(),
+	statusData( piecesData, torrent)
 {
-	setFileList(torrent);
+	
+}
+
+Torrent::Torrent(const char* fullFilePath)
+	: generalData(fullFilePath), fileList{ }, piecesData(), hashesData(), 
+	statusData(piecesData)
+{
+
 }
 
 void Torrent::setFileList(const valueDictionary& torrent)
@@ -20,13 +26,13 @@ void Torrent::setFileList(const valueDictionary& torrent)
 	if (info.count("name") && info.count("length"))
 	{
 		resObj.filePath = boost::get<std::string>(info.at("name"));
-		resObj.fileSize = static_cast<long>(boost::get<integer>(info.at("length")));
+		resObj.fileSize = static_cast<long long>(boost::get<integer>(info.at("length")));
 		fileList.push_back(resObj);
 	}
 	//if torrent contains multiple files
 	else if (info.count("files"))
 	{
-		long runningOffset = 0;
+		long long runningOffset = 0;
 		valueList list = boost::get<valueList>(info.at("files"));
 		for (size_t i = 0; i < list.size(); ++i)
 		{
@@ -39,7 +45,7 @@ void Torrent::setFileList(const valueDictionary& torrent)
 			//get file size and offset
 			if (fileData.count("length"))
 			{
-				long size = static_cast<long>(boost::get<integer>(fileData.at("length")));
+				long long size = static_cast<long>(boost::get<integer>(fileData.at("length")));
 				resObj.fileSize = size;
 				resObj.setReadableFileSize();
 				resObj.fileOffset = runningOffset;

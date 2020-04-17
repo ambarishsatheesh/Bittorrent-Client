@@ -1,12 +1,12 @@
-// TODO: refactor torrent class into subclasses - too many parameters (long member initialisation list)
+// TODO: make sure all class members are initialised
 // TODO: clean up utility functions
 // TODO: fix humanReadableBytes function - doesn't round properly
 // TODO: clean up error catching - currently all invalid arguments
+// TODO: implement method to add trackers to torrent
 
 #include "Decoder.h"
 #include "bencodeVisitor.h"
-#include "Utility.h"
-#include "Torrent.h"
+#include "TorrentManipulation.h"
 
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/static_visitor.hpp>
@@ -17,7 +17,7 @@
 #include <iostream>
 #include <stdexcept>
 
-using namespace utility;
+using namespace torrentManipulation;
 
 int main(int argc, char* argv[])
 {
@@ -28,18 +28,57 @@ int main(int argc, char* argv[])
 
 	const char* fullFilePath = argv[1];
 
-	std::string buffer = get_file_contents(fullFilePath);
+	bool isPrivate = false;
 
-	valueDictionary torrent =
-			boost::get<valueDictionary>(Decoder::decode(buffer));
+	std::vector<trackerObj> trackers;
+	trackerObj one, two, three, four;
+	one.trackerAddress = "http://www.cplusplus.com/forum/beginner/104849/";
+	two.trackerAddress = "https://www.google.com/";
+	three.trackerAddress = "https://www.youtube.com/watch?v=q86g1aop6a8";
+	four.trackerAddress = "http://www.reddit.com/";
+
+	trackers.push_back(one);
+	trackers.push_back(two);
+	trackers.push_back(three);
+	trackers.push_back(four);
+
+	Torrent temp = createTorrent("test", fullFilePath, isPrivate, "test comment", trackers);
+
+	std::cout << "file name: " << temp.generalData.fileName << std::endl;
+	std::cout << "comment: " << temp.generalData.comment << std::endl;
+	std::cout << "createdBy: " << temp.generalData.createdBy << std::endl;
+	std::cout << "creationDate: " << temp.generalData.creationDate << std::endl;
+	std::cout << "encoding: " << temp.generalData.encoding << std::endl;
+	std::cout << "isPrivate: " << temp.generalData.isPrivate << std::endl << std::endl;
+
+	std::cout << "trackers: " << std::endl;
+	for (auto i : temp.generalData.trackerList)
+	{
+		std::cout << i.trackerAddress << std::endl;
+	}
+
+	std::cout << std::endl;
+
+	std::cout << "File info:" << std::endl << std::endl;
+
+	for (size_t i = 0; i < temp.fileList.size(); ++i)
+	{
+		std::cout << "file name: " << temp.fileList.at(i).filePath << "; ";
+		std::cout << "original file size: " << temp.fileList.at(i).fileSize << "; ";
+		std::cout << "readable file size: " << temp.fileList.at(i).readableFileSize << std::endl;
+	}
+
+
+
+	//std::string buffer = get_file_contents(fullFilePath);
+
+	//valueDictionary torrent = boost::get<valueDictionary>(Decoder::decode(buffer));
 
 	//create torrent obj
-	Torrent testTorrent(fullFilePath, torrent);
+	//Torrent testTorrent = toTorrentObj(fullFilePath, torrent);
 
-	std::cout << testTorrent.generalData.downloadDirectory << std::endl;
-	std::cout << testTorrent.generalData.fileName << std::endl;
-
-	//std::time_t creationDate = boost::get<integer>(torrent.at("creation date"));
+	//std::cout << testTorrent.generalData.downloadDirectory << std::endl;
+	//std::cout << testTorrent.generalData.fileName << std::endl;
 
 	//boost::apply_visitor(bencodeVisitor(), torrent.at("info"));
 
@@ -61,17 +100,17 @@ int main(int argc, char* argv[])
 	//	std::cout << boost::get<std::string>(final[0]) << std::endl;
 	//}
 
-	for (size_t i = 0; i < testTorrent.fileList.size(); ++i)
+	/*for (size_t i = 0; i < testTorrent.fileList.size(); ++i)
 	{
 		std::cout << "file name: " << testTorrent.fileList.at(i).filePath << "; ";
 		std::cout << "original file size: " << testTorrent.fileList.at(i).fileSize << "; ";
 		std::cout << "readable file size: " << testTorrent.fileList.at(i).readableFileSize << std::endl;
-	}
+	}*/
 
-	for (size_t i = 0; i < testTorrent.generalData.trackerList.size(); ++i)
+	/*for (size_t i = 0; i < testTorrent.generalData.trackerList.size(); ++i)
 	{
 		std::cout << "tracker " << i << ": " << testTorrent.generalData.trackerList.at(i).trackerAddress << std::endl;
-	}
+	}*/
 
 	//std::string pieces =
 	//	boost::get<std::string>(info.at("pieces"));

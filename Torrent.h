@@ -13,7 +13,6 @@
 class Torrent
 {
 public:
-	valueDictionary decodedTorrent;
 
 	//general info
 	TorrentGeneral generalData;
@@ -30,14 +29,18 @@ public:
 	//Status
 	TorrentStatus statusData;
 
-	//constructor
+	//construct using torrent info
 	Torrent(const char* fullFilePath, const valueDictionary& torrent);
+	//construct without any info
+	Torrent(const char* fullFilePath);
 	//no default constructor - requires parameter
 	Torrent() = delete;
 
-private:
-	//get file info
+	//set file info
 	void setFileList(const valueDictionary& torrent);
+
+
+private:
 
 };
 

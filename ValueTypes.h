@@ -12,6 +12,7 @@
 #include <map>
 
 using integer = long long;
+using byte = uint8_t;
 
 //define alias for recursive variant (e.g. to allow for variants within 
 //vectors which then contain further vector of variants, or maps with 

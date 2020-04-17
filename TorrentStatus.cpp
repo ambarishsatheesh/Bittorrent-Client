@@ -5,6 +5,11 @@ TorrentStatus::TorrentStatus(const TorrentPieces& pieces, const valueDictionary&
 {
 }
 
+TorrentStatus::TorrentStatus(const TorrentPieces& pieces)
+{
+
+}
+
 long TorrentStatus::setRemaining(const TorrentPieces& pieces)
 {
 	return pieces.totalSize - downloaded;

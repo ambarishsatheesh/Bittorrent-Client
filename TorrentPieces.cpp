@@ -1,27 +1,62 @@
 #include "TorrentPieces.h"
 #include "Utility.h"
+#include <iostream>
 
 using namespace utility;
 
-TorrentPieces::TorrentPieces(const valueDictionary& torrent, 
-	const std::vector<fileObj>& fileList)
+TorrentPieces::TorrentPieces()
 	: totalSize{ 0 },
 	readablePieceSize { "" },
 	readableTotalSize{ "" }
 {
-	torrentToPiecesObj(torrent, fileList);
+
 }
 
-void TorrentPieces::torrentToPiecesObj(const valueDictionary& torrent, 
-	const std::vector<fileObj>& fileList)
+
+//generate piece data from torrent object
+void TorrentPieces::torrentToPiecesData(const std::vector<fileObj>& fileList, 
+	const valueDictionary& torrent)
 {
 	for (auto file : fileList)
 	{
 		totalSize += file.fileSize;
 	}
 
-	readablePieceSize = humanReadableBytes(pieceSize);
+	valueDictionary info = boost::get<valueDictionary>(torrent.at("info"));
 
+	if (!info.count("piece length"))
+	{
+		throw std::invalid_argument("Error: no piece length specified in torrent!");
+	}
+	pieceSize = static_cast<long>(boost::get<integer>(info.at("piece length")));
+
+
+	//set pieces
+	if (!info.count("pieces"))
+	{
+		throw std::invalid_argument("Error: no pieces specified in torrent!");
+	}
+
+	std::string tempString = boost::get<std::string>(info.at("pieces"));
+	std::vector<byte> tempByte(tempString.size());
+	for (auto i : tempString)
+	{
+		tempByte.push_back(i);
+	}
+	const size_t n = tempByte.size();
+	const size_t columns = 20;
+	const size_t rows = n/columns;
+	assert(rows * columns == n);
+	pieces.resize(rows, std::vector<byte>(columns));
+	for (size_t i = 0; i < rows; ++i)
+	{
+		for (size_t j = 0; j < columns; ++j)
+		{
+			pieces[i][j] = tempByte.at(i * columns + j);
+		}
+	}
+
+	readablePieceSize = humanReadableBytes(pieceSize);
 	readableTotalSize = humanReadableBytes(totalSize);
 }
 

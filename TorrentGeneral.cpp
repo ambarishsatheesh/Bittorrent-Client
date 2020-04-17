@@ -3,20 +3,20 @@
 
 using namespace utility;
 
-TorrentGeneral::TorrentGeneral(const char* fullFilePath, const valueDictionary& torrent)
+TorrentGeneral::TorrentGeneral(const char* fullFilePath)
 	: fileName{ "" },
 	downloadDirectory{ "" },
 	comment{ "" }, createdBy{ "" },
 	creationDate{ },
 	encoding{ "" }, isPrivate{ false }
 {
-	torrentToGeneralObj(fullFilePath, torrent);
+	
 }
 
-void TorrentGeneral::torrentToGeneralObj(const char* fullFilePath, const valueDictionary& torrent)
+void TorrentGeneral::torrentToGeneralData(const char* fullFilePath, const valueDictionary& torrent)
 {
-	fileName = setFileName(fullFilePath);
-	downloadDirectory = setFileDirectory(fullFilePath);
+	fileName = getFileName(fullFilePath);
+	downloadDirectory = getFileDirectory(fullFilePath);
 
 	//get trackers
 	trackerObj tracker;

@@ -7,19 +7,33 @@ class TorrentPieces
 public:
 
 	long blockSize;
-	long pieceSize;
+	long long pieceSize;
 	std::string readablePieceSize;
-	long totalSize;
+	long long totalSize;
 	std::string readableTotalSize;
 	int pieceCount;
+	std::vector<std::vector<byte>> pieces;
 
 	//constructor
-	TorrentPieces(const valueDictionary& torrent, const std::vector<fileObj>& fileList);
-	//no default constructor - requires parameter
-	TorrentPieces() = delete;
+	TorrentPieces();
+
+	//fill in pieces data
+	void torrentToPiecesData(const std::vector<fileObj>& fileList,
+		const valueDictionary& torrent);
+
+	void setReadablePieceSize()
+	{
+		readablePieceSize = humanReadableBytes(pieceSize);
+	}
+
+	void setReadableTotalSize()
+	{
+		readableTotalSize = humanReadableBytes(totalSize);
+	}
+
 
 private:
-	void torrentToPiecesObj(const valueDictionary& torrent, const std::vector<fileObj>& fileList);
+
 	int setPieceSize(int piece);
 	int setBlockSize(int piece, int block);
 	int setBlockCount(int piece);

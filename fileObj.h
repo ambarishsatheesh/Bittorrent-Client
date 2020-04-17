@@ -10,7 +10,7 @@ class fileObj
 public:
 	//directory structure of files
 	std::string filePath;
-	long fileSize;
+	long long fileSize;
 	//sum of previous files in list
 	long fileOffset;
 	std::string readableFileSize;
@@ -19,11 +19,12 @@ public:
 		readableFileSize{ "" }
 	{}
 
-private:
 	void setReadableFileSize()
 	{
 		readableFileSize = humanReadableBytes(fileSize);
 	}
+
+private:
 	//let only Torrent class access setter
 	friend class Torrent;
 };
