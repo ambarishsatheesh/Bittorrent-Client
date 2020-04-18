@@ -72,7 +72,7 @@ namespace utility
         return strPath;
     }
 
-    inline std::string get_file_contents(const char* filename)
+    inline std::string loadFromFile(const char* filename)
     {
         std::ifstream read(filename, std::ios::in | std::ios::binary);
         if (read)
@@ -86,6 +86,14 @@ namespace utility
             return(contents);
         }
         throw(errno);
+    }
+
+
+    inline void saveToFile(std::string fullFilePath, std::string encoded)
+    {
+        std::ofstream file(fullFilePath);
+        file << encoded;
+        file.close();
     }
 
     inline bool is10x(int a)

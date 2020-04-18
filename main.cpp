@@ -3,9 +3,10 @@
 // TODO: fix humanReadableBytes function - doesn't round properly
 // TODO: clean up error catching - currently all invalid arguments
 // TODO: implement method to add trackers to torrent
+// TODO: clean up decoder
 
 #include "Decoder.h"
-#include "bencodeVisitor.h"
+#include "encodeVisitor.h"
 #include "TorrentManipulation.h"
 
 #include <boost/variant/apply_visitor.hpp>
@@ -18,6 +19,7 @@
 #include <stdexcept>
 
 using namespace torrentManipulation;
+using namespace Decoder;
 
 int main(int argc, char* argv[])
 {
@@ -28,51 +30,53 @@ int main(int argc, char* argv[])
 
 	const char* fullFilePath = argv[1];
 
-	bool isPrivate = false;
+	//bool isPrivate = false;
 
-	std::vector<trackerObj> trackers;
-	trackerObj one, two, three, four;
-	one.trackerAddress = "http://www.cplusplus.com/forum/beginner/104849/";
-	two.trackerAddress = "https://www.google.com/";
-	three.trackerAddress = "https://www.youtube.com/watch?v=q86g1aop6a8";
-	four.trackerAddress = "http://www.reddit.com/";
+	//std::vector<trackerObj> trackers;
+	//trackerObj one, two, three, four;
+	//one.trackerAddress = "http://www.cplusplus.com/forum/beginner/104849/";
+	//two.trackerAddress = "https://www.google.com/";
+	//three.trackerAddress = "https://www.youtube.com/watch?v=q86g1aop6a8";
+	//four.trackerAddress = "http://www.reddit.com/";
 
-	trackers.push_back(one);
-	trackers.push_back(two);
-	trackers.push_back(three);
-	trackers.push_back(four);
+	//trackers.push_back(one);
+	//trackers.push_back(two);
+	//trackers.push_back(three);
+	//trackers.push_back(four);
 
-	Torrent temp = createTorrent("test", fullFilePath, isPrivate, "test comment", trackers);
+	//Torrent temp = createNewTorrent("test", fullFilePath, isPrivate, "test comment", trackers);
 
-	std::cout << "file name: " << temp.generalData.fileName << std::endl;
-	std::cout << "comment: " << temp.generalData.comment << std::endl;
-	std::cout << "createdBy: " << temp.generalData.createdBy << std::endl;
-	std::cout << "creationDate: " << temp.generalData.creationDate << std::endl;
-	std::cout << "encoding: " << temp.generalData.encoding << std::endl;
-	std::cout << "isPrivate: " << temp.generalData.isPrivate << std::endl << std::endl;
+	//std::cout << "file name: " << temp.generalData.fileName << std::endl;
+	//std::cout << "comment: " << temp.generalData.comment << std::endl;
+	//std::cout << "createdBy: " << temp.generalData.createdBy << std::endl;
+	//std::cout << "creationDate: " << temp.generalData.creationDate << std::endl;
+	//std::cout << "encoding: " << temp.generalData.encoding << std::endl;
+	//std::cout << "isPrivate: " << temp.generalData.isPrivate << std::endl << std::endl;
 
-	std::cout << "trackers: " << std::endl;
-	for (auto i : temp.generalData.trackerList)
-	{
-		std::cout << i.trackerAddress << std::endl;
-	}
+	//std::cout << "trackers: " << std::endl;
+	//for (auto i : temp.generalData.trackerList)
+	//{
+	//	std::cout << i.trackerAddress << std::endl;
+	//}
 
-	std::cout << std::endl;
+	//std::cout << std::endl;
 
-	std::cout << "File info:" << std::endl << std::endl;
+	//std::cout << "File info:" << std::endl << std::endl;
 
-	for (size_t i = 0; i < temp.fileList.size(); ++i)
-	{
-		std::cout << "file name: " << temp.fileList.at(i).filePath << "; ";
-		std::cout << "original file size: " << temp.fileList.at(i).fileSize << "; ";
-		std::cout << "readable file size: " << temp.fileList.at(i).readableFileSize << std::endl;
-	}
+	//for (size_t i = 0; i < temp.fileList.size(); ++i)
+	//{
+	//	std::cout << "file name: " << temp.fileList.at(i).filePath << "; ";
+	//	std::cout << "original file size: " << temp.fileList.at(i).fileSize << "; ";
+	//	std::cout << "readable file size: " << temp.fileList.at(i).readableFileSize << std::endl;
+	//}
 
 
 
-	//std::string buffer = get_file_contents(fullFilePath);
+	std::string buffer = loadFromFile(fullFilePath);
 
-	//valueDictionary torrent = boost::get<valueDictionary>(Decoder::decode(buffer));
+	value torrent = boost::get<valueDictionary>(Decoder::decode(buffer));
+
+
 
 	//create torrent obj
 	//Torrent testTorrent = toTorrentObj(fullFilePath, torrent);

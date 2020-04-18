@@ -1,8 +1,10 @@
 #pragma once
-#include "boost/filesystem.hpp"
 
 #include "Torrent.h"
 #include "Utility.h"
+#include "encodeVisitor.h"
+
+#include "boost/filesystem.hpp"
 
 
 using namespace utility;
@@ -11,6 +13,12 @@ using namespace utility;
 
 namespace torrentManipulation
 {
+	//encode torrent object
+	std::string encode(const value& torrent)
+	{
+		return boost::apply_visitor(encodeVisitor(), torrent);
+	}
+
 	//create complete torrent object from bencoded data
 	Torrent toTorrentObj(const char* fullFilePath, const valueDictionary& torrent)
 	{
@@ -36,14 +44,14 @@ namespace torrentManipulation
 	}
 
 
-	//create complete torrent object to bencode
-	valueDictionary toBencodingObj(const Torrent& torrent)
+	//create complete torrent object (pre-processing for encoding)
+	value toBencodingObj(const Torrent& torrent)
 	{
 
 	}
 
 	//create torrent with default empty tracker list and comment
-	Torrent createTorrent(std::string fileName, const char* path, bool& isPrivate, 
+	Torrent createNewTorrent(std::string fileName, const char* path, bool& isPrivate, 
 		const std::string& comment = "", std::vector<trackerObj> trackerList = {})
 	{
 		Torrent createdTorrent(path);
@@ -119,9 +127,13 @@ namespace torrentManipulation
 		createdTorrent.piecesData.totalSize = totalSize;
 		createdTorrent.piecesData.pieceSize = recommendedPieceSize(totalSize);
 		
-		return createdTorrent;
+		//create object for encoding
+		value tempObj = toBencodingObj(createdTorrent);
+		//encode and save
+		std::string strFilePath = path;
+		saveToFile(strFilePath, encode(tempObj));
 
-		
+		return createdTorrent;
 	}
 
 

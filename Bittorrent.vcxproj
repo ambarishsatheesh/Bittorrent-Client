@@ -19,9 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Decoder.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="bencodeVisitor.cpp" />
+    <ClCompile Include="encodeVisitor.cpp" />
     <ClCompile Include="Tokenizer.cpp" />
     <ClCompile Include="Torrent.cpp" />
     <ClCompile Include="TorrentGeneral.cpp" />
@@ -31,7 +30,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Decoder.h" />
-    <ClInclude Include="bencodeVisitor.h" />
+    <ClInclude Include="encodeVisitor.h" />
     <ClInclude Include="fileObj.h" />
     <ClInclude Include="Tokenizer.h" />
     <ClInclude Include="Torrent.h" />
