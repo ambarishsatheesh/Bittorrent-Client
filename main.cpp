@@ -74,7 +74,15 @@ int main(int argc, char* argv[])
 
 	std::string buffer = loadFromFile(fullFilePath);
 
-	value torrent = boost::get<valueDictionary>(Decoder::decode(buffer));
+	valueDictionary torrent = boost::get<valueDictionary>(Decoder::decode(buffer));
+
+	Torrent testTorrent = toTorrentObj(fullFilePath, torrent);
+
+	value tempObj = toBencodingObj(testTorrent);
+	//encode and save
+	//parameter needs to be adjustable
+	std::string strFilePath = "D:\\Documents\\Programming\\Bittorrent\\Bittorrent\\x64\\Release\\testencoding.torrent";
+	saveToFile(strFilePath, encode(tempObj));
 
 
 

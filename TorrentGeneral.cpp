@@ -13,12 +13,56 @@ TorrentGeneral::TorrentGeneral(const char* fullFilePath)
 	
 }
 
+valueDictionary TorrentGeneral::generalDataToDictionary(valueDictionary& dict)
+{
+	//trackers
+	assert (!trackerList.empty());
+	if (trackerList.size() == 1)
+	{
+		dict.emplace("announce", trackerList.at(0).trackerAddress);
+	}
+	else
+	{
+		valueList trackerValueList;
+		for (size_t i = 0; i < trackerList.size(); ++i)
+		{
+			trackerValueList.push_back(trackerList.at(i).trackerAddress);
+		}
+		dict.emplace("announce-list", trackerValueList);
+	}
+
+	if (!comment.empty())
+	{
+		dict.emplace("comment", comment);
+	}
+
+	if (!createdBy.empty())
+	{
+		dict.emplace("created by", createdBy);
+	}
+	
+	if (!encoding.empty())
+	{
+		dict.emplace("encoding", encoding);
+	}
+
+	bool privateCheck = isPrivate ? 1 : 0;
+	dict.emplace("private", privateCheck);
+
+	//if creation date is not empty/if initialised to non-default value
+	if (!creationDate.is_not_a_date_time())
+	{
+		dict.emplace("creation date", boost::posix_time::to_time_t(creationDate));
+	}
+
+	return dict;
+}
+
 void TorrentGeneral::torrentToGeneralData(const char* fullFilePath, const valueDictionary& torrent)
 {
 	fileName = getFileName(fullFilePath);
 	downloadDirectory = getFileDirectory(fullFilePath);
 
-	//get trackers
 	trackerObj tracker;
 	if (torrent.count("announce-list"))
 	{

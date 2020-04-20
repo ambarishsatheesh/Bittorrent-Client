@@ -38,7 +38,7 @@ public:
 
 	//set file info
 	void setFileList(const valueDictionary& torrent);
-
+	valueDictionary filesToDictionary(valueDictionary& dict);
 
 private:
 

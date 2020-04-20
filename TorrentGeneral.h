@@ -26,6 +26,7 @@ public:
 
 	//fill general info
 	void torrentToGeneralData(const char* fullFilePath, const valueDictionary& torrent);
+	valueDictionary generalDataToDictionary(valueDictionary& dict);
 
 private:
 

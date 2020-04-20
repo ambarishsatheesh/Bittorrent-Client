@@ -45,9 +45,13 @@ namespace torrentManipulation
 
 
 	//create complete torrent object (pre-processing for encoding)
-	value toBencodingObj(const Torrent& torrent)
+	value toBencodingObj(Torrent& torrent)
 	{
-
+		valueDictionary bencodingObj;
+		valueDictionary bencodingObjInfo;
+		bencodingObj.emplace("info", torrent.filesToDictionary(bencodingObjInfo));
+		torrent.generalData.generalDataToDictionary(bencodingObj);
+		return bencodingObj;
 	}
 
 	//create torrent with default empty tracker list and comment
@@ -130,7 +134,8 @@ namespace torrentManipulation
 		//create object for encoding
 		value tempObj = toBencodingObj(createdTorrent);
 		//encode and save
-		std::string strFilePath = path;
+		//parameter needs to be adjustable
+		std::string strFilePath = "D:\\Documents\\Programming\\Bittorrent\\Bittorrent\\x64\\Release\\testencoding.torrent";
 		saveToFile(strFilePath, encode(tempObj));
 
 		return createdTorrent;

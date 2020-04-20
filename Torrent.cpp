@@ -4,6 +4,8 @@
 #include <boost/variant/get.hpp>
 #include <boost/variant/get.hpp>
 
+//add tracker processing
+
 Torrent::Torrent(const char* fullFilePath, const valueDictionary& torrent)
 	: generalData(fullFilePath), fileList{ }, piecesData(), hashesData(),
 	statusData( piecesData, torrent)
@@ -16,6 +18,62 @@ Torrent::Torrent(const char* fullFilePath)
 	statusData(piecesData)
 {
 
+}
+
+valueDictionary Torrent::filesToDictionary(valueDictionary& dict)
+{
+	if (fileList.empty())
+	{
+		throw std::invalid_argument("Error: no files in torrent!");
+	}
+	else if (fileList.size() == 1)
+	{
+		dict.emplace("name", fileList.at(0).filePath);
+		dict.emplace("length", fileList.at(0).fileSize);
+	}
+	else
+	{
+		valueList multiFilesList;
+		std::string majorPath;
+		for (size_t i = 0; i < fileList.size(); ++i)
+		{
+			valueDictionary fileDataDict;
+			valueList subPathList;
+			//add file size
+			fileDataDict.emplace("length", fileList.at(i).fileSize);
+
+			//format file paths (recursive folders check)
+			majorPath = fileList.at(i).filePath;
+			auto found = majorPath.find_first_of("/\\");
+			if (found == std::string::npos)
+			{
+				subPathList.push_back(majorPath);
+			}
+			else
+			{
+				std::string subPath;
+				while (found != std::string::npos)
+				{
+					subPath = majorPath.substr(0, found);
+					majorPath = majorPath.substr(found + 1);
+					subPathList.push_back(subPath);
+					found = majorPath.find_first_of("/\\");
+					if (found == std::string::npos)
+					{
+						subPathList.push_back(majorPath);
+						break;
+					}
+				}
+			}
+			//add path to subdict
+			fileDataDict.emplace("path", subPathList);
+			//add subdict to file list
+			multiFilesList.push_back(fileDataDict);
+		}
+		//add file list to parent files dict
+		dict.emplace("files", multiFilesList);
+	}
+	return dict;
 }
 
 void Torrent::setFileList(const valueDictionary& torrent)
