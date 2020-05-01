@@ -12,7 +12,7 @@ public:
 	std::string filePath;
 	long long fileSize;
 	//sum of previous files in list
-	long fileOffset;
+	long long fileOffset;
 	std::string readableFileSize;
 
 	fileObj() : filePath{ "" }, fileSize{ 0 }, fileOffset{ 0 },

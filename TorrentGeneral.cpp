@@ -96,7 +96,7 @@ void TorrentGeneral::torrentToGeneralData(const char* fullFilePath, const valueD
 
 	if (torrent.count("creation date"))
 	{
-		creationDate = boost::posix_time::from_time_t(boost::get<integer>
+		creationDate = boost::posix_time::from_time_t(boost::get<long long>
 			(torrent.at("creation date")));
 	}
 
@@ -109,7 +109,7 @@ void TorrentGeneral::torrentToGeneralData(const char* fullFilePath, const valueD
 		boost::get<valueDictionary>(torrent.at("info"));
 	if (info.count("private"))
 	{
-		if (boost::get<integer>(info.at("private")) == 1)
+		if (boost::get<long long>(info.at("private")) == 1)
 		{
 			isPrivate = true;
 		}

@@ -62,7 +62,7 @@ namespace Decoder
 			throw std::invalid_argument("Negative zero is not allowed");
 
 		try {
-			integer valueInt = boost::lexical_cast<integer>(tokens.at(1));
+			long long valueInt = boost::lexical_cast<long long>(tokens.at(1));
 			tokens.pop_front(); // eat the "i"
 			tokens.pop_front(); // eat the the number
 			tokens.pop_front(); // eat the "e"

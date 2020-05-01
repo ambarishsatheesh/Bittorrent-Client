@@ -21,6 +21,8 @@ public:
 	void torrentToPiecesData(const std::vector<fileObj>& fileList,
 		const valueDictionary& torrent);
 
+	valueDictionary piecesDataToDictionary(valueDictionary& dict);
+
 	void setReadablePieceSize()
 	{
 		readablePieceSize = humanReadableBytes(pieceSize);
@@ -30,9 +32,6 @@ public:
 	{
 		readableTotalSize = humanReadableBytes(totalSize);
 	}
-
-
-private:
 
 	int setPieceSize(int piece);
 	int setBlockSize(int piece, int block);

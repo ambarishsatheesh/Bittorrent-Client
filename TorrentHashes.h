@@ -13,7 +13,7 @@ public:
 	TorrentHashes();
 
 	//fill hashes info
-	void torrentToHashesData(const valueDictionary& torrent);
+	void torrentToHashesData(const value& torrentInfo);
 
 private:
 

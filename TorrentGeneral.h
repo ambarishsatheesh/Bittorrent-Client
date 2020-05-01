@@ -11,7 +11,7 @@ class TorrentGeneral
 {
 public:
 	std::string fileName;
-	std::string downloadDirectory; //TODO: check how this works
+	std::string downloadDirectory;
 	std::vector<trackerObj> trackerList;
 	std::string comment;
 	std::string createdBy;

@@ -14,7 +14,7 @@ encodeVisitor::encodeVisitor()
 
 }
 
-std::string encodeVisitor::operator()(const integer& inputObj) const
+std::string encodeVisitor::operator()(const long long& inputObj) const
 {
 	std::stringstream ss;
 	ss << "i" << inputObj << "e";

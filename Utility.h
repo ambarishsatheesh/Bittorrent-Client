@@ -2,7 +2,10 @@
 #include <string>
 #include <boost/lexical_cast.hpp>
 #include <fstream>
+#include <iostream>
 #include <cerrno>
+#include <boost/uuid/detail/sha1.hpp>
+#include "boost/filesystem.hpp"
 
 #include "ValueTypes.h"
 
@@ -11,16 +14,23 @@ namespace utility
 
     inline std::string getFileDirectory(const char* filePath)
     {
-        std::string strPath = filePath;
-        //remove name and extension
-        const auto lastSlashIndex = strPath.find_last_of("/\\");
-        if (std::string::npos != lastSlashIndex)
+        if (boost::filesystem::is_directory(filePath))
         {
-            return strPath.substr(0, lastSlashIndex + 1);
+            return filePath;
         }
         else
         {
-            throw std::invalid_argument("Invalid file path! No slashes!");
+            std::string strPath = filePath;
+            //remove name and extension
+            const auto lastSlashIndex = strPath.find_last_of("/\\");
+            if (std::string::npos != lastSlashIndex)
+            {
+                return strPath.substr(0, lastSlashIndex + 1);
+            }
+            else
+            {
+                throw std::invalid_argument("Invalid file path! No slashes!");
+            }
         }
     }
 

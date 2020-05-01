@@ -6,8 +6,8 @@ class TorrentStatus
 {
 public:
 
-	bool isBlockAcquired;
-	bool isPieceVerified;
+	std::vector<std::vector<bool>> isBlockAcquired;
+	std::vector<bool> isPieceVerified;
 	std::string verifiedPiecesString;
 	int verifiedPiecesCount;
 	double verifiedRatio;

@@ -5,11 +5,28 @@
 using namespace utility;
 
 TorrentPieces::TorrentPieces()
-	: totalSize{ 0 },
-	readablePieceSize { "" },
-	readableTotalSize{ "" }
+	: blockSize{ 16384 }, pieceSize{ 0 }, readablePieceSize{ "" }, totalSize{ 0 },
+	readableTotalSize{ "" }, pieceCount{ 0 }
 {
 
+}
+
+valueDictionary TorrentPieces::piecesDataToDictionary(valueDictionary& dict)
+{
+	dict.emplace("piece length", pieceSize);
+
+	//pieces
+	std::string piecesString;
+	for (size_t i = 0; i < pieces.size(); ++i)
+	{
+		for (size_t j = 0; j < pieces.at(i).size(); ++j)
+		{
+			piecesString += pieces[i][j];
+		}
+	}
+	dict.emplace("pieces", piecesString);
+
+	return dict;
 }
 
 
@@ -28,7 +45,7 @@ void TorrentPieces::torrentToPiecesData(const std::vector<fileObj>& fileList,
 	{
 		throw std::invalid_argument("Error: no piece length specified in torrent!");
 	}
-	pieceSize = static_cast<long>(boost::get<integer>(info.at("piece length")));
+	pieceSize = static_cast<long>(boost::get<long long>(info.at("piece length")));
 
 
 	//set pieces
@@ -36,14 +53,8 @@ void TorrentPieces::torrentToPiecesData(const std::vector<fileObj>& fileList,
 	{
 		throw std::invalid_argument("Error: no pieces specified in torrent!");
 	}
-
 	std::string tempString = boost::get<std::string>(info.at("pieces"));
-	std::vector<byte> tempByte(tempString.size());
-	for (auto i : tempString)
-	{
-		tempByte.push_back(i);
-	}
-	const size_t n = tempByte.size();
+	const size_t n = tempString.size();
 	const size_t columns = 20;
 	const size_t rows = n/columns;
 	assert(rows * columns == n);
@@ -52,10 +63,12 @@ void TorrentPieces::torrentToPiecesData(const std::vector<fileObj>& fileList,
 	{
 		for (size_t j = 0; j < columns; ++j)
 		{
-			pieces[i][j] = tempByte.at(i * columns + j);
+			pieces[i][j] = tempString.at(i * columns + j);
 		}
 	}
 
+	//update pieceCount
+	pieceCount = pieces.size();
 	readablePieceSize = humanReadableBytes(pieceSize);
 	readableTotalSize = humanReadableBytes(totalSize);
 }
@@ -70,8 +83,8 @@ int TorrentPieces::setPieceSize(int piece)
 		{
 			return remainder;
 		}
-		return pieceSize;
 	}
+	return pieceSize;
 }
 
 int TorrentPieces::setBlockSize(int piece, int block)
@@ -83,8 +96,8 @@ int TorrentPieces::setBlockSize(int piece, int block)
 		{
 			return remainder;
 		}
-		return blockSize;
 	}
+	return blockSize;
 }
 
 int TorrentPieces::setBlockCount(int piece)

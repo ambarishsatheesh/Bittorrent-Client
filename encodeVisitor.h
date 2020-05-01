@@ -8,7 +8,7 @@ class encodeVisitor :
 {
 public:
 	encodeVisitor();
-	std::string operator()(const integer& inputObj) const;
+	std::string operator()(const long long& inputObj) const;
 	std::string operator()(const std::string& inputObj) const;
 	std::string operator()(const valueDictionary& inputObj) const;
 	std::string operator()(const valueList& inputObj) const;

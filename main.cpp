@@ -18,6 +18,8 @@
 #include <iostream>
 #include <stdexcept>
 
+
+
 using namespace torrentManipulation;
 using namespace Decoder;
 
@@ -30,21 +32,21 @@ int main(int argc, char* argv[])
 
 	const char* fullFilePath = argv[1];
 
-	//bool isPrivate = false;
+	bool isPrivate = false;
 
-	//std::vector<trackerObj> trackers;
-	//trackerObj one, two, three, four;
-	//one.trackerAddress = "http://www.cplusplus.com/forum/beginner/104849/";
-	//two.trackerAddress = "https://www.google.com/";
-	//three.trackerAddress = "https://www.youtube.com/watch?v=q86g1aop6a8";
-	//four.trackerAddress = "http://www.reddit.com/";
+	std::vector<trackerObj> trackers;
+	trackerObj one, two, three, four;
+	one.trackerAddress = "http://www.cplusplus.com/forum/beginner/104849/";
+	two.trackerAddress = "https://www.google.com/";
+	three.trackerAddress = "https://www.youtube.com/watch?v=q86g1aop6a8";
+	four.trackerAddress = "http://www.reddit.com/";
 
-	//trackers.push_back(one);
-	//trackers.push_back(two);
-	//trackers.push_back(three);
-	//trackers.push_back(four);
+	trackers.push_back(one);
+	trackers.push_back(two);
+	trackers.push_back(three);
+	trackers.push_back(four);
 
-	//Torrent temp = createNewTorrent("test", fullFilePath, isPrivate, "test comment", trackers);
+	Torrent temp = createNewTorrent("test", fullFilePath, isPrivate, "test comment", trackers);
 
 	//std::cout << "file name: " << temp.generalData.fileName << std::endl;
 	//std::cout << "comment: " << temp.generalData.comment << std::endl;
@@ -70,27 +72,28 @@ int main(int argc, char* argv[])
 	//	std::cout << "readable file size: " << temp.fileList.at(i).readableFileSize << std::endl;
 	//}
 
-
-
-	std::string buffer = loadFromFile(fullFilePath);
+	/*std::string buffer = loadFromFile(fullFilePath);
 
 	valueDictionary torrent = boost::get<valueDictionary>(Decoder::decode(buffer));
 
 	Torrent testTorrent = toTorrentObj(fullFilePath, torrent);
 
-	value tempObj = toBencodingObj(testTorrent);
-	//encode and save
-	//parameter needs to be adjustable
-	std::string strFilePath = "D:\\Documents\\Programming\\Bittorrent\\Bittorrent\\x64\\Release\\testencoding.torrent";
-	saveToFile(strFilePath, encode(tempObj));
+	//value tempObj = toBencodingObj(testTorrent);
+	////encode and save
+	////parameter needs to be adjustable
+	//std::string strFilePath = "D:\\Documents\\Programming\\Bittorrent\\Bittorrent\\x64\\Release\\testencoding.torrent";
+	//saveToFile(strFilePath, encode(tempObj));
 
 
 
 	//create torrent obj
 	//Torrent testTorrent = toTorrentObj(fullFilePath, torrent);
+	
 
-	//std::cout << testTorrent.generalData.downloadDirectory << std::endl;
-	//std::cout << testTorrent.generalData.fileName << std::endl;
+	/*std::cout << testTorrent.generalData.downloadDirectory << std::endl;
+	std::cout << testTorrent.generalData.fileDirectory << std::endl;
+	std::cout << testTorrent.generalData.fileName << std::endl;
+	std::cout << testTorrent.fileList[0].filePath << std::endl;*/
 
 	//boost::apply_visitor(bencodeVisitor(), torrent.at("info"));
 
@@ -139,6 +142,8 @@ int main(int argc, char* argv[])
 	//std::cout << "encoding: " << testTorrent.generalData.encoding << std::endl;
 
 	//std::cout << humanReadableBytes(829083) <<std::endl;
+
+
 
 	return 0;
 }

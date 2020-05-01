@@ -50,8 +50,8 @@ void Tokenizer::tokenize(const std::string& encoded,
 			else 
 			{
 				//convert to long long if number, else push string
-	/*			integer res;
-				if (boost::conversion::try_lexical_convert<integer>(regStore[0].str(), res))
+	/*			long long res;
+				if (boost::conversion::try_lexical_convert<long long>(regStore[0].str(), res))
 				{
 					tokens.push_back(res);
 				}
