@@ -2,30 +2,33 @@
 #include <string>
 #include "Utility.h"
 
-using namespace utility;
 
-class fileObj
-	
+namespace Bittorrent
 {
-public:
-	//directory structure of files
-	std::string filePath;
-	long long fileSize;
-	//sum of previous files in list
-	long long fileOffset;
-	std::string readableFileSize;
+	using namespace utility;
 
-	fileObj() : filePath{ "" }, fileSize{ 0 }, fileOffset{ 0 },
-		readableFileSize{ "" }
-	{}
+	class fileObj
 
-	void setReadableFileSize()
 	{
-		readableFileSize = humanReadableBytes(fileSize);
-	}
+	public:
+		//directory structure of files
+		std::string filePath;
+		long long fileSize;
+		//sum of previous files in list
+		long long fileOffset;
+		std::string readableFileSize;
 
-private:
-	//let only Torrent class access setter
-	friend class Torrent;
-};
+		fileObj() : filePath{ "" }, fileSize{ 0 }, fileOffset{ 0 },
+			readableFileSize{ "" }
+		{}
 
+		void setReadableFileSize()
+		{
+			readableFileSize = humanReadableBytes(fileSize);
+		}
+
+	private:
+		//let only Torrent class access setter
+		friend class Torrent;
+	};
+}

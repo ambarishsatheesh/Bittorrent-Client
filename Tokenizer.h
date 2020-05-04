@@ -3,15 +3,15 @@
 #include <string>
 #include <deque>
 
-class Tokenizer
+namespace Bittorrent
 {
-public:
-	static void tokenize(const std::string& encoded,
-		std::deque<std::string>& tokens);
+	class Tokenizer
+	{
+	public:
+		static void tokenize(const std::string& encoded,
+			std::deque<std::string>& tokens);
 
-private:
-	Tokenizer();
-};
-
-
-
+	private:
+		Tokenizer();
+	};
+}

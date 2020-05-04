@@ -7,29 +7,39 @@
 
 #include <ctime>
 
-class TorrentGeneral
+
+namespace Bittorrent
 {
-public:
-	std::string fileName;
-	std::string downloadDirectory;
-	std::vector<trackerObj> trackerList;
-	std::string comment;
-	std::string createdBy;
-	boost::posix_time::ptime creationDate;
-	std::string encoding; //unsure
-	bool isPrivate;
+	class TorrentGeneral
+	{
+	public:
+		std::string fileName;
+		std::string downloadDirectory;
+		std::vector<trackerObj> trackerList;
+		std::string comment;
+		std::string createdBy;
+		boost::posix_time::ptime creationDate;
+		std::string encoding; //unsure
+		bool isPrivate;
 
-	//constructor
-	TorrentGeneral(const char* fullFilePath);
-	//no default constructor - requires parameter
-	TorrentGeneral() = delete;
+		//fill general info
+		void torrentToGeneralData(const char* fullFilePath, const valueDictionary& torrent);
+		valueDictionary generalDataToDictionary(valueDictionary& dict);
 
-	//fill general info
-	void torrentToGeneralData(const char* fullFilePath, const valueDictionary& torrent);
-	valueDictionary generalDataToDictionary(valueDictionary& dict);
+		//tracker processing
+		void updateTrackers(trackerObj::trackerEvent trkEvent, int id,
+			int port, std::string urlEncodedInfoHash, long long uploaded,
+			long long downloaded, long long remaining);
+		void resetTrackersLastRequest();
 
-private:
+		//constructor
+		TorrentGeneral(const char* fullFilePath);
+		//no default constructor - requires parameter
+		TorrentGeneral() = delete;
+
+	private:
 
 
-};
+	};
 
+}

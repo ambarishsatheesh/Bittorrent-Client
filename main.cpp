@@ -1,4 +1,7 @@
 // TODO: make sure all class members are initialised
+// TODO: event handler for peer list (for creating both new torrents and processing exsting ones)
+// TODO: re-design remaining download
+// TODO: implement proper compact peer list?
 // TODO: clean up utility functions
 // TODO: fix humanReadableBytes function - doesn't round properly
 // TODO: clean up error catching - currently all invalid arguments
@@ -19,7 +22,7 @@
 #include <stdexcept>
 
 
-
+using namespace Bittorrent;
 using namespace torrentManipulation;
 using namespace Decoder;
 
@@ -47,6 +50,8 @@ int main(int argc, char* argv[])
 	trackers.push_back(four);
 
 	Torrent temp = createNewTorrent("test", fullFilePath, isPrivate, "test comment", trackers);
+
+	temp.generalData.trackerList[0].update(trackerObj::trackerEvent::started, 19028907, 6969, "%6d%7e%8f", 4549, 397892, 4334);
 
 	//std::cout << "file name: " << temp.generalData.fileName << std::endl;
 	//std::cout << "comment: " << temp.generalData.comment << std::endl;
@@ -88,7 +93,7 @@ int main(int argc, char* argv[])
 
 	//create torrent obj
 	//Torrent testTorrent = toTorrentObj(fullFilePath, torrent);
-	
+
 
 	/*std::cout << testTorrent.generalData.downloadDirectory << std::endl;
 	std::cout << testTorrent.generalData.fileDirectory << std::endl;
@@ -99,7 +104,7 @@ int main(int argc, char* argv[])
 
 	//auto result = unixTime_to_ptime(creationDate);
 	//auto result2 = ptime_to_unixTime(result);
-	
+
 	////testing access
 	//valueDictionary info =
 	//	boost::get<valueDictionary>(torrent.at("info"));

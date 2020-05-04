@@ -6,346 +6,348 @@
 #include "sha1.h"
 
 
-using namespace utility;
-
-//need to declare inline for each function?
-
-namespace torrentManipulation
+namespace Bittorrent
 {
-	//forward declare
-	std::string encode(const value& torrent);
-	Torrent toTorrentObj(const char* fullFilePath, const valueDictionary& torrent);
-	value toBencodingObj(Torrent& torrent);
-	Torrent createNewTorrent(std::string fileName, const char* path, 
-		bool isPrivate, const std::string& comment = "", 
-		std::vector<trackerObj> trackerList = {});
-	std::vector<byte> read(Torrent& torrent, long long start, long long length);
-	void write(Torrent& torrent, long long start, std::vector<byte>& buffer);
-	std::vector<byte> readPiece(Torrent& torrent, int piece);
-	std::vector<byte> readBlock(Torrent& torrent, int piece, long long offset,
-		long long length);
-	void writeBlock(Torrent& torrent, int piece, int block, 
-		std::vector<byte>& buffer);
-	void verify(int piece);
-	std::vector<byte> getHash(Torrent& torrent, int piece);
 
+	using namespace utility;
 
-	//encode torrent object
-	std::string encode(const value& torrent)
+	//need to declare inline for each function?
+
+	namespace torrentManipulation
 	{
-		return boost::apply_visitor(encodeVisitor(), torrent);
-	}
+		//forward declare
+		std::string encode(const value& torrent);
+		Torrent toTorrentObj(const char* fullFilePath, const valueDictionary& torrent);
+		value toBencodingObj(Torrent& torrent);
+		Torrent createNewTorrent(std::string fileName, const char* path,
+			bool isPrivate, const std::string& comment = "",
+			std::vector<trackerObj> trackerList = {});
+		std::vector<byte> read(Torrent& torrent, long long start, long long length);
+		void write(Torrent& torrent, long long start, std::vector<byte>& buffer);
+		std::vector<byte> readPiece(Torrent& torrent, int piece);
+		std::vector<byte> readBlock(Torrent& torrent, int piece, long long offset,
+			long long length);
+		void writeBlock(Torrent& torrent, int piece, int block,
+			std::vector<byte>& buffer);
+		void verify(int piece);
+		std::vector<byte> getHash(Torrent& torrent, int piece);
 
-	//create complete torrent object from bencoded data
-	Torrent toTorrentObj(const char* fullFilePath, const valueDictionary& torrentDict)
-	{
-		if (torrentDict.empty())
+
+		//encode torrent object
+		std::string encode(const value& torrent)
 		{
-			throw std::invalid_argument("Error: not a torrent file!");
-		}
-		if (!torrentDict.count("info"))
-		{
-			throw std::invalid_argument("Error: missing info section in torrent!");
+			return boost::apply_visitor(encodeVisitor(), torrent);
 		}
 
-		//create torrent
-		Torrent newTorrent(fullFilePath, torrentDict);
-		//fill file list data
-		newTorrent.setFileList(torrentDict);
-		//fill general data
-		newTorrent.generalData.torrentToGeneralData(fullFilePath, torrentDict);
-		//fill pieces data
-		newTorrent.piecesData.torrentToPiecesData(newTorrent.fileList, torrentDict);
-		newTorrent.hashesData.torrentToHashesData(torrentDict);
-
-		//encode and create info section for use in new torrent
-		valueDictionary bencodingObjInfo;
-		bencodingObjInfo.emplace("name", newTorrent.generalData.fileName);
-		bencodingObjInfo = newTorrent.filesToDictionary(bencodingObjInfo);
-		bencodingObjInfo = 
-			newTorrent.piecesData.piecesDataToDictionary(bencodingObjInfo);
-		newTorrent.hashesData.torrentToHashesData(bencodingObjInfo);
-
-		return newTorrent;
-	}
-
-
-	//create complete torrent object (pre-processing for encoding)
-	value toBencodingObj(Torrent& torrent)
-	{
-		valueDictionary bencodingObj;
-		valueDictionary bencodingObjInfo;
-
-		torrent.generalData.generalDataToDictionary(bencodingObj);
-
-		//create info section
-		bencodingObjInfo.emplace("name", torrent.generalData.fileName);
-		bencodingObjInfo = torrent.filesToDictionary(bencodingObjInfo);
-		bencodingObjInfo = torrent.piecesData.piecesDataToDictionary(bencodingObjInfo);
-		bencodingObj.emplace("info", bencodingObjInfo);
-
-
-		return bencodingObj;
-	}
-
-	//create torrent with default empty tracker list and comment
-	Torrent createNewTorrent(std::string fileName, const char* path, 
-		bool isPrivate, const std::string& comment, 
-		std::vector<trackerObj> trackerList)
-	{
-		Torrent createdTorrent(path);
-
-		// General data
-		createdTorrent.generalData.fileName = fileName;
-		createdTorrent.generalData.downloadDirectory = getFileDirectory(path);
-		createdTorrent.generalData.comment = comment;
-		createdTorrent.generalData.createdBy = "myBittorrent";
-		createdTorrent.generalData.creationDate = 
-			boost::posix_time::second_clock::local_time();
-		createdTorrent.generalData.encoding = "UTF-8";
-		createdTorrent.generalData.isPrivate = isPrivate;
-		createdTorrent.generalData.trackerList = trackerList;
-		
-		// File data 
-		std::vector<fileObj> files;
-		fileObj resObj;
-
-		long long runningOffset = 0;
-
-		// query file/folder existence and sizes
-		if (boost::filesystem::exists(path))
+		//create complete torrent object from bencoded data
+		Torrent toTorrentObj(const char* fullFilePath, const valueDictionary& torrentDict)
 		{
-			if (boost::filesystem::is_regular_file(path))
+			if (torrentDict.empty())
 			{
-				resObj.filePath = getFileNameAndExtension(path);
-				resObj.fileSize = boost::filesystem::file_size(path);
-				resObj.fileOffset = runningOffset;
-				resObj.setReadableFileSize();
-				files.push_back(resObj);
+				throw std::invalid_argument("Error: not a torrent file!");
 			}
-			else if (boost::filesystem::is_directory(path))
+			if (!torrentDict.count("info"))
 			{
-				boost::filesystem::recursive_directory_iterator end_itr;
+				throw std::invalid_argument("Error: missing info section in torrent!");
+			}
 
-				// cycle through the directory and push file path and size into fileObj
-				for (boost::filesystem::recursive_directory_iterator itr(path); 
-					itr != end_itr; ++itr)
+			//create torrent
+			Torrent newTorrent(fullFilePath, torrentDict);
+			//fill file list data
+			newTorrent.setFileList(torrentDict);
+			//fill general data
+			newTorrent.generalData.torrentToGeneralData(fullFilePath, torrentDict);
+			//fill pieces data
+			newTorrent.piecesData.torrentToPiecesData(newTorrent.fileList, torrentDict);
+			newTorrent.hashesData.torrentToHashesData(torrentDict);
+
+			//encode and create info section for use in new torrent
+			valueDictionary bencodingObjInfo;
+			bencodingObjInfo.emplace("name", newTorrent.generalData.fileName);
+			bencodingObjInfo = newTorrent.filesToDictionary(bencodingObjInfo);
+			bencodingObjInfo =
+				newTorrent.piecesData.piecesDataToDictionary(bencodingObjInfo);
+			newTorrent.hashesData.torrentToHashesData(bencodingObjInfo);
+
+			return newTorrent;
+		}
+
+
+		//create complete torrent object (pre-processing for encoding)
+		value toBencodingObj(Torrent& torrent)
+		{
+			valueDictionary bencodingObj;
+			valueDictionary bencodingObjInfo;
+
+			torrent.generalData.generalDataToDictionary(bencodingObj);
+
+			//create info section
+			bencodingObjInfo.emplace("name", torrent.generalData.fileName);
+			bencodingObjInfo = torrent.filesToDictionary(bencodingObjInfo);
+			bencodingObjInfo = torrent.piecesData.piecesDataToDictionary(bencodingObjInfo);
+			bencodingObj.emplace("info", bencodingObjInfo);
+
+
+			return bencodingObj;
+		}
+
+		//create torrent with default empty tracker list and comment
+		Torrent createNewTorrent(std::string fileName, const char* path,
+			bool isPrivate, const std::string& comment,
+			std::vector<trackerObj> trackerList)
+		{
+			Torrent createdTorrent(path);
+
+			// General data
+			createdTorrent.generalData.fileName = fileName;
+			createdTorrent.generalData.downloadDirectory = getFileDirectory(path);
+			createdTorrent.generalData.comment = comment;
+			createdTorrent.generalData.createdBy = "myBittorrent";
+			createdTorrent.generalData.creationDate =
+				boost::posix_time::second_clock::local_time();
+			createdTorrent.generalData.encoding = "UTF-8";
+			createdTorrent.generalData.isPrivate = isPrivate;
+			createdTorrent.generalData.trackerList = trackerList;
+
+			// File data 
+			std::vector<fileObj> files;
+			fileObj resObj;
+
+			long long runningOffset = 0;
+
+			// query file/folder existence and sizes
+			if (boost::filesystem::exists(path))
+			{
+				if (boost::filesystem::is_regular_file(path))
 				{
-					if (is_regular_file(itr->path())) {
-						//remove parent directory
-						std::string curFilePath = itr->path().string();
-						const size_t pos = curFilePath.find(path) + strlen(path);
+					resObj.filePath = getFileNameAndExtension(path);
+					resObj.fileSize = boost::filesystem::file_size(path);
+					resObj.fileOffset = runningOffset;
+					resObj.setReadableFileSize();
+					files.push_back(resObj);
+				}
+				else if (boost::filesystem::is_directory(path))
+				{
+					boost::filesystem::recursive_directory_iterator end_itr;
 
-						long long size = boost::filesystem::file_size(curFilePath);
-						resObj.fileSize = size;
-						resObj.filePath = curFilePath.substr(pos);
-						resObj.fileOffset = runningOffset;
-						//add to running size total
-						runningOffset += size;
-						resObj.setReadableFileSize();
-						files.push_back(resObj);
+					// cycle through the directory and push file path and size into fileObj
+					for (boost::filesystem::recursive_directory_iterator itr(path);
+						itr != end_itr; ++itr)
+					{
+						if (is_regular_file(itr->path())) {
+							//remove parent directory
+							std::string curFilePath = itr->path().string();
+							const size_t pos = curFilePath.find(path) + strlen(path);
+
+							long long size = boost::filesystem::file_size(curFilePath);
+							resObj.fileSize = size;
+							resObj.filePath = curFilePath.substr(pos);
+							resObj.fileOffset = runningOffset;
+							//add to running size total
+							runningOffset += size;
+							resObj.setReadableFileSize();
+							files.push_back(resObj);
+						}
 					}
+				}
+				else
+				{
+					throw std::invalid_argument
+					("Provided path is neither a file or directory!");
 				}
 			}
 			else
 			{
-				throw std::invalid_argument
-				("Provided path is neither a file or directory!");
+				throw std::invalid_argument("Provided path does not exist!");
 			}
-		}
-		else
-		{
-			throw std::invalid_argument("Provided path does not exist!");
-		}
 
-		createdTorrent.fileList = files;
-		
-		// Piece data
-		long long totalSize = 0;
+			createdTorrent.fileList = files;
 
-		for (auto file : createdTorrent.fileList)
-		{
-			totalSize += file.fileSize;
-		}
+			// Piece data
+			long long totalSize = 0;
 
-		createdTorrent.piecesData.totalSize = totalSize;
-		createdTorrent.piecesData.pieceSize = recommendedPieceSize(totalSize);
-
-		const auto count = static_cast<int>(createdTorrent.piecesData.totalSize / 
-			createdTorrent.piecesData.pieceSize);
-
-		//resize vectors for processing later
-		createdTorrent.piecesData.pieces.resize(count);
-		createdTorrent.statusData.isPieceVerified.resize(count);
-		createdTorrent.statusData.isBlockAcquired.resize(count);
-
-		//set pieceCount
-		createdTorrent.piecesData.pieceCount = count;
-		const int pieceCount = createdTorrent.piecesData.pieceCount;
-
-		for (size_t i = 0; i < pieceCount; ++i)
-		{
-			createdTorrent.statusData.isBlockAcquired.at(i).resize(
-				createdTorrent.piecesData.setBlockCount(i));
-		}
-
-		for (size_t i = 0; i < pieceCount; ++i)
-		{
-			createdTorrent.piecesData.pieces.at(i) = getHash(createdTorrent, i);
-		}
-
-		//***************************
-		//create infohash
-		//***************************
-		//encode and create info section for use in new torrent
-		valueDictionary bencodingObjInfo;
-		bencodingObjInfo.emplace("name", createdTorrent.generalData.fileName);
-		bencodingObjInfo = createdTorrent.filesToDictionary(bencodingObjInfo);
-		bencodingObjInfo = createdTorrent.piecesData.piecesDataToDictionary(bencodingObjInfo);
-		createdTorrent.hashesData.torrentToHashesData(bencodingObjInfo);
-
-		std::cout << createdTorrent.hashesData.urlEncodedInfoHash << std::endl;
-
-		//create object for encoding
-		value tempObj = toBencodingObj(createdTorrent);
-		//encode and save
-		//parameter needs to be adjustable
-		std::string strFilePath = "D:\\Documents\\Programming\\Bittorrent\\Bittorrent\\x64\\Release\\testencoding.torrent";
-		saveToFile(strFilePath, encode(tempObj));
-
-		return createdTorrent;
-	}
-
-
-	//load bytes from each file into a buffer
-	std::vector<byte> read(Torrent& torrent, long long start, long long length)
-	{
-		const auto end = start + length;
-		std::vector<byte> buffer;
-		buffer.resize(length);
-
-		for (size_t i = 0; i < torrent.fileList.size(); ++i)
-		{
-			auto file = torrent.fileList.at(i);
-
-			if ((start < file.fileOffset && end < file.fileOffset) ||
-				(start > file.fileOffset + file.fileSize 
-					&& end > file.fileOffset + file.fileSize))
+			for (auto file : createdTorrent.fileList)
 			{
-				continue;
+				totalSize += file.fileSize;
 			}
 
-			std::string filePath = torrent.generalData.downloadDirectory + 
-				file.filePath;
+			createdTorrent.piecesData.totalSize = totalSize;
+			createdTorrent.piecesData.pieceSize = recommendedPieceSize(totalSize);
 
-			if (!boost::filesystem::exists(filePath))
+			const auto count = static_cast<int>(createdTorrent.piecesData.totalSize /
+				createdTorrent.piecesData.pieceSize);
+
+			//resize vectors for processing later
+			createdTorrent.piecesData.pieces.resize(count);
+			createdTorrent.statusData.isPieceVerified.resize(count);
+			createdTorrent.statusData.isBlockAcquired.resize(count);
+
+			//set pieceCount
+			createdTorrent.piecesData.pieceCount = count;
+			const int pieceCount = createdTorrent.piecesData.pieceCount;
+
+			for (size_t i = 0; i < pieceCount; ++i)
 			{
-				throw std::invalid_argument("The file path \"" + filePath + 
-					"\" does not exist!");
+				createdTorrent.statusData.isBlockAcquired.at(i).resize(
+					createdTorrent.piecesData.setBlockCount(i));
 			}
 
-			const auto fStart = std::max(static_cast<long long>(0), 
-				start - file.fileOffset);
-			const auto fEnd = std::min(end - static_cast<long long>(file.fileOffset),
-				file.fileSize);
-			const auto fLength = fEnd - fStart;
-			const auto bStart = std::max(static_cast<long long>(0), 
-				file.fileOffset - start);
+			for (size_t i = 0; i < pieceCount; ++i)
+			{
+				createdTorrent.piecesData.pieces.at(i) = getHash(createdTorrent, i);
+			}
 
-			std::ifstream stream(filePath);
-			//set position of next character to be extracted to fStart
-			stream.seekg(fStart, std::ifstream::beg);
-			//set offset in buffer at which to begin storing read data
-			auto bufferStart = &buffer[bStart];
-			//extract fLength characters from stream (starting at fStart) 
-			//into buffer (starting at bufferStart)
-			stream.read(reinterpret_cast<char*>(bufferStart), fLength);
+			//***************************
+			//create infohash
+			//***************************
+			//encode and create info section for use in new torrent
+			valueDictionary bencodingObjInfo;
+			bencodingObjInfo.emplace("name", createdTorrent.generalData.fileName);
+			bencodingObjInfo = createdTorrent.filesToDictionary(bencodingObjInfo);
+			bencodingObjInfo = createdTorrent.piecesData.piecesDataToDictionary(bencodingObjInfo);
+			createdTorrent.hashesData.torrentToHashesData(bencodingObjInfo);
+
+			//create object for encoding
+			value tempObj = toBencodingObj(createdTorrent);
+			//encode and save
+			//parameter needs to be adjustable
+			std::string strFilePath = "D:\\Documents\\Programming\\Bittorrent\\Bittorrent\\x64\\Release\\testencoding.torrent";
+			saveToFile(strFilePath, encode(tempObj));
+
+			return createdTorrent;
 		}
 
-		return buffer;
-	}
 
-	//slice chunks out of byte buffer and write to correct position in each file
-	void write(Torrent& torrent, long long start, std::vector<byte>& buffer)
-	{
-		const long long end = start + buffer.size();
-
-		for (size_t i = 0; i < torrent.fileList.size(); ++i)
+		//load bytes from each file into a buffer
+		std::vector<byte> read(Torrent& torrent, long long start, long long length)
 		{
-			auto file = torrent.fileList.at(i);
+			const auto end = start + length;
+			std::vector<byte> buffer;
+			buffer.resize(length);
 
-			if ((start < file.fileOffset && end < file.fileOffset) ||
-				(start > file.fileOffset + file.fileSize
-					&& end > file.fileOffset + file.fileSize))
+			for (size_t i = 0; i < torrent.fileList.size(); ++i)
 			{
-				continue;
+				auto file = torrent.fileList.at(i);
+
+				if ((start < file.fileOffset && end < file.fileOffset) ||
+					(start > file.fileOffset + file.fileSize
+						&& end > file.fileOffset + file.fileSize))
+				{
+					continue;
+				}
+
+				std::string filePath = torrent.generalData.downloadDirectory +
+					file.filePath;
+
+				if (!boost::filesystem::exists(filePath))
+				{
+					throw std::invalid_argument("The file path \"" + filePath +
+						"\" does not exist!");
+				}
+
+				const auto fStart = std::max(static_cast<long long>(0),
+					start - file.fileOffset);
+				const auto fEnd = std::min(end - static_cast<long long>(file.fileOffset),
+					file.fileSize);
+				const auto fLength = fEnd - fStart;
+				const auto bStart = std::max(static_cast<long long>(0),
+					file.fileOffset - start);
+
+				std::ifstream stream(filePath);
+				//set position of next character to be extracted to fStart
+				stream.seekg(fStart, std::ifstream::beg);
+				//set offset in buffer at which to begin storing read data
+				auto bufferStart = &buffer[bStart];
+				//extract fLength characters from stream (starting at fStart) 
+				//into buffer (starting at bufferStart)
+				stream.read(reinterpret_cast<char*>(bufferStart), fLength);
 			}
 
-			std::string filePath = torrent.generalData.downloadDirectory + 
-				file.filePath;
-
-			const char* cstrPath = filePath.c_str();
-
-			std::string dir = getFileDirectory(cstrPath);
-			if (!boost::filesystem::is_directory(dir))
-			{
-				boost::filesystem::create_directory(dir);
-			}
-
-			const auto fStart = std::max(static_cast<long long>(0),
-				start - file.fileOffset);
-			const auto fEnd = std::min(end - static_cast<long long>(file.fileOffset),
-				file.fileSize);
-			const auto fLength = fEnd - fStart;
-			const auto bStart = std::max(static_cast<long long>(0),
-				file.fileOffset - start);
-
-			std::ifstream stream(filePath);
-			//set position of next character to be extracted to fStart
-			stream.seekg(fStart, std::ifstream::beg);
-			//set offset in buffer at which to begin storing read data
-			auto bufferStart = &buffer.at(bStart);
-			//extract fLength characters from stream (starting at fStart) 
-			//into buffer (starting at bufferStart)
-			stream.read(reinterpret_cast<char*>(bufferStart), fLength);
+			return buffer;
 		}
-	}
 
-	std::vector<byte> readPiece(Torrent& torrent, int piece)
-	{
-		return read(torrent, piece * torrent.piecesData.pieceSize, 
-			torrent.piecesData.setPieceSize(piece));
-	}
+		//slice chunks out of byte buffer and write to correct position in each file
+		void write(Torrent& torrent, long long start, std::vector<byte>& buffer)
+		{
+			const long long end = start + buffer.size();
 
-	std::vector<byte> readBlock(Torrent& torrent, int piece, long long offset, 
-		long long length)
-	{
-		return read(torrent, (piece * torrent.piecesData.pieceSize) + offset, length);
-	}
+			for (size_t i = 0; i < torrent.fileList.size(); ++i)
+			{
+				auto file = torrent.fileList.at(i);
 
-	void writeBlock(Torrent& torrent, int piece, int block, std::vector<byte>& buffer)
-	{
-		write(torrent, (piece * torrent.piecesData.pieceSize) + 
-			(block * torrent.piecesData.blockSize), buffer);
-		torrent.statusData.isBlockAcquired.at(piece).at(block) = true;
-		verify(piece);
-	}
+				if ((start < file.fileOffset && end < file.fileOffset) ||
+					(start > file.fileOffset + file.fileSize
+						&& end > file.fileOffset + file.fileSize))
+				{
+					continue;
+				}
 
-	void verify(int piece)
-	{
+				std::string filePath = torrent.generalData.downloadDirectory +
+					file.filePath;
 
-	}
+				const char* cstrPath = filePath.c_str();
 
-	std::vector<byte> getHash(Torrent& torrent, int piece)
-	{
-		std::vector<byte> data = readPiece(torrent, piece);
-		byte* dataArr = &data[0];
+				std::string dir = getFileDirectory(cstrPath);
+				if (!boost::filesystem::is_directory(dir))
+				{
+					boost::filesystem::create_directory(dir);
+				}
 
-		//calculate hash
-		SHA1 sha1;
-		auto hashData = sha1(dataArr, data.size());
+				const auto fStart = std::max(static_cast<long long>(0),
+					start - file.fileOffset);
+				const auto fEnd = std::min(end - static_cast<long long>(file.fileOffset),
+					file.fileSize);
+				const auto fLength = fEnd - fStart;
+				const auto bStart = std::max(static_cast<long long>(0),
+					file.fileOffset - start);
 
-		//return sha1 hash of data
-		return hashData;
+				std::ifstream stream(filePath);
+				//set position of next character to be extracted to fStart
+				stream.seekg(fStart, std::ifstream::beg);
+				//set offset in buffer at which to begin storing read data
+				auto bufferStart = &buffer.at(bStart);
+				//extract fLength characters from stream (starting at fStart) 
+				//into buffer (starting at bufferStart)
+				stream.read(reinterpret_cast<char*>(bufferStart), fLength);
+			}
+		}
+
+		std::vector<byte> readPiece(Torrent& torrent, int piece)
+		{
+			return read(torrent, piece * torrent.piecesData.pieceSize,
+				torrent.piecesData.setPieceSize(piece));
+		}
+
+		std::vector<byte> readBlock(Torrent& torrent, int piece, long long offset,
+			long long length)
+		{
+			return read(torrent, (piece * torrent.piecesData.pieceSize) + offset, length);
+		}
+
+		void writeBlock(Torrent& torrent, int piece, int block, std::vector<byte>& buffer)
+		{
+			write(torrent, (piece * torrent.piecesData.pieceSize) +
+				(block * torrent.piecesData.blockSize), buffer);
+			torrent.statusData.isBlockAcquired.at(piece).at(block) = true;
+			verify(piece);
+		}
+
+		void verify(int piece)
+		{
+
+		}
+
+		std::vector<byte> getHash(Torrent& torrent, int piece)
+		{
+			std::vector<byte> data = readPiece(torrent, piece);
+			byte* dataArr = &data[0];
+
+			//calculate hash
+			SHA1 sha1;
+			auto hashData = sha1(dataArr, data.size());
+
+			//return sha1 hash of data
+			return hashData;
+		}
 	}
 }

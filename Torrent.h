@@ -10,37 +10,39 @@
 #include "TorrentStatus.h"
 
 
-class Torrent
+namespace Bittorrent
 {
-public:
+	class Torrent
+	{
+	public:
 
-	//general info
-	TorrentGeneral generalData;
+		//general info
+		TorrentGeneral generalData;
 
-	//file info
-	std::vector<fileObj> fileList;
+		//file info
+		std::vector<fileObj> fileList;
 
-	//pieces & blocks
-	TorrentPieces piecesData;
+		//pieces & blocks
+		TorrentPieces piecesData;
 
-	//hashes
-	TorrentHashes hashesData;
+		//hashes
+		TorrentHashes hashesData;
 
-	//Status
-	TorrentStatus statusData;
+		//Status
+		TorrentStatus statusData;
 
-	//construct using torrent info
-	Torrent(const char* fullFilePath, const valueDictionary& torrent);
-	//construct without any info
-	Torrent(const char* fullFilePath);
-	//no default constructor - requires parameter
-	Torrent() = delete;
+		//construct using torrent info
+		Torrent(const char* fullFilePath, const valueDictionary& torrent);
+		//construct without any info
+		Torrent(const char* fullFilePath);
+		//no default constructor - requires parameter
+		Torrent() = delete;
 
-	//set file info
-	void setFileList(const valueDictionary& torrent);
-	valueDictionary filesToDictionary(valueDictionary& dict);
+		//set file info
+		void setFileList(const valueDictionary& torrent);
+		valueDictionary filesToDictionary(valueDictionary& dict);
 
-private:
+	private:
 
-};
-
+	};
+}

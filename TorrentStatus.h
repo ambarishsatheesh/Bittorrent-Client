@@ -2,31 +2,35 @@
 #include "ValueTypes.h"
 #include "TorrentPieces.h"
 
-class TorrentStatus
+
+namespace Bittorrent
 {
-public:
+	class TorrentStatus
+	{
+	public:
 
-	std::vector<std::vector<bool>> isBlockAcquired;
-	std::vector<bool> isPieceVerified;
-	std::string verifiedPiecesString;
-	int verifiedPiecesCount;
-	double verifiedRatio;
-	bool isStarted;
-	bool isCompleted;
-	//not sure about these
-	long uploaded;
-	long downloaded;
-	long remaining;
+		std::vector<std::vector<bool>> isBlockAcquired;
+		std::vector<bool> isPieceVerified;
+		std::string verifiedPiecesString;
+		int verifiedPiecesCount;
+		double verifiedRatio;
+		bool isStarted;
+		bool isCompleted;
+		//not sure about these
+		long long uploaded;
+		long long downloaded;
+		long long remaining;
 
-	//constructor
-	TorrentStatus(const TorrentPieces& pieces, const valueDictionary& torrent);
-	//temp
-	TorrentStatus(const TorrentPieces& pieces);
-	//no default constructor - requires parameter
-	TorrentStatus() = delete;
+		//constructor
+		TorrentStatus(const TorrentPieces& pieces, const valueDictionary& torrent);
+		//temp
+		TorrentStatus(const TorrentPieces& pieces);
+		//no default constructor - requires parameter
+		TorrentStatus() = delete;
 
-private:
+	private:
 
-	long setRemaining(const TorrentPieces& pieces);
-};
+		long setRemaining(const TorrentPieces& pieces);
+	};
 
+}

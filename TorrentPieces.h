@@ -2,39 +2,43 @@
 #include "ValueTypes.h"
 #include "fileObj.h"
 
-class TorrentPieces
+
+namespace Bittorrent
 {
-public:
-
-	long blockSize;
-	long long pieceSize;
-	std::string readablePieceSize;
-	long long totalSize;
-	std::string readableTotalSize;
-	int pieceCount;
-	std::vector<std::vector<byte>> pieces;
-
-	//constructor
-	TorrentPieces();
-
-	//fill in pieces data
-	void torrentToPiecesData(const std::vector<fileObj>& fileList,
-		const valueDictionary& torrent);
-
-	valueDictionary piecesDataToDictionary(valueDictionary& dict);
-
-	void setReadablePieceSize()
+	class TorrentPieces
 	{
-		readablePieceSize = humanReadableBytes(pieceSize);
-	}
+	public:
 
-	void setReadableTotalSize()
-	{
-		readableTotalSize = humanReadableBytes(totalSize);
-	}
+		long blockSize;
+		long long pieceSize;
+		std::string readablePieceSize;
+		long long totalSize;
+		std::string readableTotalSize;
+		int pieceCount;
+		std::vector<std::vector<byte>> pieces;
 
-	int setPieceSize(int piece);
-	int setBlockSize(int piece, int block);
-	int setBlockCount(int piece);
+		//fill in pieces data
+		void torrentToPiecesData(const std::vector<fileObj>& fileList,
+			const valueDictionary& torrent);
 
-};
+		valueDictionary piecesDataToDictionary(valueDictionary& dict);
+
+		void setReadablePieceSize()
+		{
+			readablePieceSize = humanReadableBytes(pieceSize);
+		}
+
+		void setReadableTotalSize()
+		{
+			readableTotalSize = humanReadableBytes(totalSize);
+		}
+
+		int setPieceSize(int piece);
+		int setBlockSize(int piece, int block);
+		int setBlockCount(int piece);
+
+		//constructor
+		TorrentPieces();
+
+	};
+}

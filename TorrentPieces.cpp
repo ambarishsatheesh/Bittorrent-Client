@@ -2,105 +2,109 @@
 #include "Utility.h"
 #include <iostream>
 
-using namespace utility;
 
-TorrentPieces::TorrentPieces()
-	: blockSize{ 16384 }, pieceSize{ 0 }, readablePieceSize{ "" }, totalSize{ 0 },
-	readableTotalSize{ "" }, pieceCount{ 0 }
+namespace Bittorrent
 {
+	using namespace utility;
 
-}
-
-valueDictionary TorrentPieces::piecesDataToDictionary(valueDictionary& dict)
-{
-	dict.emplace("piece length", pieceSize);
-
-	//pieces
-	std::string piecesString;
-	for (size_t i = 0; i < pieces.size(); ++i)
+	TorrentPieces::TorrentPieces()
+		: blockSize{ 16384 }, pieceSize{ 0 }, readablePieceSize{ "" }, totalSize{ 0 },
+		readableTotalSize{ "" }, pieceCount{ 0 }
 	{
-		for (size_t j = 0; j < pieces.at(i).size(); ++j)
+
+	}
+
+	valueDictionary TorrentPieces::piecesDataToDictionary(valueDictionary& dict)
+	{
+		dict.emplace("piece length", pieceSize);
+
+		//pieces
+		std::string piecesString;
+		for (size_t i = 0; i < pieces.size(); ++i)
 		{
-			piecesString += pieces[i][j];
+			for (size_t j = 0; j < pieces.at(i).size(); ++j)
+			{
+				piecesString += pieces[i][j];
+			}
 		}
-	}
-	dict.emplace("pieces", piecesString);
+		dict.emplace("pieces", piecesString);
 
-	return dict;
-}
-
-
-//generate piece data from torrent object
-void TorrentPieces::torrentToPiecesData(const std::vector<fileObj>& fileList, 
-	const valueDictionary& torrent)
-{
-	for (auto file : fileList)
-	{
-		totalSize += file.fileSize;
+		return dict;
 	}
 
-	valueDictionary info = boost::get<valueDictionary>(torrent.at("info"));
 
-	if (!info.count("piece length"))
+	//generate piece data from torrent object
+	void TorrentPieces::torrentToPiecesData(const std::vector<fileObj>& fileList,
+		const valueDictionary& torrent)
 	{
-		throw std::invalid_argument("Error: no piece length specified in torrent!");
-	}
-	pieceSize = static_cast<long>(boost::get<long long>(info.at("piece length")));
-
-
-	//set pieces
-	if (!info.count("pieces"))
-	{
-		throw std::invalid_argument("Error: no pieces specified in torrent!");
-	}
-	std::string tempString = boost::get<std::string>(info.at("pieces"));
-	const size_t n = tempString.size();
-	const size_t columns = 20;
-	const size_t rows = n/columns;
-	assert(rows * columns == n);
-	pieces.resize(rows, std::vector<byte>(columns));
-	for (size_t i = 0; i < rows; ++i)
-	{
-		for (size_t j = 0; j < columns; ++j)
+		for (auto file : fileList)
 		{
-			pieces[i][j] = tempString.at(i * columns + j);
+			totalSize += file.fileSize;
 		}
-	}
 
-	//update pieceCount
-	pieceCount = pieces.size();
-	readablePieceSize = humanReadableBytes(pieceSize);
-	readableTotalSize = humanReadableBytes(totalSize);
-}
+		valueDictionary info = boost::get<valueDictionary>(torrent.at("info"));
 
-
-int TorrentPieces::setPieceSize(int piece)
-{
-	if (piece == pieceCount - 1)
-	{
-		const int remainder = totalSize % pieceSize;
-		if (remainder != 0)
+		if (!info.count("piece length"))
 		{
-			return remainder;
+			throw std::invalid_argument("Error: no piece length specified in torrent!");
 		}
-	}
-	return pieceSize;
-}
+		pieceSize = static_cast<long>(boost::get<long long>(info.at("piece length")));
 
-int TorrentPieces::setBlockSize(int piece, int block)
-{
-	if (piece == setBlockCount(piece) - 1)
-	{
-		const int remainder = setPieceSize(piece) % blockSize;
-		if (remainder != 0)
+
+		//set pieces
+		if (!info.count("pieces"))
 		{
-			return remainder;
+			throw std::invalid_argument("Error: no pieces specified in torrent!");
 		}
-	}
-	return blockSize;
-}
+		std::string tempString = boost::get<std::string>(info.at("pieces"));
+		const size_t n = tempString.size();
+		const size_t columns = 20;
+		const size_t rows = n / columns;
+		assert(rows * columns == n);
+		pieces.resize(rows, std::vector<byte>(columns));
+		for (size_t i = 0; i < rows; ++i)
+		{
+			for (size_t j = 0; j < columns; ++j)
+			{
+				pieces[i][j] = tempString.at(i * columns + j);
+			}
+		}
 
-int TorrentPieces::setBlockCount(int piece)
-{
-	return std::ceil(setPieceSize(piece) / static_cast<double>(blockSize));
+		//update pieceCount
+		pieceCount = pieces.size();
+		readablePieceSize = humanReadableBytes(pieceSize);
+		readableTotalSize = humanReadableBytes(totalSize);
+	}
+
+
+	int TorrentPieces::setPieceSize(int piece)
+	{
+		if (piece == pieceCount - 1)
+		{
+			const int remainder = totalSize % pieceSize;
+			if (remainder != 0)
+			{
+				return remainder;
+			}
+		}
+		return pieceSize;
+	}
+
+	int TorrentPieces::setBlockSize(int piece, int block)
+	{
+		if (piece == setBlockCount(piece) - 1)
+		{
+			const int remainder = setPieceSize(piece) % blockSize;
+			if (remainder != 0)
+			{
+				return remainder;
+			}
+		}
+		return blockSize;
+	}
+
+	int TorrentPieces::setBlockCount(int piece)
+	{
+		return std::ceil(setPieceSize(piece) / static_cast<double>(blockSize));
+	}
 }

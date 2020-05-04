@@ -4,132 +4,136 @@
 #include <boost/variant/get.hpp>
 #include <boost/variant/get.hpp>
 
-//add tracker processing
 
-Torrent::Torrent(const char* fullFilePath, const valueDictionary& torrent)
-	: generalData(fullFilePath), fileList{ }, piecesData(), hashesData(),
-	statusData( piecesData, torrent)
+namespace Bittorrent
 {
-	
-}
+	//add tracker processing
 
-Torrent::Torrent(const char* fullFilePath)
-	: generalData(fullFilePath), fileList{ }, piecesData(), hashesData(), 
-	statusData(piecesData)
-{
-
-}
-
-valueDictionary Torrent::filesToDictionary(valueDictionary& dict)
-{
-	if (fileList.empty())
+	Torrent::Torrent(const char* fullFilePath, const valueDictionary& torrent)
+		: generalData(fullFilePath), fileList{ }, piecesData(), hashesData(),
+		statusData(piecesData, torrent)
 	{
-		throw std::invalid_argument("Error: no files in torrent!");
+
 	}
-	else if (fileList.size() == 1)
+
+	Torrent::Torrent(const char* fullFilePath)
+		: generalData(fullFilePath), fileList{ }, piecesData(), hashesData(),
+		statusData(piecesData)
 	{
-		dict.emplace("name", fileList.at(0).filePath);
-		dict.emplace("length", fileList.at(0).fileSize);
+
 	}
-	else
+
+	valueDictionary Torrent::filesToDictionary(valueDictionary& dict)
 	{
-		valueList multiFilesList;
-		std::string majorPath;
-		for (size_t i = 0; i < fileList.size(); ++i)
+		if (fileList.empty())
 		{
-			valueDictionary fileDataDict;
-			valueList subPathList;
-			//add file size
-			fileDataDict.emplace("length", fileList.at(i).fileSize);
+			throw std::invalid_argument("Error: no files in torrent!");
+		}
+		else if (fileList.size() == 1)
+		{
+			dict.emplace("name", fileList.at(0).filePath);
+			dict.emplace("length", fileList.at(0).fileSize);
+		}
+		else
+		{
+			valueList multiFilesList;
+			std::string majorPath;
+			for (size_t i = 0; i < fileList.size(); ++i)
+			{
+				valueDictionary fileDataDict;
+				valueList subPathList;
+				//add file size
+				fileDataDict.emplace("length", fileList.at(i).fileSize);
 
-			//format file paths (recursive folders check)
-			majorPath = fileList.at(i).filePath;
-			auto found = majorPath.find_first_of("/\\");
-			if (found == std::string::npos)
-			{
-				subPathList.push_back(majorPath);
-			}
-			else
-			{
-				std::string subPath;
-				while (found != std::string::npos)
+				//format file paths (recursive folders check)
+				majorPath = fileList.at(i).filePath;
+				auto found = majorPath.find_first_of("/\\");
+				if (found == std::string::npos)
 				{
-					subPath = majorPath.substr(0, found);
-					majorPath = majorPath.substr(found + 1);
-					subPathList.push_back(subPath);
-					found = majorPath.find_first_of("/\\");
-					if (found == std::string::npos)
+					subPathList.push_back(majorPath);
+				}
+				else
+				{
+					std::string subPath;
+					while (found != std::string::npos)
 					{
-						subPathList.push_back(majorPath);
-						break;
+						subPath = majorPath.substr(0, found);
+						majorPath = majorPath.substr(found + 1);
+						subPathList.push_back(subPath);
+						found = majorPath.find_first_of("/\\");
+						if (found == std::string::npos)
+						{
+							subPathList.push_back(majorPath);
+							break;
+						}
 					}
 				}
+				//add path to subdict
+				fileDataDict.emplace("path", subPathList);
+				//add subdict to file list
+				multiFilesList.push_back(fileDataDict);
 			}
-			//add path to subdict
-			fileDataDict.emplace("path", subPathList);
-			//add subdict to file list
-			multiFilesList.push_back(fileDataDict);
+			//add file list to parent files dict
+			dict.emplace("files", multiFilesList);
 		}
-		//add file list to parent files dict
-		dict.emplace("files", multiFilesList);
+		return dict;
 	}
-	return dict;
-}
 
-void Torrent::setFileList(const valueDictionary& torrent)
-{
-	valueDictionary info = boost::get<valueDictionary>(torrent.at("info"));
-	fileObj resObj;
-	//if torrent contains only one file
-	if (info.count("name") && info.count("length"))
+	void Torrent::setFileList(const valueDictionary& torrent)
 	{
-		resObj.filePath = boost::get<std::string>(info.at("name"));
-		resObj.fileSize = static_cast<long long>(boost::get<long long>(info.at("length")));
-		fileList.push_back(resObj);
-	}
-	//if torrent contains multiple files
-	else if (info.count("files"))
-	{
-		long long runningOffset = 0;
-		valueList list = boost::get<valueList>(info.at("files"));
-		for (size_t i = 0; i < list.size(); ++i)
+		valueDictionary info = boost::get<valueDictionary>(torrent.at("info"));
+		fileObj resObj;
+		//if torrent contains only one file
+		if (info.count("name") && info.count("length"))
 		{
-			valueDictionary fileData =
-				boost::get<valueDictionary>(list.at(i));
-			if (fileData.empty() || !fileData.count("length") || !fileData.count("path"))
-			{
-				throw std::invalid_argument("Error: incorrect file specification!");
-			}
-			//get file size and offset
-			if (fileData.count("length"))
-			{
-				long long size = static_cast<long>(boost::get<long long>(fileData.at("length")));
-				resObj.fileSize = size;
-				resObj.setReadableFileSize();
-				resObj.fileOffset = runningOffset;
-				//add to running size total
-				runningOffset += size;
-			}
-			//get file path
-			if (fileData.count("path"))
-			{
-				valueList pathList = boost::get<valueList>(fileData.at("path"));
-				std::string fullPath;
-				for (auto path : pathList)
-				{
-					fullPath += boost::get<std::string>(path);
-					fullPath += "/";
-				}
-				fullPath.erase(fullPath.find_last_of("/"));
-				resObj.filePath = fullPath;
-			}
+			resObj.filePath = boost::get<std::string>(info.at("name"));
+			resObj.fileSize = static_cast<long long>(boost::get<long long>(info.at("length")));
 			fileList.push_back(resObj);
 		}
+		//if torrent contains multiple files
+		else if (info.count("files"))
+		{
+			long long runningOffset = 0;
+			valueList list = boost::get<valueList>(info.at("files"));
+			for (size_t i = 0; i < list.size(); ++i)
+			{
+				valueDictionary fileData =
+					boost::get<valueDictionary>(list.at(i));
+				if (fileData.empty() || !fileData.count("length") || !fileData.count("path"))
+				{
+					throw std::invalid_argument("Error: incorrect file specification!");
+				}
+				//get file size and offset
+				if (fileData.count("length"))
+				{
+					long long size = static_cast<long>(boost::get<long long>(fileData.at("length")));
+					resObj.fileSize = size;
+					resObj.setReadableFileSize();
+					resObj.fileOffset = runningOffset;
+					//add to running size total
+					runningOffset += size;
+				}
+				//get file path
+				if (fileData.count("path"))
+				{
+					valueList pathList = boost::get<valueList>(fileData.at("path"));
+					std::string fullPath;
+					for (auto path : pathList)
+					{
+						fullPath += boost::get<std::string>(path);
+						fullPath += "/";
+					}
+					fullPath.erase(fullPath.find_last_of("/"));
+					resObj.filePath = fullPath;
+				}
+				fileList.push_back(resObj);
+			}
+		}
+		else
+		{
+			throw std::invalid_argument("Error: no files specified in torrent!");
+		}
+		//std::string test = boost::get<std::string>(decodedTorrent.at("info"));
+		//std::cout << test << std::endl;
 	}
-	else
-	{
-		throw std::invalid_argument("Error: no files specified in torrent!");
-	}
-	//std::string test = boost::get<std::string>(decodedTorrent.at("info"));
-	//std::cout << test << std::endl;
 }

@@ -28,11 +28,13 @@
     <ClCompile Include="TorrentHashes.cpp" />
     <ClCompile Include="TorrentPieces.cpp" />
     <ClCompile Include="TorrentStatus.cpp" />
+    <ClCompile Include="trackerObj.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Decoder.h" />
     <ClInclude Include="encodeVisitor.h" />
     <ClInclude Include="fileObj.h" />
+    <ClInclude Include="HTTPRequest.h" />
     <ClInclude Include="sha1.h" />
     <ClInclude Include="Tokenizer.h" />
     <ClInclude Include="Torrent.h" />
@@ -159,7 +161,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
