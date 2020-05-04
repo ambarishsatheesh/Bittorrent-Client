@@ -1,6 +1,6 @@
-//
-//  HTTPRequest
-//
+//  Code written by elnormous https://github.com/elnormous
+//  Used under the Unlicense
+//  Source: https://github.com/elnormous/HTTPRequest
 
 #ifndef HTTPREQUEST_HPP
 #define HTTPREQUEST_HPP
