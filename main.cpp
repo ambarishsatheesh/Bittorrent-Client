@@ -1,12 +1,14 @@
+// TODO: Use UDP instead of HTTP for tracker communication - IMPORTANT
 // TODO: make sure all class members are initialised
 // TODO: event handler for peer list (for creating both new torrents and processing exsting ones)
 // TODO: re-design remaining download
-// TODO: implement proper compact peer list?
+// TODO: implement choice between compact and non compact tracker response - make compact and id a client setting
 // TODO: clean up utility functions
 // TODO: fix humanReadableBytes function - doesn't round properly
 // TODO: clean up error catching - currently all invalid arguments
 // TODO: implement method to add trackers to torrent
 // TODO: clean up decoder
+// TODO: multithreading (boost::asio async)
 
 #include "Decoder.h"
 #include "encodeVisitor.h"
@@ -21,6 +23,7 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "trackerUrl.h"
 
 using namespace Bittorrent;
 using namespace torrentManipulation;
@@ -34,6 +37,9 @@ int main(int argc, char* argv[])
 	}
 
 	const char* fullFilePath = argv[1];
+
+	//std::string test = "udp://tracker.coppersurfer.tk:6969";
+	//trackerUrl::trackerUrl(test);
 
 	bool isPrivate = false;
 
@@ -51,7 +57,7 @@ int main(int argc, char* argv[])
 
 	Torrent temp = createNewTorrent("test", fullFilePath, isPrivate, "test comment", trackers);
 
-	temp.generalData.trackerList[0].update(trackerObj::trackerEvent::started, 19028907, 6969, "%6d%7e%8f", 4549, 397892, 4334);
+	temp.generalData.trackerList[0].update(trackerObj::trackerEvent::started, 19028907, 6969, "%6d%7e%8f", 4549, 397892, 4334, 1);
 
 	//std::cout << "file name: " << temp.generalData.fileName << std::endl;
 	//std::cout << "comment: " << temp.generalData.comment << std::endl;
@@ -81,7 +87,8 @@ int main(int argc, char* argv[])
 
 	valueDictionary torrent = boost::get<valueDictionary>(Decoder::decode(buffer));
 
-	Torrent testTorrent = toTorrentObj(fullFilePath, torrent);
+	Torrent testTorrent = toTorrentObj(fullFilePath, torrent);*/
+	//testTorrent.generalData.trackerList[0].update(trackerObj::trackerEvent::started, 19028907, 6969, "%6d%7e%8f", 4549, 397892, 4334);
 
 	//value tempObj = toBencodingObj(testTorrent);
 	////encode and save
@@ -147,7 +154,6 @@ int main(int argc, char* argv[])
 	//std::cout << "encoding: " << testTorrent.generalData.encoding << std::endl;
 
 	//std::cout << humanReadableBytes(829083) <<std::endl;
-
 
 
 	return 0;

@@ -29,12 +29,12 @@
     <ClCompile Include="TorrentPieces.cpp" />
     <ClCompile Include="TorrentStatus.cpp" />
     <ClCompile Include="trackerObj.cpp" />
+    <ClCompile Include="trackerUrl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Decoder.h" />
     <ClInclude Include="encodeVisitor.h" />
     <ClInclude Include="fileObj.h" />
-    <ClInclude Include="HTTPRequest.h" />
     <ClInclude Include="sha1.h" />
     <ClInclude Include="Tokenizer.h" />
     <ClInclude Include="Torrent.h" />
@@ -44,8 +44,12 @@
     <ClInclude Include="TorrentPieces.h" />
     <ClInclude Include="TorrentStatus.h" />
     <ClInclude Include="trackerObj.h" />
+    <ClInclude Include="trackerUrl.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="ValueTypes.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="x64\Release\references.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

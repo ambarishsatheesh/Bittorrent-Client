@@ -1,16 +1,22 @@
 #pragma once
-//need to link winsock library file to use sockets in http requests
-//(or in VS project properties - additional library dependency: ws2_32.lib)
-#pragma comment(lib, "Ws2_32.lib")
-
-
 #include "boost/date_time/posix_time/posix_time.hpp"
-#include "HTTPRequest.h"
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/asio/connect.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/buffers_iterator.hpp>
+
+#include "trackerUrl.h"
 
 #include <string>
 
+
 namespace Bittorrent
 {
+	using tcp = boost::asio::ip::tcp;
+	namespace http = boost::beast::http;
+
 	class trackerObj
 	{
 	public:
@@ -28,12 +34,14 @@ namespace Bittorrent
 
 		void update(trackerEvent trkEvent, int id,
 			int port, std::string urlEncodedInfoHash, long long uploaded,
-			long long downloaded, long long remaining);
+			long long downloaded, long long remaining, bool compact);
 
 		void resetLastRequest();
-		void httpRequest(std::string url);
+		void HTTPRequest(trackerUrl parsedURL, bool compact);
+		void handleHTTPResponse(http::response<http::dynamic_body> response, bool compact);
 
 		//default constructor
 		trackerObj();
 	};
 }
+

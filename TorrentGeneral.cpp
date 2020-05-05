@@ -123,12 +123,12 @@ namespace Bittorrent
 
 	void TorrentGeneral::updateTrackers(trackerObj::trackerEvent trkEvent, int id,
 		int port, std::string urlEncodedInfoHash, long long uploaded,
-		long long downloaded, long long remaining)
+		long long downloaded, long long remaining, bool compact)
 	{
 		for (auto tracker : trackerList)
 		{
 			tracker.update(trkEvent, id, port, urlEncodedInfoHash, uploaded,
-				downloaded, remaining);
+				downloaded, remaining, compact);
 		}
 	}
 

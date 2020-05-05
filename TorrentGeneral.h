@@ -29,7 +29,7 @@ namespace Bittorrent
 		//tracker processing
 		void updateTrackers(trackerObj::trackerEvent trkEvent, int id,
 			int port, std::string urlEncodedInfoHash, long long uploaded,
-			long long downloaded, long long remaining);
+			long long downloaded, long long remaining, bool compact);
 		void resetTrackersLastRequest();
 
 		//constructor

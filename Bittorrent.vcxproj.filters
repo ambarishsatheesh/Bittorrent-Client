@@ -45,6 +45,9 @@
     <ClCompile Include="trackerObj.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="trackerUrl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Decoder.h">
@@ -89,8 +92,13 @@
     <ClInclude Include="sha1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HTTPRequest.h">
+    <ClInclude Include="trackerUrl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="x64\Release\references.txt">
+      <Filter>Header Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>
