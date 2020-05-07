@@ -17,7 +17,8 @@ namespace Bittorrent
 	{
 		//forward declare
 		std::string encode(const value& torrent);
-		Torrent toTorrentObj(const char* fullFilePath, const valueDictionary& torrent);
+		Torrent toTorrentObj(const char* fullFilePath, 
+			const valueDictionary& torrent);
 		value toBencodingObj(Torrent& torrent);
 		Torrent createNewTorrent(std::string fileName, const char* path,
 			bool isPrivate, const std::string& comment = "",
@@ -30,7 +31,7 @@ namespace Bittorrent
 		void writeBlock(Torrent& torrent, int piece, int block,
 			std::vector<byte>& buffer);
 		void verify(int piece);
-		std::vector<byte> getHash(Torrent& torrent, int piece);
+		std::vector<int8_t> getHash(Torrent& torrent, int piece);
 
 
 		//encode torrent object
@@ -40,7 +41,8 @@ namespace Bittorrent
 		}
 
 		//create complete torrent object from bencoded data
-		Torrent toTorrentObj(const char* fullFilePath, const valueDictionary& torrentDict)
+		Torrent toTorrentObj(const char* fullFilePath, 
+			const valueDictionary& torrentDict)
 		{
 			if (torrentDict.empty())
 			{
@@ -337,7 +339,7 @@ namespace Bittorrent
 
 		}
 
-		std::vector<byte> getHash(Torrent& torrent, int piece)
+		std::vector<int8_t> getHash(Torrent& torrent, int piece)
 		{
 			std::vector<byte> data = readPiece(torrent, piece);
 			byte* dataArr = &data[0];

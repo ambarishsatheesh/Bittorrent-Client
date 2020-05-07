@@ -7,11 +7,10 @@
 #include "trackerUrl.h"
 
 
-
-
 namespace Bittorrent
 {
 	using boost::asio::ip::udp;
+	using boost::asio::ip::address;
 
 	class UDP
 	{
@@ -32,7 +31,7 @@ namespace Bittorrent
 		//using int8_t instead of byte (uint8_t) because announce buffer 
 		//contains -1 for num_want value
 		std::vector<int8_t> ancAction;
-		long ancClientId;
+		std::vector<int8_t> ancClientID;
 		std::vector<int8_t> ancInfoHash;
 		long long ancDownloaded;
 		long long ancUploaded;
@@ -45,25 +44,31 @@ namespace Bittorrent
 		std::string peerTarget;
 
 
-		boost::asio::mutable_buffers_1 buildConnectReq();
-		void send(const std::string& msg, trackerUrl parsedUrl);
+		std::vector<byte> buildConnectReq();
+		void dataTransmission(trackerUrl& parsedUrl);
 		void handleConnectResp(std::vector<byte>& receivedBuffer, 
 			const std::size_t& connBytesRec);
-		boost::asio::mutable_buffers_1 buildAnnounceReq();
+		std::vector<int8_t> buildAnnounceReq();
 		void handleAnnounceResp(std::vector<byte>& receivedAncBuffer,
 			const std::size_t& AncBytesRec);
 
+
+		//testing send/receive
+		std::vector<byte> receivedConnBuffer;
+		std::vector<byte> receivedAncBuffer;
+
 		//default constructor & destructor
-		UDP(trackerUrl parsedUrl, long clientId, std::vector<int8_t> infoHash,
-			long long uploaded, long long downloaded, long long remaining, 
-			int intEvent);
+		UDP(trackerUrl& parsedUrl, std::vector<int8_t>& clientId, std::vector<int8_t>& infoHash,
+			long long& uploaded, long long& downloaded, long long& remaining,
+			int& intEvent);
 		~UDP();
 
 	private:
 		boost::asio::io_context io_context;
 		udp::socket socket;
-		udp::endpoint receiverEndpoint;
-		udp::endpoint senderEndpoint;
+		udp::endpoint remoteEndpoint;
+		udp::endpoint remoteEndpoint1;
+		udp::endpoint localEndpoint;
 
 
 

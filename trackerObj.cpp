@@ -1,9 +1,12 @@
 ﻿#include "trackerObj.h"
 #include "Decoder.h"
+#include "Utility.h"
 
 
 namespace Bittorrent
 {
+	using namespace utility;
+
 	trackerObj::trackerObj()
 		: trackerAddress{ "" },
 		lastPeerRequest{ boost::posix_time::ptime(boost::posix_time::min_date_time) },
@@ -12,7 +15,7 @@ namespace Bittorrent
 	}
 
 	//create required url for GET request
-	void trackerObj::update(trackerEvent trkEvent, long clientID,
+	void trackerObj::update(trackerEvent trkEvent, std::vector<int8_t> clientID,
 		int port, std::string urlEncodedInfoHash, std::vector<int8_t> infoHash,
 		long long uploaded, long long downloaded, long long remaining, bool compact)
 	{
@@ -44,10 +47,13 @@ namespace Bittorrent
 		}
 
 		lastPeerRequest = boost::posix_time::second_clock::universal_time();
+		//URL encode clientID
+		std::string clientIDString(clientID.begin(), clientID.end());
+		auto urlEncodedClientID = urlEncode(clientIDString);
 
 		//compact defaulted to 1 for now
 		std::string url = trackerAddress + "?info_hash=" + urlEncodedInfoHash +
-			"&peer_id=" + std::to_string(clientID) + "&port=" + std::to_string(port) + "&uploaded=" +
+			"&peer_id=" + urlEncodedClientID + "&port=" + std::to_string(port) + "&uploaded=" +
 			std::to_string(uploaded) + "&downloaded=" +
 			std::to_string(downloaded) + "&left=" + std::to_string(remaining) +
 			"&event=" + stringEvent + "&compact=" + std::to_string(compact);
@@ -58,12 +64,12 @@ namespace Bittorrent
 		//request url using appropriate protocol
 		if (parsedUrl.protocol == trackerUrl::protocolType::http)
 		{
-			//HTTPRequest(parsedUrl, compact);
-			UDP udp(parsedUrl, clientID, infoHash, uploaded, downloaded, remaining, intEvent);
+			HTTPRequest(parsedUrl, compact);
+			
 		}
 		else
 		{
-			
+			UDP udp(parsedUrl, clientID, infoHash, uploaded, downloaded, remaining, intEvent);
 		}
 	}
 
@@ -92,6 +98,9 @@ namespace Bittorrent
 			tcp::resolver resolver{ io_context };
 			tcp::socket socket{ io_context };
 
+			socket.close();
+			socket.open(tcp::v4());
+
 			// Look up the domain name
 			auto const results = resolver.resolve(host, port);
 
@@ -118,6 +127,7 @@ namespace Bittorrent
 			// Gracefully close the socket
 			boost::system::error_code ec;
 			socket.shutdown(tcp::socket::shutdown_both, ec);
+			socket.close();
 
 			// not_connected happens sometimes
 			// so don't bother reporting it.
@@ -152,17 +162,17 @@ namespace Bittorrent
 		{
 			std::cout << "Error reaching tracker \"" + trackerAddress + "\": " + 
 				"status code " + result << std::endl;
+			return;
 		}
+
 
 		//print body
 		std::string body{ boost::asio::buffers_begin(response.body().data()),
 				   boost::asio::buffers_end(response.body().data()) };
-		std::cout << "Body: " << std::quoted(body) << "\n";
 
+		std::cout << body << std::endl;
 
-		std::string data = "d8:completei2e10:downloadedi0e10:incompletei1e8:intervali1769e12:min intervali884e5:peers18:thisisatestetgersce";
-
-		valueDictionary info = boost::get<valueDictionary>(Decoder::decode(data));
+		valueDictionary info = boost::get<valueDictionary>(Decoder::decode(body));
 
 		if (info.empty())
 		{
@@ -173,42 +183,63 @@ namespace Bittorrent
 		peerRequestInterval =
 			boost::posix_time::seconds(boost::get<long long>(info.at("interval")));
 
+		std::cout << "Peer Request Interval: " << peerRequestInterval << std::endl;
+
+
 		// TODO: tracker response needs testing
 		// compact version is a string of (multiple) 6 bytes 
 		// first 4 are IP address, last 2 are port number in network notation
 		// non compact uses a list of dictionaries
 		if (compact)
 		{
-			std::string peerInfoString = boost::get<std::string>(info.at("peers"));
-			std::vector<byte> peerInfo(peerInfoString.begin(), peerInfoString.end());
-
-			for (size_t i = 0; i < peerInfo.size(); ++i)
+			if (info.count("failure reason"))
 			{
-				const int offset = i * 6;
-				std::string ipAddress = std::to_string(peerInfo.at(offset)) + "."
-					+ std::to_string(peerInfo.at(offset + 1)) + "." +
-					std::to_string(peerInfo.at(offset + 2)) + "."
-					+ std::to_string(peerInfo.at(offset + 3));
-				//the two bytes representing port are in big endian
-				//read in correct order directly using bit shifting
-				const int peerPort = (peerInfo.at(offset + 4) << 8) |
-					(peerInfo.at(offset + 5));
+				std::cout << boost::get<std::string>(info.at("failure reason"));
+				return;
+			}
+			else
+			{
+				std::string peerInfoString = boost::get<std::string>(info.at("peers"));
+				std::vector<byte> peerInfo(peerInfoString.begin(), peerInfoString.end());
 
-				// TODO: add to peers
+				for (size_t i = 0; i < peerInfo.size(); ++i)
+				{
+					const int offset = i * 6;
+					std::string ipAddress = std::to_string(peerInfo.at(offset)) + "."
+						+ std::to_string(peerInfo.at(offset + 1)) + "." +
+						std::to_string(peerInfo.at(offset + 2)) + "."
+						+ std::to_string(peerInfo.at(offset + 3));
+					//the two bytes representing port are in big endian
+					//read in correct order directly using bit shifting
+					const int peerPort = (peerInfo.at(offset + 4) << 8) |
+						(peerInfo.at(offset + 5));
+
+					std::cout << "IP address: " << ipAddress;
+					std::cout << "; Port: " << peerPort << std::endl;
+					// TODO: add to peers
+				}
 			}
 		}
 		else
 		{
-			valueList peerInfoList = boost::get<valueList>(info.at("peers"));
-			for (size_t i = 0; i < peerInfoList.size(); ++i)
+			if (info.count("failure reason"))
 			{
-				valueDictionary peerInfoDict =
-					boost::get<valueDictionary>(peerInfoList.at(i));
-				const std::string ipAddress =
-					boost::get<std::string>(peerInfoDict.at("ip"));
-				const int peerPort = boost::get<int>(peerInfoDict.at("ip"));
+				std::cout << boost::get<std::string>(info.at("failure reason"));
+				return;
+			}
+			else
+			{
+				valueList peerInfoList = boost::get<valueList>(info.at("peers"));
+				for (size_t i = 0; i < peerInfoList.size(); ++i)
+				{
+					valueDictionary peerInfoDict =
+						boost::get<valueDictionary>(peerInfoList.at(i));
+					const std::string ipAddress =
+						boost::get<std::string>(peerInfoDict.at("ip"));
+					const int peerPort = boost::get<int>(peerInfoDict.at("ip"));
 
-				// TODO: add to peers
+					// TODO: add to peers
+				}
 			}
 		}
 

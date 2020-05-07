@@ -61,7 +61,7 @@ namespace Bittorrent
 		const size_t columns = 20;
 		const size_t rows = n / columns;
 		assert(rows * columns == n);
-		pieces.resize(rows, std::vector<byte>(columns));
+		pieces.resize(rows, std::vector<int8_t>(columns));
 		for (size_t i = 0; i < rows; ++i)
 		{
 			for (size_t j = 0; j < columns; ++j)

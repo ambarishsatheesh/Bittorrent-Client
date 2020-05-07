@@ -10,7 +10,7 @@ namespace Bittorrent
 		downloadDirectory{ "" },
 		comment{ "" }, createdBy{ "" },
 		creationDate{ },
-		encoding{ "" }, isPrivate{ false }
+		encoding{ "" }, isPrivate{ false }, urlEncodedClientID{""}
 	{
 
 	}
@@ -60,7 +60,8 @@ namespace Bittorrent
 		return dict;
 	}
 
-	void TorrentGeneral::torrentToGeneralData(const char* fullFilePath, const valueDictionary& torrent)
+	void TorrentGeneral::torrentToGeneralData(const char* fullFilePath, 
+		const valueDictionary& torrent)
 	{
 		fileName = getFileName(fullFilePath);
 		downloadDirectory = getFileDirectory(fullFilePath);
@@ -121,13 +122,14 @@ namespace Bittorrent
 
 	}
 
-	void TorrentGeneral::updateTrackers(trackerObj::trackerEvent trkEvent, int id,
-		int port, std::string urlEncodedInfoHash, long long uploaded,
-		long long downloaded, long long remaining, bool compact)
+	void TorrentGeneral::updateTrackers(trackerObj::trackerEvent trkEvent, 
+		std::vector<int8_t> clientID,
+		int port, std::string urlEncodedInfoHash, std::vector<int8_t> infoHash, 
+		long long uploaded, long long downloaded, long long remaining, bool compact)
 	{
 		for (auto tracker : trackerList)
 		{
-			tracker.update(trkEvent, id, port, urlEncodedInfoHash, uploaded,
+			tracker.update(trkEvent, clientID, port, urlEncodedInfoHash, infoHash, uploaded,
 				downloaded, remaining, compact);
 		}
 	}

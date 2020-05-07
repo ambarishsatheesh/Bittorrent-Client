@@ -1,10 +1,15 @@
 #include "UDP.h"
 #include "Utility.h"
 
+#include <boost/bind.hpp>
+
 #include <iostream>
 #include <iomanip>
 #include <random>
 #include <limits>
+
+#define UDP_PORT 6881
+#define IPADDRESS "192.168.0.3"
 
 
 // TODO: implement time out/retransmit
@@ -14,16 +19,18 @@ namespace Bittorrent
 {
 	using namespace utility;
 
-	UDP::UDP(trackerUrl parsedUrl, long clientID, std::vector<int8_t> infoHash,
-		long long uploaded, long long downloaded, long long remaining, int intEvent)
-		: connIDReceivedTime{}, ancClientId{ clientID }, ancInfoHash{ infoHash }, 
+	UDP::UDP(trackerUrl& parsedUrl, std::vector<int8_t>& clientID, std::vector<int8_t>& infoHash,
+		long long& uploaded, long long& downloaded, long long& remaining, int& intEvent)
+		: connIDReceivedTime{}, ancClientID{ clientID }, ancInfoHash{ infoHash },
 		ancDownloaded{ downloaded }, ancUploaded{ uploaded }, 
 		ancRemaining{ remaining }, ancIntEvent{ intEvent },
 		peerHost{ parsedUrl.hostname }, peerPort{ "" },
-		peerTarget{""}, io_context(), socket(io_context), receiverEndpoint(), 
-		senderEndpoint()
+		peerTarget{ "" }, receivedConnBuffer(16), receivedAncBuffer(320),
+		io_context(), socket(io_context), 
+		remoteEndpoint(),
+		remoteEndpoint1(), localEndpoint()
 	{
-		buildConnectReq();
+		dataTransmission(parsedUrl);
 	}
 
 	UDP::~UDP()
@@ -31,7 +38,7 @@ namespace Bittorrent
 		socket.close();
 	}
 
-	boost::asio::mutable_buffers_1 UDP::buildConnectReq()
+	std::vector<byte> UDP::buildConnectReq()
 	{
 		//build connect request buffer
 		protocolID = { 0x0, 0x0, 0x04, 0x17, 0x27, 0x10, 0x19, 0x80 };
@@ -45,6 +52,7 @@ namespace Bittorrent
 		auto rndInt = dist6(rng);
 
 		//Big endian - but endianness doesn't matter since it's random anyway
+
 		sentTransactionID.resize(4);
 		for (int i = 0; i <= 3; ++i) {
 			sentTransactionID.at(i) = ((rndInt >> (8 * (3 - i))) & 0xff);
@@ -57,7 +65,7 @@ namespace Bittorrent
 		connectVec.insert(connectVec.begin() + 12, std::begin(sentTransactionID), std::end(sentTransactionID));
 
 		//convert to appropriate buffer for sending via UDP and return
-		return boost::asio::buffer(connectVec, connectVec.size());
+		return connectVec;
 	}
 
 
@@ -90,7 +98,7 @@ namespace Bittorrent
 			receivedConnBuffer.end() };
 	}
 
-	boost::asio::mutable_buffers_1 UDP::buildAnnounceReq()
+	std::vector<int8_t> UDP::buildAnnounceReq()
 	{
 		//generate announce action (1)
 		ancAction = { 0x0, 0x0, 0x0, 0x01 };
@@ -109,12 +117,20 @@ namespace Bittorrent
 			sentTransactionID.at(i) = ((rndInt >> (8 * (3 - i))) & 0xff);
 		}
 
-		//forgo id convention - this client will use 20 bytes of random numbers
-		std::vector<int8_t> clientIDVec;
-		clientIDVec.resize(20);
-		for (int i = 0; i <= 19; ++i) {
-			clientIDVec.at(i) = ((ancClientId >> (8 * (19 - i))) & 0xff);
+		//print for testing
+		std::cout << "Transaction ID: ";
+		for (size_t i = 0; i < 4; ++i)
+		{
+			printf("%x ", (unsigned char)sentTransactionID[i]);
 		}
+		std::cout << "\n";
+
+		std::cout << "Connection ID: ";
+		for (size_t i = 0; i < 8; ++i)
+		{
+			printf("%x ", (unsigned char)connectionID[i]);
+		}
+		std::cout << "\n";
 
 		//downloaded bytes
 		std::vector<int8_t> downloadedVec;
@@ -174,12 +190,12 @@ namespace Bittorrent
 		}
 
 		//copy to buffer
-		std::vector<byte> announceVec;
+		std::vector<int8_t> announceVec;
 		announceVec.insert(announceVec.begin(), std::begin(connectionID), std::end(connectionID));
 		announceVec.insert(announceVec.begin() + 8, std::begin(ancAction), std::end(ancAction));
 		announceVec.insert(announceVec.begin() + 12, std::begin(sentTransactionID), std::end(sentTransactionID));
 		announceVec.insert(announceVec.begin() + 16, std::begin(ancInfoHash), std::end(ancInfoHash));
-		announceVec.insert(announceVec.begin() + 36, std::begin(clientIDVec), std::end(clientIDVec));
+		announceVec.insert(announceVec.begin() + 36, std::begin(ancClientID), std::end(ancClientID));
 		announceVec.insert(announceVec.begin() + 56, std::begin(downloadedVec), std::end(downloadedVec));
 		announceVec.insert(announceVec.begin() + 64, std::begin(remainingVec), std::end(remainingVec));
 		announceVec.insert(announceVec.begin() + 72, std::begin(uploadedVec), std::end(uploadedVec));
@@ -189,8 +205,16 @@ namespace Bittorrent
 		announceVec.insert(announceVec.begin() + 92, std::begin(numWantVec), std::end(numWantVec));
 		announceVec.insert(announceVec.begin() + 96, std::begin(portVec), std::end(portVec));
 
+		/*//print for testing
+		std::cout << "Announce request data: " << "\n";
+		for (size_t i = 0; i < 98; ++i)
+		{
+			printf("%x ", (unsigned char)announceVec[i]);
+		}
+		std::cout << "\n";*/
+
 		//convert to appropriate buffer for sending via UDP and return
-		return boost::asio::buffer(announceVec, announceVec.size());
+		return announceVec;
 	}
 
 	void UDP::handleAnnounceResp(std::vector<byte>& receivedAncBuffer,
@@ -199,10 +223,13 @@ namespace Bittorrent
 
 	}
 
-	void UDP::send(const std::string& msg, trackerUrl parsedUrl)
+	void UDP::dataTransmission(trackerUrl& parsedUrl)
 	{
+		
 		try
 		{
+			boost::system::error_code err;
+
 			//if empty use default values
 			peerPort = parsedUrl.port.empty() ? "80" : parsedUrl.port;
 			peerTarget = parsedUrl.target.empty() ? "/" : parsedUrl.target;
@@ -210,25 +237,44 @@ namespace Bittorrent
 			udp::resolver resolver{ io_context };
 
 			// Look up the domain name
-			auto const results = resolver.resolve(peerHost, peerPort);
+			//auto const results = resolver.resolve(peerHost, peerPort);
+			const auto results = resolver.resolve("tracker.opentrackr.org", "1337");
 
 			//iterate and get successful connection endpoint
-			const auto receiverEndpointIter = 
+			const auto remoteEndpointIter =
 				boost::asio::connect(socket, results.begin(), results.end());
-			receiverEndpoint = receiverEndpointIter->endpoint();
+			remoteEndpoint = remoteEndpointIter->endpoint();
+
+			//not needed anymore
+			socket.close();
 
 			//build connect request buffer
 			const auto connectReqBuffer = buildConnectReq();
 
-			//open socket and send connect request
-			socket.open(udp::v4());
-			socket.send_to(connectReqBuffer, receiverEndpoint);
+			std::cout << "Sending..." << "\n";
 
+			//create new socket with specific source port 
+			//(to which tracker sends response)
+			udp::socket socket(io_context, udp::endpoint(udp::v4(), UDP_PORT));
+			//send connect request
+			const auto sentConnBytes = 
+				socket.send_to(boost::asio::buffer(connectReqBuffer,
+					connectReqBuffer.size()), remoteEndpoint, 0, err);
+
+			std::cout << "Sent connect request to " << remoteEndpoint << ": " << 
+				sentConnBytes << " bytes" << " (" << err.message() << "): \n";
+
+			std::cout << "Receiving..." << "\n";
+
+			//no need to bind socket for receiving because sending UDP 
+			//automatically binds endpoint
 			//read response into buffer
-			std::vector<byte> receivedConnBuffer(16);
 			const std::size_t connBytesRec = 
-				socket.receive_from(boost::asio::buffer(receivedConnBuffer),
-					senderEndpoint);
+				socket.receive_from(boost::asio::buffer(&receivedConnBuffer[0], 
+					receivedConnBuffer.size()), remoteEndpoint, 0, err);
+
+			std::cout << "Received connect response from " << remoteEndpoint << ": " << 
+				connBytesRec << " bytes" << " (" << err.message() << "): \n";
 
 			//update relevant timekeeping
 			connIDReceivedTime = boost::posix_time::second_clock::universal_time();
@@ -236,24 +282,37 @@ namespace Bittorrent
 
 			//handle connect response
 			handleConnectResp(receivedConnBuffer, connBytesRec);
-
-			//build connect request buffer and send announce request
+			//build connect request buffer
 			const auto announceReqBuffer = buildAnnounceReq();
-			socket.send_to(announceReqBuffer, receiverEndpoint);
+
+			std::cout << "Sending..." << "\n";
+
+			///send announce request
+			const auto sentAncBytes =
+				socket.send_to(boost::asio::buffer(announceReqBuffer,
+					announceReqBuffer.size()), remoteEndpoint);
+
+			std::cout << "Sent announce request to " << remoteEndpoint << ": " <<
+				sentAncBytes << " bytes" << " (" << err.message() << "): \n";
+
+			std::cout << "Receiving..." << "\n";
 
 			//read response into buffer
 			//set max peers for this client to 50 - more than enough
 			//(6 bytes * 50 = 300) + 20 for other info = 320 bytes max
-			std::vector<byte> receivedAncBuffer(320);
+			//size initialised in constructor
 			const std::size_t ancBytesRec =
 				socket.receive_from(boost::asio::buffer(receivedAncBuffer),
-					senderEndpoint);
+					localEndpoint, 0, err);
+
+			std::cout << "Received connect response from " << remoteEndpoint << ": " <<
+				ancBytesRec << " bytes" << " (" << err.message() << "): \n";
 
 			//update relevant timekeeping
 			lastRequestTime = boost::posix_time::second_clock::universal_time();
 
 			//handle announce response
-			handleAnnounceResp(receivedConnBuffer, connBytesRec);
+			handleAnnounceResp(receivedAncBuffer, ancBytesRec);
 
 		}
 		catch (const boost::system::system_error& e)

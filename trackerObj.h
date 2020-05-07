@@ -32,7 +32,7 @@ namespace Bittorrent
 		boost::posix_time::ptime lastPeerRequest;
 		boost::posix_time::seconds peerRequestInterval;
 
-		void update(trackerEvent trkEvent, long clientID,
+		void update(trackerEvent trkEvent, std::vector<int8_t> clientID,
 			int port, std::string urlEncodedInfoHash, std::vector<int8_t> infoHash,
 			long long uploaded, long long downloaded, long long remaining,
 			bool compact);

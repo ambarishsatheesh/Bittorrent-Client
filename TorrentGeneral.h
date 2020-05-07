@@ -21,15 +21,19 @@ namespace Bittorrent
 		boost::posix_time::ptime creationDate;
 		std::string encoding; //unsure
 		bool isPrivate;
+		std::string urlEncodedClientID;
 
 		//fill general info
-		void torrentToGeneralData(const char* fullFilePath, const valueDictionary& torrent);
+		void torrentToGeneralData(const char* fullFilePath, 
+			const valueDictionary& torrent);
 		valueDictionary generalDataToDictionary(valueDictionary& dict);
 
 		//tracker processing
-		void updateTrackers(trackerObj::trackerEvent trkEvent, int id,
-			int port, std::string urlEncodedInfoHash, long long uploaded,
-			long long downloaded, long long remaining, bool compact);
+		void updateTrackers(trackerObj::trackerEvent trkEvent, 
+			std::vector<int8_t> clientID,
+			int port, std::string urlEncodedInfoHash, std::vector<int8_t> infoHash,
+			long long uploaded, long long downloaded, long long remaining, 
+			bool compact);
 		void resetTrackersLastRequest();
 
 		//constructor
