@@ -8,6 +8,8 @@
 // TODO: clean up error catching - currently all invalid arguments
 // TODO: implement method to add trackers to torrent
 // TODO: clean up decoder
+// TODO: implement magnet link functionality
+// TODO: tracker scrape (http and udp)
 // TODO: multithreading (boost::asio async)
 
 #include "Decoder.h"
@@ -57,7 +59,8 @@ int main(int argc, char* argv[])
 
 	Torrent temp = createNewTorrent("test", fullFilePath, isPrivate, "test comment", trackers);
 
-	temp.generalData.trackerList[0].update(trackerObj::trackerEvent::started, 19028907, 6969, "%6d%7e%8f", 4549, 397892, 4334, 1);
+	temp.generalData.trackerList[0].update(trackerObj::trackerEvent::started, 
+		19028907, 6969, "%6d%7e%8f", temp.hashesData.infoHash, 4549, 397892, 4334, 1);
 
 	//std::cout << "file name: " << temp.generalData.fileName << std::endl;
 	//std::cout << "comment: " << temp.generalData.comment << std::endl;

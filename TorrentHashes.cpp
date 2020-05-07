@@ -19,14 +19,14 @@ namespace Bittorrent
 		//encode torrent (info section only)
 		auto encodedInfo = boost::apply_visitor(encodeVisitor(), torrentInfo);
 
-		const byte* dataArr = reinterpret_cast<byte*>(&encodedInfo.at(0));
+		const int8_t* dataArr = reinterpret_cast<int8_t*>(&encodedInfo.at(0));
 
 		//calculate hash
 		SHA1 sha1;
 		infoHash = sha1(dataArr, encodedInfo.size());
 
 		//convert infohash to hex string
-		const byte* infoHashArr = &infoHash.at(0);
+		const int8_t* infoHashArr = &infoHash.at(0);
 		hexStringInfoHash = sha1.toHexHash(infoHashArr, infoHash.size());
 
 		//URL encode infohash

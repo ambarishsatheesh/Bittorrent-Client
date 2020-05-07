@@ -21,6 +21,7 @@ namespace Bittorrent
 	//recursive variant values
 	using value = boost::make_recursive_variant<
 		long long,
+		int,
 		std::string,
 		std::vector<boost::recursive_variant_>,
 		std::map<std::string, boost::recursive_variant_>

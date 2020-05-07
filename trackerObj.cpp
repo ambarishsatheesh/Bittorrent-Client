@@ -1,8 +1,6 @@
 ﻿#include "trackerObj.h"
-#include "ValueTypes.h"
 #include "Decoder.h"
 
-#include <iomanip>
 
 namespace Bittorrent
 {
@@ -14,22 +12,26 @@ namespace Bittorrent
 	}
 
 	//create required url for GET request
-	void trackerObj::update(trackerEvent trkEvent, int id,
-		int port, std::string urlEncodedInfoHash, long long uploaded,
-		long long downloaded, long long remaining, bool compact)
+	void trackerObj::update(trackerEvent trkEvent, long clientID,
+		int port, std::string urlEncodedInfoHash, std::vector<int8_t> infoHash,
+		long long uploaded, long long downloaded, long long remaining, bool compact)
 	{
 		//switch case to get enumerator string
 		std::string stringEvent;
+		int intEvent;
 		switch (trkEvent)
 		{
 		case trackerEvent::started:
 				stringEvent = "started";
+				intEvent = 1;
 				break;
 		case trackerEvent::paused:
 				stringEvent = "paused";
+				intEvent = 2;
 				break;
 		case trackerEvent::stopped:
 				stringEvent = "stopped";
+				intEvent = 3;
 				break;
 		}
 
@@ -45,12 +47,10 @@ namespace Bittorrent
 
 		//compact defaulted to 1 for now
 		std::string url = trackerAddress + "?info_hash=" + urlEncodedInfoHash +
-			"&peer_id=" + std::to_string(id) + "&port=" + std::to_string(port) + "&uploaded=" +
+			"&peer_id=" + std::to_string(clientID) + "&port=" + std::to_string(port) + "&uploaded=" +
 			std::to_string(uploaded) + "&downloaded=" +
 			std::to_string(downloaded) + "&left=" + std::to_string(remaining) +
 			"&event=" + stringEvent + "&compact=" + std::to_string(compact);
-
-		std::cout << url;
 
 		//parse url
 		trackerUrl parsedUrl(url);
@@ -58,11 +58,12 @@ namespace Bittorrent
 		//request url using appropriate protocol
 		if (parsedUrl.protocol == trackerUrl::protocolType::http)
 		{
-			HTTPRequest(parsedUrl, compact);
+			//HTTPRequest(parsedUrl, compact);
+			UDP udp(parsedUrl, clientID, infoHash, uploaded, downloaded, remaining, intEvent);
 		}
 		else
 		{
-			//UDPRequest
+			
 		}
 	}
 
@@ -74,22 +75,22 @@ namespace Bittorrent
 
 
 
-	void trackerObj::HTTPRequest(trackerUrl parsedURL, bool compact)
+	void trackerObj::HTTPRequest(trackerUrl parsedUrl, bool compact)
 	{
 		try
 		{
 			//if empty use default values
-			const auto host = parsedURL.hostname;
-			const auto port = parsedURL.port.empty() ? "80" : parsedURL.port;
-			const auto target = parsedURL.target.empty() ? "/" : parsedURL.target;
+			const auto host = parsedUrl.hostname;
+			const auto port = parsedUrl.port.empty() ? "80" : parsedUrl.port;
+			const auto target = parsedUrl.target.empty() ? "/" : parsedUrl.target;
 			const auto version = 10;
 
 			// The io_context is required for all I/O
-			boost::asio::io_context ioc;
+			boost::asio::io_context io_context;
 
 			// These objects perform our I/O
-			tcp::resolver resolver{ ioc };
-			tcp::socket socket{ ioc };
+			tcp::resolver resolver{ io_context };
+			tcp::socket socket{ io_context };
 
 			// Look up the domain name
 			auto const results = resolver.resolve(host, port);

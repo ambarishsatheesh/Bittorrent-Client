@@ -30,6 +30,7 @@
     <ClCompile Include="TorrentStatus.cpp" />
     <ClCompile Include="trackerObj.cpp" />
     <ClCompile Include="trackerUrl.cpp" />
+    <ClCompile Include="UDP.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Decoder.h" />
@@ -45,6 +46,7 @@
     <ClInclude Include="TorrentStatus.h" />
     <ClInclude Include="trackerObj.h" />
     <ClInclude Include="trackerUrl.h" />
+    <ClInclude Include="UDP.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="ValueTypes.h" />
   </ItemGroup>
@@ -159,6 +161,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>D:\Documents\Programming\date;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_WIN32_WINNT=0x0501</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -8,7 +8,8 @@ namespace Bittorrent
 	{
 	public:
 		//sha1 hash of torrent info
-		std::vector<byte> infoHash;
+		//need int8_t for udp buffer later
+		std::vector<int8_t> infoHash;
 		std::string hexStringInfoHash;
 		std::string urlEncodedInfoHash;
 

@@ -7,7 +7,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/buffers_iterator.hpp>
 
-#include "trackerUrl.h"
+#include "UDP.h"
 
 #include <string>
 
@@ -24,7 +24,7 @@ namespace Bittorrent
 		//current state of client
 		enum class trackerEvent
 		{
-			started = 0,
+			started = 1,
 			paused,
 			stopped
 		};
@@ -32,9 +32,10 @@ namespace Bittorrent
 		boost::posix_time::ptime lastPeerRequest;
 		boost::posix_time::seconds peerRequestInterval;
 
-		void update(trackerEvent trkEvent, int id,
-			int port, std::string urlEncodedInfoHash, long long uploaded,
-			long long downloaded, long long remaining, bool compact);
+		void update(trackerEvent trkEvent, long clientID,
+			int port, std::string urlEncodedInfoHash, std::vector<int8_t> infoHash,
+			long long uploaded, long long downloaded, long long remaining,
+			bool compact);
 
 		void resetLastRequest();
 		void HTTPRequest(trackerUrl parsedURL, bool compact);

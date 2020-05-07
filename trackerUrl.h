@@ -5,7 +5,7 @@
 #include <string>
 #include <boost/asio.hpp>
 
-using a_udp = boost::asio::ip::udp;
+using boost::asio::ip::udp;
 
 namespace Bittorrent
 {
@@ -19,17 +19,11 @@ namespace Bittorrent
 		std::string hostname;
 		std::string port;
 		std::string target;
-		a_udp::endpoint endpoint;
-		
 
 		//constructor
 		trackerUrl(std::string& url);
 		//no default constructor - requires parameter
 		trackerUrl() = delete;
-
-	private:
-		void isUDP();
 	};
-
 }
 
