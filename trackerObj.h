@@ -33,6 +33,10 @@ namespace Bittorrent
 		boost::posix_time::seconds peerRequestInterval;
 		std::unordered_map<std::string, std::string> peers;
 
+		//udp scrape data
+		int seeders;
+		int leechers;
+
 		void update(trackerEvent trkEvent, std::vector<byte> clientID,
 			int port, std::string urlEncodedInfoHash, std::vector<byte> infoHash,
 			long long uploaded, long long downloaded, long long remaining,

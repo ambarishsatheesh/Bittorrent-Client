@@ -56,26 +56,15 @@ namespace Bittorrent
 		//general variables
 		std::string peerHost;
 		std::string peerPort;
-		std::string peerTarget;
 		std::vector<byte> errorAction;
 
-		void dataTransmission(trackerUrl& parsedUrl);
-		std::vector<byte> buildScrapeReq();
-		std::vector<byte> buildConnectReq();
-		std::vector<byte> buildAnnounceReq();
-
-		void handleConnectResp(const std::size_t& connBytesRec);
-		void handleScrapeResp(const std::size_t& scrapeBytesRec);
-		void handleAnnounceResp(const std::size_t& AncBytesRec);
-
-		void connectRequest(boost::system::error_code& err);
-		void scrapeRequest(boost::system::error_code& err);
-		void announceRequest(boost::system::error_code& err);
+		void dataTransmission(trackerUrl& parsedUrl, bool isAnnounce);
 
 		//default constructor & destructor
-		UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientId, std::vector<byte>& infoHash,
-			long long& uploaded, long long& downloaded, long long& remaining,
-			int& intEvent);
+		UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientId, 
+			std::vector<byte>& infoHash, long long& uploaded, 
+			long long& downloaded, long long& remaining, int& intEvent, 
+			bool isAnnounce);
 		~UDPClient();
 
 	private:
@@ -87,5 +76,17 @@ namespace Bittorrent
 		udp::socket socket_transmission;
 		udp::endpoint remoteEndpoint;
 		udp::endpoint localEndpoint;
+
+		std::vector<byte> buildScrapeReq();
+		std::vector<byte> buildConnectReq();
+		std::vector<byte> buildAnnounceReq();
+
+		void handleConnectResp(const std::size_t& connBytesRec);
+		void handleScrapeResp(const std::size_t& scrapeBytesRec);
+		void handleAnnounceResp(const std::size_t& AncBytesRec);
+
+		void connectRequest(boost::system::error_code& err);
+		void scrapeRequest(boost::system::error_code& err);
+		void announceRequest(boost::system::error_code& err);
 	};
 }

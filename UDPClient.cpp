@@ -20,13 +20,13 @@ namespace Bittorrent
 
 	UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID, 
 		std::vector<byte>& infoHash, long long& uploaded, long long& downloaded, 
-		long long& remaining, int& intEvent)
+		long long& remaining, int& intEvent, bool isAnnounce)
 		: connIDReceivedTime{}, ancClientID{ clientID }, byteInfoHash{ infoHash },
 		ancDownloaded{ downloaded }, ancUploaded{ uploaded }, 
 		ancRemaining{ remaining }, ancIntEvent{ intEvent },
-		peerHost{ parsedUrl.hostname }, peerPort{ "" },
-		peerTarget{ "" }, receivedConnBuffer(16), receivedScrapeBuffer(200), 
-		receivedAncBuffer(320), interval{ 1800 }, leechers{ 0 }, seeders{ 0 },
+		peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port }, 
+		receivedConnBuffer(16), receivedScrapeBuffer(200), 
+		receivedAncBuffer(320), interval{ 0 }, leechers{ 0 }, seeders{ 0 },
 		completed{ 0 }, io_context(), 
 		socket_connect(io_context, udp::endpoint(udp::v4(), 2)), 
 		socket_transmission(io_context, udp::endpoint(udp::v4(), 6681)),
@@ -35,9 +35,6 @@ namespace Bittorrent
 		try
 		{
 			errorAction = { 0x0, 0x0, 0x0, 0x3 };
-			//if empty use default values
-			peerPort = parsedUrl.port.empty() ? "80" : parsedUrl.port;
-			peerTarget = parsedUrl.target.empty() ? "/" : parsedUrl.target;
 
 			udp::resolver resolver{ io_context };
 
@@ -60,7 +57,7 @@ namespace Bittorrent
 				<< ". Message: " << e.what();
 		}
 
-		dataTransmission(parsedUrl);
+		dataTransmission(parsedUrl, isAnnounce);
 	}
 
 	UDPClient::~UDPClient()
@@ -554,16 +551,22 @@ namespace Bittorrent
 		}
 	}
 
-	void UDPClient::dataTransmission(trackerUrl& parsedUrl)
+	void UDPClient::dataTransmission(trackerUrl& parsedUrl, bool isAnnounce)
 	{
 		try
 		{
 			boost::system::error_code err;
 
 			connectRequest(err);
-			announceRequest(err);
-
-			scrapeRequest(err);
+			//use interval value to check if we have announced before
+			if (isAnnounce)
+			{
+				announceRequest(err);
+			}
+			else
+			{
+				scrapeRequest(err);
+			}
 
 		}
 		catch (const boost::system::system_error& e)

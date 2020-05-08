@@ -10,7 +10,8 @@ namespace Bittorrent
 	trackerObj::trackerObj()
 		: trackerAddress{ "" },
 		lastPeerRequest{ boost::posix_time::ptime(boost::posix_time::min_date_time) },
-		peerRequestInterval{ 1800 }
+		peerRequestInterval{ 1800 }, seeders(std::numeric_limits<int>::min()), 
+		leechers(std::numeric_limits<int>::min())
 	{
 	}
 
@@ -69,8 +70,31 @@ namespace Bittorrent
 		}
 		else
 		{
-			UDPClient udp(parsedUrl, clientID, infoHash, uploaded, downloaded, 
-				remaining, intEvent);
+			//announce if first time, otherwise scrape
+			if (seeders == std::numeric_limits<int>::min() &&
+				leechers == std::numeric_limits<int>::min())
+			{
+				UDPClient udpAnnounce(parsedUrl, clientID, infoHash, uploaded, 
+					downloaded, remaining, intEvent, 1);
+				peers = udpAnnounce.peers;
+				seeders = udpAnnounce.seeders;
+				leechers = udpAnnounce.leechers;
+			}
+			else
+			{
+				UDPClient udpGen(parsedUrl, clientID, infoHash, uploaded, 
+					downloaded, remaining, intEvent, 0);
+				//announce and update if seeders/leechers values change
+				if (udpGen.seeders != seeders || udpGen.leechers != leechers
+					|| udpGen.peers != peers)
+				{
+					udpGen.dataTransmission(parsedUrl, 1);
+					peers = udpGen.peers;
+					seeders = udpGen.seeders;
+					leechers = udpGen.leechers;
+				}
+			}
+
 			//handle peers, seeders, leechers, interval
 			//need some event handling to scrape/announce after interval time has passed
 		}
