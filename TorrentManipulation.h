@@ -31,7 +31,7 @@ namespace Bittorrent
 		void writeBlock(Torrent& torrent, int piece, int block,
 			std::vector<byte>& buffer);
 		void verify(int piece);
-		std::vector<int8_t> getHash(Torrent& torrent, int piece);
+		std::vector<byte> getHash(Torrent& torrent, int piece);
 
 
 		//encode torrent object
@@ -339,7 +339,7 @@ namespace Bittorrent
 
 		}
 
-		std::vector<int8_t> getHash(Torrent& torrent, int piece)
+		std::vector<byte> getHash(Torrent& torrent, int piece)
 		{
 			std::vector<byte> data = readPiece(torrent, piece);
 			byte* dataArr = &data[0];

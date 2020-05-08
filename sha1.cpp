@@ -161,7 +161,7 @@ void SHA1::processBlock(const void* data)
 /// add arbitrary number of bytes
 void SHA1::add(const void* data, size_t numBytes)
 {
-    const int8_t* current = (const int8_t*)data;
+    const byte* current = (const byte*)data;
 
     if (m_bufferSize > 0)
     {
@@ -227,7 +227,7 @@ void SHA1::processBuffer()
     paddedLength /= 8;
 
     // only needed if additional data flows over into a second block
-    int8_t extra[BlockSize];
+    byte extra[BlockSize];
 
     // append a "1" bit, 128 => binary 10000000
     if (m_bufferSize < BlockSize)
@@ -244,21 +244,21 @@ void SHA1::processBuffer()
     // add message length in bits as 64 bit number
     uint64_t msgBits = 8 * (m_numBytes + m_bufferSize);
     // find right position
-    int8_t* addLength;
+    byte* addLength;
     if (paddedLength < BlockSize)
         addLength = m_buffer + paddedLength;
     else
         addLength = extra + paddedLength - BlockSize;
 
     // must be big endian
-    *addLength++ = (int8_t)((msgBits >> 56) & 0xFF);
-    *addLength++ = (int8_t)((msgBits >> 48) & 0xFF);
-    *addLength++ = (int8_t)((msgBits >> 40) & 0xFF);
-    *addLength++ = (int8_t)((msgBits >> 32) & 0xFF);
-    *addLength++ = (int8_t)((msgBits >> 24) & 0xFF);
-    *addLength++ = (int8_t)((msgBits >> 16) & 0xFF);
-    *addLength++ = (int8_t)((msgBits >> 8) & 0xFF);
-    *addLength = (int8_t)(msgBits & 0xFF);
+    *addLength++ = (byte)((msgBits >> 56) & 0xFF);
+    *addLength++ = (byte)((msgBits >> 48) & 0xFF);
+    *addLength++ = (byte)((msgBits >> 40) & 0xFF);
+    *addLength++ = (byte)((msgBits >> 32) & 0xFF);
+    *addLength++ = (byte)((msgBits >> 24) & 0xFF);
+    *addLength++ = (byte)((msgBits >> 16) & 0xFF);
+    *addLength++ = (byte)((msgBits >> 8) & 0xFF);
+    *addLength = (byte)(msgBits & 0xFF);
 
     // process blocks
     processBlock(m_buffer);
@@ -272,7 +272,7 @@ void SHA1::processBuffer()
 std::string SHA1::getHexHash()
 {
     // compute hash (as raw bytes)
-    int8_t rawHash[HashBytes];
+    byte rawHash[HashBytes];
     getHash(rawHash);
 
     // convert to hex string
@@ -288,14 +288,14 @@ std::string SHA1::getHexHash()
     return result;
 }
 
-std::vector<int8_t> SHA1::getVectorHash()
+std::vector<byte> SHA1::getVectorHash()
 {
     // compute hash (as raw bytes)
-    int8_t rawHash[HashBytes];
+    byte rawHash[HashBytes];
     getHash(rawHash);
 
     //store in vector
-    std::vector<int8_t> result;
+    std::vector<byte> result;
     result.resize(HashBytes);
     result.assign(std::begin(rawHash), std::end(rawHash));
 
@@ -304,7 +304,7 @@ std::vector<int8_t> SHA1::getVectorHash()
 
 
 /// return latest hash as bytes
-void SHA1::getHash(int8_t buffer[SHA1::HashBytes])
+void SHA1::getHash(byte buffer[SHA1::HashBytes])
 {
     // save old hash if buffer is partially filled
     uint32_t oldHash[HashValues];
@@ -314,7 +314,7 @@ void SHA1::getHash(int8_t buffer[SHA1::HashBytes])
     // process remaining bytes
     processBuffer();
 
-    int8_t* current = buffer;
+    byte* current = buffer;
     for (int i = 0; i < HashValues; i++)
     {
         *current++ = (m_hash[i] >> 24) & 0xFF;
@@ -329,7 +329,7 @@ void SHA1::getHash(int8_t buffer[SHA1::HashBytes])
 
 
 /// compute SHA1 of a memory block
-std::vector<int8_t> SHA1::operator()(const void* data, size_t numBytes)
+std::vector<byte> SHA1::operator()(const void* data, size_t numBytes)
 {
     reset();
     add(data, numBytes);

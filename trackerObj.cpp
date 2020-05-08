@@ -15,8 +15,8 @@ namespace Bittorrent
 	}
 
 	//create required url for GET request
-	void trackerObj::update(trackerEvent trkEvent, std::vector<int8_t> clientID,
-		int port, std::string urlEncodedInfoHash, std::vector<int8_t> infoHash,
+	void trackerObj::update(trackerEvent trkEvent, std::vector<byte> clientID,
+		int port, std::string urlEncodedInfoHash, std::vector<byte> infoHash,
 		long long uploaded, long long downloaded, long long remaining, bool compact)
 	{
 		//switch case to get enumerator string
@@ -69,7 +69,9 @@ namespace Bittorrent
 		}
 		else
 		{
-			UDP udp(parsedUrl, clientID, infoHash, uploaded, downloaded, remaining, intEvent);
+			UDP udp(parsedUrl, clientID, infoHash, uploaded, downloaded, 
+				remaining, intEvent);
+			//handle peers, seeders, leechers, interval
 		}
 	}
 
@@ -201,22 +203,21 @@ namespace Bittorrent
 			{
 				std::string peerInfoString = boost::get<std::string>(info.at("peers"));
 				std::vector<byte> peerInfo(peerInfoString.begin(), peerInfoString.end());
-
-				for (size_t i = 0; i < peerInfo.size(); ++i)
+				//info is split into chunks of 6 bytes
+				for (size_t i = 0; i < peerInfo.size(); i+=6)
 				{
-					const int offset = i * 6;
-					std::string ipAddress = std::to_string(peerInfo.at(offset)) + "."
-						+ std::to_string(peerInfo.at(offset + 1)) + "." +
-						std::to_string(peerInfo.at(offset + 2)) + "."
-						+ std::to_string(peerInfo.at(offset + 3));
+					//first four bytes of each chunk form the ip address
+					std::string ipAddress = std::to_string(peerInfo.at(i)) 
+						+ "." + std::to_string(peerInfo.at(i + 1)) + "." +
+						std::to_string(peerInfo.at(i + 2)) + "."
+						+ std::to_string(peerInfo.at(i + 3));
 					//the two bytes representing port are in big endian
 					//read in correct order directly using bit shifting
-					const int peerPort = (peerInfo.at(offset + 4) << 8) |
-						(peerInfo.at(offset + 5));
-
-					std::cout << "IP address: " << ipAddress;
-					std::cout << "; Port: " << peerPort << std::endl;
-					// TODO: add to peers
+					std::string peerPort = std::to_string(
+						(peerInfo.at(i + 4) << 8) |
+						(peerInfo.at(i + 5)));
+					//add to peers list
+					peers.emplace(ipAddress, peerPort);
 				}
 			}
 		}
@@ -237,8 +238,8 @@ namespace Bittorrent
 					const std::string ipAddress =
 						boost::get<std::string>(peerInfoDict.at("ip"));
 					const int peerPort = boost::get<int>(peerInfoDict.at("ip"));
-
-					// TODO: add to peers
+					//add to peers list
+					peers.emplace(ipAddress, std::to_string(peerPort));
 				}
 			}
 		}

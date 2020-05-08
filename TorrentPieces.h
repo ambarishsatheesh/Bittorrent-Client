@@ -15,7 +15,7 @@ namespace Bittorrent
 		long long totalSize;
 		std::string readableTotalSize;
 		int pieceCount;
-		std::vector<std::vector<int8_t>> pieces;
+		std::vector<std::vector<byte>> pieces;
 
 		//fill in pieces data
 		void torrentToPiecesData(const std::vector<fileObj>& fileList,

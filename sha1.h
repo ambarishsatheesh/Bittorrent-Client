@@ -27,6 +27,8 @@ typedef unsigned __int64 uint64_t;
 #include <stdint.h>
 #endif
 
+using byte = uint8_t;
+
 
 /// compute SHA1 hash
 /** Usage:
@@ -49,7 +51,7 @@ public:
     SHA1();
 
     /// compute SHA1 of a memory block
-    std::vector<int8_t> operator()(const void* data, size_t numBytes);
+    std::vector<byte> operator()(const void* data, size_t numBytes);
     /// compute SHA1 of a string, excluding final zero
 
     /// add arbitrary number of bytes
@@ -58,7 +60,7 @@ public:
     /// return latest hash as 40 hex characters
     std::string getHexHash();
     //return latest hash as vector of bytes
-    std::vector<int8_t> getVectorHash();
+    std::vector<byte> getVectorHash();
     /// compute SHA1 of void* input, excluding final zero and return latest hash 
     std::string toHexHash(const void* data, size_t numBytes);
     /// compute SHA1 of a string, excluding final zero and return latest hash 
@@ -66,7 +68,7 @@ public:
     std::string toHexHash(const std::string& text);
 
     /// return latest hash as bytes
-    void getHash(int8_t buffer[HashBytes]);
+    void getHash(byte buffer[HashBytes]);
 
     /// restart
     void reset();
@@ -82,7 +84,7 @@ private:
     /// valid bytes in m_buffer
     size_t   m_bufferSize;
     /// bytes not processed yet
-    int8_t  m_buffer[BlockSize];
+    byte  m_buffer[BlockSize];
 
     enum { HashValues = HashBytes / 4 };
     /// hash, stored as integers

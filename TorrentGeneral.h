@@ -30,8 +30,8 @@ namespace Bittorrent
 
 		//tracker processing
 		void updateTrackers(trackerObj::trackerEvent trkEvent, 
-			std::vector<int8_t> clientID,
-			int port, std::string urlEncodedInfoHash, std::vector<int8_t> infoHash,
+			std::vector<byte> clientID,
+			int port, std::string urlEncodedInfoHash, std::vector<byte> infoHash,
 			long long uploaded, long long downloaded, long long remaining, 
 			bool compact);
 		void resetTrackersLastRequest();

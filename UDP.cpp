@@ -14,21 +14,22 @@
 
 // TODO: implement time out/retransmit
 // TODO: needs proper testing of all parts
+// TODO: need to populate "remaining"
 
 namespace Bittorrent
 {
 	using namespace utility;
 
-	UDP::UDP(trackerUrl& parsedUrl, std::vector<int8_t>& clientID, std::vector<int8_t>& infoHash,
+	UDP::UDP(trackerUrl& parsedUrl, std::vector<byte>& clientID, std::vector<byte>& infoHash,
 		long long& uploaded, long long& downloaded, long long& remaining, int& intEvent)
 		: connIDReceivedTime{}, ancClientID{ clientID }, ancInfoHash{ infoHash },
 		ancDownloaded{ downloaded }, ancUploaded{ uploaded }, 
 		ancRemaining{ remaining }, ancIntEvent{ intEvent },
 		peerHost{ parsedUrl.hostname }, peerPort{ "" },
 		peerTarget{ "" }, receivedConnBuffer(16), receivedAncBuffer(320),
+		interval{ 1800 }, leechers{ 0 }, seeders{ 0 },
 		io_context(), socket(io_context), 
-		remoteEndpoint(),
-		remoteEndpoint1(), localEndpoint()
+		remoteEndpoint(), localEndpoint()
 	{
 		dataTransmission(parsedUrl);
 	}
@@ -72,6 +73,7 @@ namespace Bittorrent
 	void UDP::handleConnectResp(std::vector<byte>& receivedConnBuffer,
 		const std::size_t& connBytesRec)
 	{
+		//validate size
 		if (connBytesRec < 16)
 		{
 			throw std::invalid_argument("Connect response packet is less than the expected 16 bytes!");
@@ -98,7 +100,7 @@ namespace Bittorrent
 			receivedConnBuffer.end() };
 	}
 
-	std::vector<int8_t> UDP::buildAnnounceReq()
+	std::vector<byte> UDP::buildAnnounceReq()
 	{
 		//generate announce action (1)
 		ancAction = { 0x0, 0x0, 0x0, 0x01 };
@@ -133,64 +135,64 @@ namespace Bittorrent
 		std::cout << "\n";
 
 		//downloaded bytes
-		std::vector<int8_t> downloadedVec;
+		std::vector<byte> downloadedVec;
 		downloadedVec.resize(8);
 		for (int i = 0; i <= 7; ++i) {
 			downloadedVec.at(i) = ((ancDownloaded >> (8 * (7 - i))) & 0xff);
 		}
 
 		//remaining bytes
-		std::vector<int8_t> remainingVec;
+		std::vector<byte> remainingVec;
 		remainingVec.resize(8);
 		for (int i = 0; i <= 7; ++i) {
 			remainingVec.at(i) = ((ancRemaining >> (8 * (7 - i))) & 0xff);
 		}
 
 		//uploaded bytes
-		std::vector<int8_t> uploadedVec;
+		std::vector<byte> uploadedVec;
 		uploadedVec.resize(8);
 		for (int i = 0; i <= 7; ++i) {
 			uploadedVec.at(i) = ((ancUploaded >> (8 * (7 - i))) & 0xff);
 		}
 
 		//event
-		std::vector<int8_t> eventVec;
+		std::vector<byte> eventVec;
 		eventVec.resize(4);
 		for (int i = 0; i <= 3; ++i) {
 			eventVec.at(i) = ((ancIntEvent >> (8 * (3 - i))) & 0xff);
 		}
 
 		//default 0 - optional - can be determined from udp request
-		std::vector<int8_t> ipVec = { 0x0, 0x0, 0x0, 0x0 };
+		std::vector<byte> ipVec = { 0x0, 0x0, 0x0, 0x0 };
 
 		//generate random int32 for key value and store in vec
 		//only in case ip changes
 		rndInt = dist6(rng);
-		std::vector<int8_t> keyVec;
+		std::vector<byte> keyVec;
 		keyVec.resize(4);
 		for (int i = 0; i <= 3; ++i) {
 			keyVec.at(i) = ((rndInt >> (8 * (3 - i))) & 0xff);
 		}
 
-		//default -1 - optional - number of peers that the client would like to 
-		//receive from the tracker
-		std::vector<int8_t> numWantVec;
+		//number of peers that the client would like to receive from the tracker
+		//this client will have max 10 (better for performance)
+		std::vector<byte> numWantVec;
 		numWantVec.resize(4);
-		int32_t numWantInt = -1;
+		int32_t numWantInt = 10;
 		for (int i = 0; i <= 3; ++i) {
 			numWantVec.at(i) = ((numWantInt >> (8 * (3 - i))) & 0xff);
 		}
 
 		//port
-		std::vector<int8_t> portVec;
+		std::vector<byte> portVec;
 		portVec.resize(2);
 		int32_t intPort = 6681;
 		for (int i = 0; i <= 1; ++i) {
 			portVec.at(i) = ((intPort >> (8 * (1 - i))) & 0xff);
 		}
 
-		//copy to buffer
-		std::vector<int8_t> announceVec;
+		//copy each section to buffer
+		std::vector<byte> announceVec;
 		announceVec.insert(announceVec.begin(), std::begin(connectionID), std::end(connectionID));
 		announceVec.insert(announceVec.begin() + 8, std::begin(ancAction), std::end(ancAction));
 		announceVec.insert(announceVec.begin() + 12, std::begin(sentTransactionID), std::end(sentTransactionID));
@@ -220,12 +222,73 @@ namespace Bittorrent
 	void UDP::handleAnnounceResp(std::vector<byte>& receivedAncBuffer,
 		const std::size_t& AncBytesRec)
 	{
+		//validate size
+		if (AncBytesRec < 20)
+		{
+			throw std::invalid_argument("Connect response packet is less than the minimum size of 20 bytes!");
+		}
 
+		//validate action
+		std::vector<byte> receivedAction = { receivedAncBuffer.begin(),
+			receivedAncBuffer.begin() + 4 };
+		if (receivedAction != ancAction)
+		{
+			throw std::invalid_argument("Response action is not \"announce\"!");
+		}
+
+		//store transaction id and validate
+		receivedTransactionID = { receivedAncBuffer.begin() + 4,
+			receivedAncBuffer.begin() + 8 };
+		if (receivedTransactionID != sentTransactionID)
+		{
+			throw std::invalid_argument("Response transaction ID is not equal to sent transaction ID!");
+		}
+
+		//convert interval bytes to integer and store as seconds
+		int intInterval = 0;
+		for (size_t i = 8; i < 12; ++i)
+		{
+			intInterval <<= 8;
+			intInterval |= receivedAncBuffer.at(i);
+		}
+		interval = boost::posix_time::seconds(intInterval);
+
+		//convert leechers bytes to int
+		for (size_t i = 12; i < 16; ++i)
+		{
+			leechers <<= 8;
+			leechers |= receivedAncBuffer.at(i);
+		}
+
+		//convert seeders bytes to int
+		for (size_t i = 16; i < 20; ++i)
+		{
+			seeders <<= 8;
+			seeders |= receivedAncBuffer.at(i);
+		}
+
+		//convert ip address bytes to int
+		std::vector<byte> peerInfo(receivedAncBuffer.begin() + 20, 
+			receivedAncBuffer.begin() + AncBytesRec);
+		//info is split into chunks of 6 bytes
+		for (size_t i = 0; i < peerInfo.size(); i+=6)
+		{
+			//first four bytes of each chunk form the ip address
+			std::string ipAddress = std::to_string(peerInfo.at(i)) + "."
+				+ std::to_string(peerInfo.at(i + 1)) + "." +
+				std::to_string(peerInfo.at(i + 2)) + "."
+				+ std::to_string(peerInfo.at(i + 3));
+			//the two bytes representing port are in big endian
+			//read in correct order directly using bit shifting
+			std::string peerPort = std::to_string(
+				(peerInfo.at(i + 4) << 8) | (peerInfo.at(i + 5)));
+			//add to peers list
+			peers.emplace(ipAddress, peerPort);
+		}
 	}
 
 	void UDP::dataTransmission(trackerUrl& parsedUrl)
 	{
-		
 		try
 		{
 			boost::system::error_code err;
@@ -238,7 +301,7 @@ namespace Bittorrent
 
 			// Look up the domain name
 			//auto const results = resolver.resolve(peerHost, peerPort);
-			const auto results = resolver.resolve("tracker.opentrackr.org", "1337");
+			const auto results = resolver.resolve("open.stealth.si", "80");
 
 			//iterate and get successful connection endpoint
 			const auto remoteEndpointIter =
@@ -262,7 +325,7 @@ namespace Bittorrent
 					connectReqBuffer.size()), remoteEndpoint, 0, err);
 
 			std::cout << "Sent connect request to " << remoteEndpoint << ": " << 
-				sentConnBytes << " bytes" << " (" << err.message() << "): \n";
+				sentConnBytes << " bytes" << " (" << err.message() << ") \n";
 
 			std::cout << "Receiving..." << "\n";
 
@@ -274,7 +337,7 @@ namespace Bittorrent
 					receivedConnBuffer.size()), remoteEndpoint, 0, err);
 
 			std::cout << "Received connect response from " << remoteEndpoint << ": " << 
-				connBytesRec << " bytes" << " (" << err.message() << "): \n";
+				connBytesRec << " bytes" << " (" << err.message() << ") \n";
 
 			//update relevant timekeeping
 			connIDReceivedTime = boost::posix_time::second_clock::universal_time();
@@ -293,7 +356,7 @@ namespace Bittorrent
 					announceReqBuffer.size()), remoteEndpoint);
 
 			std::cout << "Sent announce request to " << remoteEndpoint << ": " <<
-				sentAncBytes << " bytes" << " (" << err.message() << "): \n";
+				sentAncBytes << " bytes" << " (" << err.message() << ") \n";
 
 			std::cout << "Receiving..." << "\n";
 
@@ -306,7 +369,7 @@ namespace Bittorrent
 					localEndpoint, 0, err);
 
 			std::cout << "Received connect response from " << remoteEndpoint << ": " <<
-				ancBytesRec << " bytes" << " (" << err.message() << "): \n";
+				ancBytesRec << " bytes" << " (" << err.message() << ") \n";
 
 			//update relevant timekeeping
 			lastRequestTime = boost::posix_time::second_clock::universal_time();

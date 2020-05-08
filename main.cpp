@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
 		dist6(0, std::numeric_limits<int32_t>::max());
 	auto rndInt = dist6(rng);
 
-	std::vector<int8_t> testClientID;
+	std::vector<byte> testClientID;
 	for (size_t i = 0; i < 20; ++i)
 	{
 		auto x = (dist6(rng) >> 8) & 0xff;
