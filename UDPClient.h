@@ -14,7 +14,7 @@ namespace Bittorrent
 	using boost::asio::ip::udp;
 	using boost::asio::ip::address;
 
-	class UDP
+	class UDPClient
 	{
 	public:
 		//sent variables
@@ -66,18 +66,15 @@ namespace Bittorrent
 
 
 		//default constructor & destructor
-		UDP(trackerUrl& parsedUrl, std::vector<byte>& clientId, std::vector<byte>& infoHash,
+		UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientId, std::vector<byte>& infoHash,
 			long long& uploaded, long long& downloaded, long long& remaining,
 			int& intEvent);
-		~UDP();
+		~UDPClient();
 
 	private:
 		boost::asio::io_context io_context;
 		udp::socket socket;
 		udp::endpoint remoteEndpoint;
 		udp::endpoint localEndpoint;
-
-
-
 	};
 }

@@ -1,4 +1,4 @@
-#include "UDP.h"
+#include "UDPClient.h"
 #include "Utility.h"
 
 #include <boost/bind.hpp>
@@ -9,18 +9,15 @@
 #include <limits>
 
 #define UDP_PORT 6881
-#define IPADDRESS "192.168.0.3"
-
 
 // TODO: implement time out/retransmit
-// TODO: needs proper testing of all parts
 // TODO: need to populate "remaining"
 
 namespace Bittorrent
 {
 	using namespace utility;
 
-	UDP::UDP(trackerUrl& parsedUrl, std::vector<byte>& clientID, std::vector<byte>& infoHash,
+	UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID, std::vector<byte>& infoHash,
 		long long& uploaded, long long& downloaded, long long& remaining, int& intEvent)
 		: connIDReceivedTime{}, ancClientID{ clientID }, ancInfoHash{ infoHash },
 		ancDownloaded{ downloaded }, ancUploaded{ uploaded }, 
@@ -34,12 +31,12 @@ namespace Bittorrent
 		dataTransmission(parsedUrl);
 	}
 
-	UDP::~UDP()
+	UDPClient::~UDPClient()
 	{
 		socket.close();
 	}
 
-	std::vector<byte> UDP::buildConnectReq()
+	std::vector<byte> UDPClient::buildConnectReq()
 	{
 		//build connect request buffer
 		protocolID = { 0x0, 0x0, 0x04, 0x17, 0x27, 0x10, 0x19, 0x80 };
@@ -70,7 +67,7 @@ namespace Bittorrent
 	}
 
 
-	void UDP::handleConnectResp(std::vector<byte>& receivedConnBuffer,
+	void UDPClient::handleConnectResp(std::vector<byte>& receivedConnBuffer,
 		const std::size_t& connBytesRec)
 	{
 		//validate size
@@ -100,7 +97,7 @@ namespace Bittorrent
 			receivedConnBuffer.end() };
 	}
 
-	std::vector<byte> UDP::buildAnnounceReq()
+	std::vector<byte> UDPClient::buildAnnounceReq()
 	{
 		//generate announce action (1)
 		ancAction = { 0x0, 0x0, 0x0, 0x01 };
@@ -219,7 +216,7 @@ namespace Bittorrent
 		return announceVec;
 	}
 
-	void UDP::handleAnnounceResp(std::vector<byte>& receivedAncBuffer,
+	void UDPClient::handleAnnounceResp(std::vector<byte>& receivedAncBuffer,
 		const std::size_t& AncBytesRec)
 	{
 		//validate size
@@ -287,7 +284,7 @@ namespace Bittorrent
 		}
 	}
 
-	void UDP::dataTransmission(trackerUrl& parsedUrl)
+	void UDPClient::dataTransmission(trackerUrl& parsedUrl)
 	{
 		try
 		{
