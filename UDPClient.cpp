@@ -12,28 +12,61 @@
 
 // TODO: implement time out/retransmit
 // TODO: need to populate "remaining"
+// TODO: port as argument (randomise?)
 
 namespace Bittorrent
 {
 	using namespace utility;
 
-	UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID, std::vector<byte>& infoHash,
-		long long& uploaded, long long& downloaded, long long& remaining, int& intEvent)
-		: connIDReceivedTime{}, ancClientID{ clientID }, ancInfoHash{ infoHash },
+	UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID, 
+		std::vector<byte>& infoHash, long long& uploaded, long long& downloaded, 
+		long long& remaining, int& intEvent)
+		: connIDReceivedTime{}, ancClientID{ clientID }, byteInfoHash{ infoHash },
 		ancDownloaded{ downloaded }, ancUploaded{ uploaded }, 
 		ancRemaining{ remaining }, ancIntEvent{ intEvent },
 		peerHost{ parsedUrl.hostname }, peerPort{ "" },
-		peerTarget{ "" }, receivedConnBuffer(16), receivedAncBuffer(320),
-		interval{ 1800 }, leechers{ 0 }, seeders{ 0 },
-		io_context(), socket(io_context), 
+		peerTarget{ "" }, receivedConnBuffer(16), receivedScrapeBuffer(200), 
+		receivedAncBuffer(320), interval{ 1800 }, leechers{ 0 }, seeders{ 0 },
+		completed{ 0 }, io_context(), 
+		socket_connect(io_context, udp::endpoint(udp::v4(), 2)), 
+		socket_transmission(io_context, udp::endpoint(udp::v4(), 6681)),
 		remoteEndpoint(), localEndpoint()
 	{
+		try
+		{
+			errorAction = { 0x0, 0x0, 0x0, 0x3 };
+			//if empty use default values
+			peerPort = parsedUrl.port.empty() ? "80" : parsedUrl.port;
+			peerTarget = parsedUrl.target.empty() ? "/" : parsedUrl.target;
+
+			udp::resolver resolver{ io_context };
+
+			// Look up the domain name
+			//auto const results = resolver.resolve(peerHost, peerPort);
+			const auto results = resolver.resolve("open.stealth.si", "80");
+
+			//iterate and get successful connection endpoint
+			const auto remoteEndpointIter =
+				boost::asio::connect(socket_connect, results.begin(),
+					results.end());
+			remoteEndpoint = remoteEndpointIter->endpoint();
+
+			//not needed anymore
+			socket_connect.close();
+		}
+		catch (const boost::system::system_error& e)
+		{
+			std::cout << "\n" << "Error occured! Error code = " << e.code()
+				<< ". Message: " << e.what();
+		}
+
 		dataTransmission(parsedUrl);
 	}
 
 	UDPClient::~UDPClient()
 	{
-		socket.close();
+		socket_connect.close();
+		socket_transmission.close();
 	}
 
 	std::vector<byte> UDPClient::buildConnectReq()
@@ -50,7 +83,7 @@ namespace Bittorrent
 		auto rndInt = dist6(rng);
 
 		//Big endian - but endianness doesn't matter since it's random anyway
-
+		sentTransactionID.clear();
 		sentTransactionID.resize(4);
 		for (int i = 0; i <= 3; ++i) {
 			sentTransactionID.at(i) = ((rndInt >> (8 * (3 - i))) & 0xff);
@@ -58,49 +91,55 @@ namespace Bittorrent
 
 		//copy to buffer
 		std::vector<byte> connectVec;
-		connectVec.insert(connectVec.begin(), std::begin(protocolID), std::end(protocolID));
-		connectVec.insert(connectVec.begin() + 8, std::begin(connectAction), std::end(connectAction));
-		connectVec.insert(connectVec.begin() + 12, std::begin(sentTransactionID), std::end(sentTransactionID));
+		connectVec.insert(connectVec.begin(), std::begin(protocolID), 
+			std::end(protocolID));
+		connectVec.insert(connectVec.begin() + 8, std::begin(connectAction), 
+			std::end(connectAction));
+		connectVec.insert(connectVec.begin() + 12, std::begin(sentTransactionID),
+			std::end(sentTransactionID));
 
 		//convert to appropriate buffer for sending via UDP and return
 		return connectVec;
 	}
 
-
-	void UDPClient::handleConnectResp(std::vector<byte>& receivedConnBuffer,
-		const std::size_t& connBytesRec)
+	std::vector<byte> UDPClient::buildScrapeReq()
 	{
-		//validate size
-		if (connBytesRec < 16)
-		{
-			throw std::invalid_argument("Connect response packet is less than the expected 16 bytes!");
+		//build scrape request buffer
+		scrapeAction = { 0x0, 0x0, 0x0, 0x2 };
+
+		//generate random int32 and pass into transactionID array 
+		std::random_device dev;
+		std::mt19937 rng(dev());
+		const std::uniform_int_distribution<int32_t>
+			dist6(0, std::numeric_limits<int32_t>::max());
+		auto rndInt = dist6(rng);
+
+		//Big endian - but endianness doesn't matter since it's random anyway
+		sentTransactionID.clear();
+		sentTransactionID.resize(4);
+		for (int i = 0; i <= 3; ++i) {
+			sentTransactionID.at(i) = ((rndInt >> (8 * (3 - i))) & 0xff);
 		}
 
-		//validate action
-		std::vector<byte> receivedAction = { receivedConnBuffer.begin(), 
-			receivedConnBuffer.begin() + 4 };
-		if (receivedAction != connectAction)
-		{
-			throw std::invalid_argument("Response action is not \"connect\"!");
-		}
+		//copy to buffer
+		std::vector<byte> scrapeVec;
+		scrapeVec.insert(scrapeVec.begin(), std::begin(connectionID),
+			std::end(connectionID));
+		scrapeVec.insert(scrapeVec.begin() + 8, std::begin(scrapeAction),
+			std::end(scrapeAction));
+		scrapeVec.insert(scrapeVec.begin() + 12, std::begin(sentTransactionID),
+			std::end(sentTransactionID));
+		scrapeVec.insert(scrapeVec.begin() + 16, std::begin(byteInfoHash),
+			std::end(byteInfoHash));
 
-		//store transaction id and validate
-		receivedTransactionID = { receivedConnBuffer.begin() + 4,
-			receivedConnBuffer.begin() + 8 };
-		if (receivedTransactionID != sentTransactionID)
-		{
-			throw std::invalid_argument("Response transaction ID is not equal to sent transaction ID!");
-		}
-
-		//store connection id
-		connectionID = { receivedConnBuffer.begin() + 8,
-			receivedConnBuffer.end() };
+		//convert to appropriate buffer for sending via UDP and return
+		return scrapeVec;
 	}
 
 	std::vector<byte> UDPClient::buildAnnounceReq()
 	{
 		//generate announce action (1)
-		ancAction = { 0x0, 0x0, 0x0, 0x01 };
+		scrapeAction = { 0x0, 0x0, 0x0, 0x01 };
 
 		//generate random int32 and pass into transactionID array 
 		std::random_device dev;
@@ -190,19 +229,32 @@ namespace Bittorrent
 
 		//copy each section to buffer
 		std::vector<byte> announceVec;
-		announceVec.insert(announceVec.begin(), std::begin(connectionID), std::end(connectionID));
-		announceVec.insert(announceVec.begin() + 8, std::begin(ancAction), std::end(ancAction));
-		announceVec.insert(announceVec.begin() + 12, std::begin(sentTransactionID), std::end(sentTransactionID));
-		announceVec.insert(announceVec.begin() + 16, std::begin(ancInfoHash), std::end(ancInfoHash));
-		announceVec.insert(announceVec.begin() + 36, std::begin(ancClientID), std::end(ancClientID));
-		announceVec.insert(announceVec.begin() + 56, std::begin(downloadedVec), std::end(downloadedVec));
-		announceVec.insert(announceVec.begin() + 64, std::begin(remainingVec), std::end(remainingVec));
-		announceVec.insert(announceVec.begin() + 72, std::begin(uploadedVec), std::end(uploadedVec));
-		announceVec.insert(announceVec.begin() + 80, std::begin(eventVec), std::end(eventVec));
-		announceVec.insert(announceVec.begin() + 84, std::begin(ipVec), std::end(ipVec));
-		announceVec.insert(announceVec.begin() + 88, std::begin(keyVec), std::end(keyVec));
-		announceVec.insert(announceVec.begin() + 92, std::begin(numWantVec), std::end(numWantVec));
-		announceVec.insert(announceVec.begin() + 96, std::begin(portVec), std::end(portVec));
+		announceVec.insert(announceVec.begin(), std::begin(connectionID), 
+			std::end(connectionID));
+		announceVec.insert(announceVec.begin() + 8, std::begin(ancAction),
+			std::end(ancAction));
+		announceVec.insert(announceVec.begin() + 12, 
+			std::begin(sentTransactionID), std::end(sentTransactionID));
+		announceVec.insert(announceVec.begin() + 16, std::begin(byteInfoHash),
+			std::end(byteInfoHash));
+		announceVec.insert(announceVec.begin() + 36, std::begin(ancClientID), 
+			std::end(ancClientID));
+		announceVec.insert(announceVec.begin() + 56, std::begin(downloadedVec),
+			std::end(downloadedVec));
+		announceVec.insert(announceVec.begin() + 64, std::begin(remainingVec), 
+			std::end(remainingVec));
+		announceVec.insert(announceVec.begin() + 72, std::begin(uploadedVec), 
+			std::end(uploadedVec));
+		announceVec.insert(announceVec.begin() + 80, std::begin(eventVec),
+			std::end(eventVec));
+		announceVec.insert(announceVec.begin() + 84, std::begin(ipVec), 
+			std::end(ipVec));
+		announceVec.insert(announceVec.begin() + 88, std::begin(keyVec), 
+			std::end(keyVec));
+		announceVec.insert(announceVec.begin() + 92, std::begin(numWantVec),
+			std::end(numWantVec));
+		announceVec.insert(announceVec.begin() + 96, std::begin(portVec),
+			std::end(portVec));
 
 		/*//print for testing
 		std::cout << "Announce request data: " << "\n";
@@ -216,8 +268,226 @@ namespace Bittorrent
 		return announceVec;
 	}
 
-	void UDPClient::handleAnnounceResp(std::vector<byte>& receivedAncBuffer,
-		const std::size_t& AncBytesRec)
+	void UDPClient::connectRequest(boost::system::error_code& err)
+	{
+		try
+		{
+			//build connect request buffer
+			const auto connectReqBuffer = buildConnectReq();
+
+			std::cout << "Sending..." << "\n";
+
+			//send connect request
+			const auto sentConnBytes =
+				socket_transmission.send_to(boost::asio::buffer(connectReqBuffer,
+					connectReqBuffer.size()), remoteEndpoint, 0, err);
+
+			std::cout << "Sent connect request to " << remoteEndpoint << ": " <<
+				sentConnBytes << " bytes" << " (" << err.message() << ") \n";
+
+			std::cout << "Receiving..." << "\n";
+
+			//no need to bind socket for receiving because sending UDP 
+			//automatically binds endpoint
+			//read response into buffer
+			const std::size_t connBytesRec =
+				socket_transmission.receive_from(
+					boost::asio::buffer(receivedConnBuffer,
+						receivedConnBuffer.size()), remoteEndpoint, 0, err);
+
+			std::cout << "Received connect response from " << remoteEndpoint << 
+				": " << connBytesRec << " bytes" << " (" << err.message() 
+				<< ") \n";
+
+			//update relevant timekeeping
+			connIDReceivedTime = boost::posix_time::second_clock::universal_time();
+			lastRequestTime = boost::posix_time::second_clock::universal_time();
+
+			//handle connect response
+			handleConnectResp(connBytesRec);
+
+		}
+		catch (const boost::system::system_error& e)
+		{
+			std::cout << "\n" << "Error occured! Error code = " << e.code()
+				<< ". Message: " << e.what();
+		}
+	}
+
+	void UDPClient::scrapeRequest(boost::system::error_code& err)
+	{
+		try
+		{
+			//build scrape request buffer
+			const auto scrapeReqBuffer = buildScrapeReq();
+
+			std::cout << "Sending..." << "\n";
+
+			//send connect request
+			const auto sentScrapeBytes =
+				socket_transmission.send_to(boost::asio::buffer(scrapeReqBuffer,
+					scrapeReqBuffer.size()), remoteEndpoint, 0, err);
+
+			std::cout << "Sent scrape request to " << remoteEndpoint << ": " <<
+				sentScrapeBytes << " bytes" << " (" << err.message() << ") \n";
+
+			std::cout << "Receiving..." << "\n";
+
+			//no need to bind socket for receiving because sending UDP 
+			//automatically binds endpoint
+			//read response into buffer
+			const std::size_t scrapeBytesRec =
+				socket_transmission.receive_from(
+					boost::asio::buffer(receivedScrapeBuffer,
+						receivedScrapeBuffer.size()), remoteEndpoint, 0, err);
+
+			std::cout << "Received scrape response from " << remoteEndpoint <<
+				": " << scrapeBytesRec << " bytes" << " (" << err.message()
+				<< ") \n";
+
+			//update relevant timekeeping
+			connIDReceivedTime = boost::posix_time::second_clock::universal_time();
+			lastRequestTime = boost::posix_time::second_clock::universal_time();
+
+			//handle connect response
+			handleScrapeResp(scrapeBytesRec);
+		}
+		catch (const boost::system::system_error& e)
+		{
+			std::cout << "\n" << "Error occured! Error code = " << e.code()
+				<< ". Message: " << e.what();
+		}
+	}
+
+	void UDPClient::announceRequest(boost::system::error_code& err)
+	{
+		try
+		{
+			//build connect request buffer
+			const auto announceReqBuffer = buildAnnounceReq();
+
+			std::cout << "Sending..." << "\n";
+
+			///send announce request
+			const auto sentAncBytes =
+				socket_transmission.send_to(boost::asio::buffer(
+					announceReqBuffer, announceReqBuffer.size()), remoteEndpoint);
+
+			std::cout << "Sent announce request to " << remoteEndpoint << ": " <<
+				sentAncBytes << " bytes" << " (" << err.message() << ") \n";
+
+			std::cout << "Receiving..." << "\n";
+
+			//read response into buffer
+			//set max peers for this client to 50 - more than enough
+			//(6 bytes * 50 = 300) + 20 for other info = 320 bytes max
+			//size initialised in constructor
+			const std::size_t ancBytesRec =
+				socket_transmission.receive_from(boost::asio::buffer(
+					receivedAncBuffer), localEndpoint, 0, err);
+
+			std::cout << "Received connect response from " << remoteEndpoint << ": " <<
+				ancBytesRec << " bytes" << " (" << err.message() << ") \n";
+
+			//update relevant timekeeping
+			lastRequestTime = boost::posix_time::second_clock::universal_time();
+
+			//handle announce response
+			handleAnnounceResp(ancBytesRec);
+		}
+		catch (const boost::system::system_error& e)
+		{
+			std::cout << "\n" << "Error occured! Error code = " << e.code()
+				<< ". Message: " << e.what();
+		}
+	}
+
+	void UDPClient::handleConnectResp(const std::size_t& connBytesRec)
+	{
+		//validate size
+		if (connBytesRec < 16)
+		{
+			throw std::invalid_argument("Connect response packet is less than the expected 16 bytes!");
+		}
+
+		//validate action
+		std::vector<byte> receivedAction = { receivedConnBuffer.begin(),
+			receivedConnBuffer.begin() + 4 };
+		if (receivedAction != connectAction)
+		{
+			throw std::invalid_argument("Response action is not \"connect\"!");
+		}
+
+		//validate transaction id
+		std::vector<byte> receivedTransactionID = { receivedConnBuffer.begin() + 4,
+			receivedConnBuffer.begin() + 8 };
+		if (receivedTransactionID != sentTransactionID)
+		{
+			throw std::invalid_argument("Response transaction ID is not equal to sent transaction ID!");
+		}
+
+		//store connection id
+		connectionID = { receivedConnBuffer.begin() + 8,
+			receivedConnBuffer.end() };
+	}
+
+	void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
+	{
+		//validate size
+		if (scrapeBytesRec < 8)
+		{
+			throw std::invalid_argument("Connect response packet is less than the expected 8 bytes!");
+		}
+
+		//validate transaction id
+		std::vector<byte> receivedTransactionID = { receivedScrapeBuffer.begin() + 4,
+			receivedScrapeBuffer.begin() + 8 };
+		if (receivedTransactionID != receivedTransactionID)
+		{
+			throw std::invalid_argument("Response transaction ID is not equal to sent transaction ID!");
+		}
+
+		//validate action
+		std::vector<byte> receivedAction = { receivedScrapeBuffer.begin(),
+			receivedScrapeBuffer.begin() + 4 };
+
+		if (receivedAction == scrapeAction)
+		{
+			//convert seeders bytes to int
+			for (size_t i = 8; i < 12; ++i)
+			{
+				seeders <<= 8;
+				seeders |= receivedScrapeBuffer.at(i);
+			}
+
+			//convert completed bytes to int
+			for (size_t i = 12; i < 16; ++i)
+			{
+				completed <<= 8;
+				completed |= receivedScrapeBuffer.at(i);
+			}
+
+			//convert leechers bytes to int
+			for (size_t i = 12; i < 16; ++i)
+			{
+				leechers <<= 8;
+				leechers |= receivedScrapeBuffer.at(i);
+			}
+		}
+		else if (receivedAction == errorAction)
+		{
+			//get error message
+			std::string scrapeErrorMsg(receivedScrapeBuffer.begin() + 8,
+				receivedScrapeBuffer.begin() + scrapeBytesRec);
+			
+			std::cout << "\n" << "Tracker scrape error: " 
+				<< scrapeErrorMsg << " (" << "Host: " << peerHost  << ", Port: "
+				<<  peerPort << ")" << "\n";
+		}
+	}
+
+
+	void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
 	{
 		//validate size
 		if (AncBytesRec < 20)
@@ -233,8 +503,8 @@ namespace Bittorrent
 			throw std::invalid_argument("Response action is not \"announce\"!");
 		}
 
-		//store transaction id and validate
-		receivedTransactionID = { receivedAncBuffer.begin() + 4,
+		//validate transaction id
+		std::vector<byte> receivedTransactionID = { receivedAncBuffer.begin() + 4,
 			receivedAncBuffer.begin() + 8 };
 		if (receivedTransactionID != sentTransactionID)
 		{
@@ -290,97 +560,141 @@ namespace Bittorrent
 		{
 			boost::system::error_code err;
 
-			//if empty use default values
-			peerPort = parsedUrl.port.empty() ? "80" : parsedUrl.port;
-			peerTarget = parsedUrl.target.empty() ? "/" : parsedUrl.target;
+			connectRequest(err);
+			announceRequest(err);
 
-			udp::resolver resolver{ io_context };
-
-			// Look up the domain name
-			//auto const results = resolver.resolve(peerHost, peerPort);
-			const auto results = resolver.resolve("open.stealth.si", "80");
-
-			//iterate and get successful connection endpoint
-			const auto remoteEndpointIter =
-				boost::asio::connect(socket, results.begin(), results.end());
-			remoteEndpoint = remoteEndpointIter->endpoint();
-
-			//not needed anymore
-			socket.close();
-
-			//build connect request buffer
-			const auto connectReqBuffer = buildConnectReq();
-
-			std::cout << "Sending..." << "\n";
-
-			//create new socket with specific source port 
-			//(to which tracker sends response)
-			udp::socket socket(io_context, udp::endpoint(udp::v4(), UDP_PORT));
-			//send connect request
-			const auto sentConnBytes = 
-				socket.send_to(boost::asio::buffer(connectReqBuffer,
-					connectReqBuffer.size()), remoteEndpoint, 0, err);
-
-			std::cout << "Sent connect request to " << remoteEndpoint << ": " << 
-				sentConnBytes << " bytes" << " (" << err.message() << ") \n";
-
-			std::cout << "Receiving..." << "\n";
-
-			//no need to bind socket for receiving because sending UDP 
-			//automatically binds endpoint
-			//read response into buffer
-			const std::size_t connBytesRec = 
-				socket.receive_from(boost::asio::buffer(&receivedConnBuffer[0], 
-					receivedConnBuffer.size()), remoteEndpoint, 0, err);
-
-			std::cout << "Received connect response from " << remoteEndpoint << ": " << 
-				connBytesRec << " bytes" << " (" << err.message() << ") \n";
-
-			//update relevant timekeeping
-			connIDReceivedTime = boost::posix_time::second_clock::universal_time();
-			lastRequestTime = boost::posix_time::second_clock::universal_time();
-
-			//handle connect response
-			handleConnectResp(receivedConnBuffer, connBytesRec);
-			//build connect request buffer
-			const auto announceReqBuffer = buildAnnounceReq();
-
-			std::cout << "Sending..." << "\n";
-
-			///send announce request
-			const auto sentAncBytes =
-				socket.send_to(boost::asio::buffer(announceReqBuffer,
-					announceReqBuffer.size()), remoteEndpoint);
-
-			std::cout << "Sent announce request to " << remoteEndpoint << ": " <<
-				sentAncBytes << " bytes" << " (" << err.message() << ") \n";
-
-			std::cout << "Receiving..." << "\n";
-
-			//read response into buffer
-			//set max peers for this client to 50 - more than enough
-			//(6 bytes * 50 = 300) + 20 for other info = 320 bytes max
-			//size initialised in constructor
-			const std::size_t ancBytesRec =
-				socket.receive_from(boost::asio::buffer(receivedAncBuffer),
-					localEndpoint, 0, err);
-
-			std::cout << "Received connect response from " << remoteEndpoint << ": " <<
-				ancBytesRec << " bytes" << " (" << err.message() << ") \n";
-
-			//update relevant timekeeping
-			lastRequestTime = boost::posix_time::second_clock::universal_time();
-
-			//handle announce response
-			handleAnnounceResp(receivedAncBuffer, ancBytesRec);
+			scrapeRequest(err);
 
 		}
 		catch (const boost::system::system_error& e)
 		{
-			std::cout << "Error occured! Error code = " << e.code()
+			std::cout << "\n" << "Error occured! Error code = " << e.code()
 				<< ". Message: " << e.what();
 		}
 	}
-
-
 }
+
+
+
+////////////////////////////////////////////////////////////////////////
+//	Testing ssynchronous UDP server/client for tracker communication //
+//	In case I decide to switch from synchronous at some point		//
+/////////////////////////////////////////////////////////////////////
+//#include <ctime>
+//#include <iostream>
+//#include <string>
+//#include <boost/array.hpp>
+//#include <boost/bind/bind.hpp>
+//#include <boost/shared_ptr.hpp>
+//#include <boost/asio.hpp>
+//#include <boost/asio/connect.hpp>
+//#include <random>
+//
+//using byte = uint8_t;
+//using boost::asio::ip::udp;
+//
+//class udp_server
+//{
+//public:
+//    udp_server(boost::asio::io_context& io_context)
+//        : socket_connect(io_context, udp::endpoint(udp::v4(), 20)), 
+//        socket_transmission(io_context, udp::endpoint(udp::v4(), 6881)), 
+//        recv_buffer_(16)
+//    {
+//        udp::resolver resolver{ io_context };
+//
+//        // Look up the domain name
+//        //auto const results = resolver.resolve(peerHost, peerPort);
+//        const auto results = resolver.resolve("open.stealth.si", "80");
+//
+//        //iterate and get successful connection endpoint
+//        const auto remoteEndpointIter =
+//            boost::asio::connect(socket_connect, results.begin(), results.end());
+//        remote_endpoint_ = remoteEndpointIter->endpoint();
+//        start();
+//    }
+//
+//private:
+//    void start()
+//    {
+//        std::cout << "source port: " << socket_transmission.local_endpoint().port() << "\n";
+//        //build connect request buffer
+//        std::vector<byte> protocolID = { 0x0, 0x0, 0x04, 0x17, 0x27, 0x10, 0x19, 0x80 };
+//        std::vector<byte> connectAction = { 0x0, 0x0, 0x0, 0x0 };
+//
+//        //generate random int32 and pass into transactionID array 
+//        std::random_device dev;
+//        std::mt19937 rng(dev());
+//        const std::uniform_int_distribution<int32_t>
+//            dist6(0, std::numeric_limits<int32_t>::max());
+//        auto rndInt = dist6(rng);
+//
+//        //Big endian - but endianness doesn't matter since it's random anyway
+//        std::vector<byte> sentTransactionID;
+//        sentTransactionID.resize(4);
+//        for (int i = 0; i <= 3; ++i) {
+//            sentTransactionID.at(i) = ((rndInt >> (8 * (3 - i))) & 0xff);
+//        }
+//
+//        //copy to buffer
+//        std::vector<byte> connectVec;
+//        connectVec.insert(connectVec.begin(), std::begin(protocolID), std::end(protocolID));
+//        connectVec.insert(connectVec.begin() + 8, std::begin(connectAction), std::end(connectAction));
+//        connectVec.insert(connectVec.begin() + 12, std::begin(sentTransactionID), std::end(sentTransactionID));
+//
+//        std::cout << "Sending: " << "\n";
+//        for (size_t i = 0; i < 16; ++i)
+//        {
+//            printf("%x ", (unsigned char)connectVec[i]);
+//        }
+//        std::cout << "\n" << "\n";
+//
+//        socket_transmission.async_receive_from(
+//            boost::asio::buffer(recv_buffer_), remote_endpoint_1,
+//            boost::bind(&udp_server::handle_receive, this,
+//                boost::asio::placeholders::error,
+//                boost::asio::placeholders::bytes_transferred));
+//
+//        const auto sentConnBytes =
+//            socket_transmission.send_to(boost::asio::buffer(connectVec,
+//                connectVec.size()), remote_endpoint_);
+//    }
+//
+//    void handle_receive(const boost::system::error_code& /*error*/,
+//        std::size_t /*bytes_transferred*/)
+//    {
+//        std::cout << "Response: " << "\n";
+//        for (size_t i = 0; i < 16; ++i)
+//        {
+//            printf("%x ", (unsigned char)recv_buffer_[i]);
+//        }
+//        std::cout << "\n" << "\n";
+//    }
+//
+//    boost::system::error_code ec;
+//    boost::asio::io_context io_context;
+//
+//    //need two sockets since the connect free function will close the socket and bind to an unspecified port
+//    //easier to create a separate socket bound to the correct port
+//    udp::socket socket_connect;
+//    udp::socket socket_transmission;
+//    udp::endpoint remote_endpoint_;
+//    udp::endpoint remote_endpoint_1;
+//    std::vector<byte> recv_buffer_;
+//};
+//
+//int main()
+//{
+//    try
+//    {
+//        boost::asio::io_context io_context;
+//        udp_server server(io_context);
+//        io_context.run();
+//    }
+//    catch (std::exception& e)
+//    {
+//        std::cerr << e.what() << std::endl;
+//    }
+//
+//    return 0;
+//}

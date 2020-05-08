@@ -1,4 +1,4 @@
-// TODO: Use UDP instead of HTTP for tracker communication - IMPORTANT
+// TODO: Change UDP from sync to async
 // TODO: make sure all class members are initialised
 // TODO: event handler for peer list (for creating both new torrents and processing exsting ones)
 // TODO: re-design remaining download
@@ -7,10 +7,11 @@
 // TODO: fix humanReadableBytes function - doesn't round properly
 // TODO: clean up error catching - currently all invalid arguments
 // TODO: implement method to add trackers to torrent
+// TODO: test piece verification
 // TODO: clean up decoder
 // TODO: implement magnet link functionality
 // TODO: tracker scrape (http and udp)
-// TODO: multithreading (boost::asio async)
+// TODO: multithreading
 
 #include "Decoder.h"
 #include "encodeVisitor.h"
@@ -182,130 +183,3 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
-//
-//#include <boost/asio.hpp>
-//#include <boost/array.hpp>
-//#include <boost/bind.hpp>
-//#include <thread>
-//#include <iostream>
-//#include <random>
-//
-//#define IPADDRESS "192.168.0.3" // "192.168.1.64"
-//#define UDP_PORT 6881
-//
-//using boost::asio::ip::udp;
-//using boost::asio::ip::address;
-//
-//void Sender(std::vector<uint8_t>& in) {
-//    boost::asio::io_service io_context;
-//    udp::socket socket(io_context);
-//
-//    udp::resolver resolver{ io_context };
-//    // Look up the domain name
-//    boost::asio::ip::basic_resolver_results<boost::asio::ip::udp> results = resolver.resolve("tracker.opentrackr.org", "1337");
-//    //iterate and get successful connection endpoint
-//
-//    udp::endpoint remoteEndpoint = (boost::asio::connect(socket, results.begin(), results.end()))->endpoint();
-//    std::cout << remoteEndpoint << "\n";
-//    socket.close();
-//
-//    udp::socket socket1(io_context, udp::endpoint(udp::v4(), UDP_PORT));
-//    std::cout << "source port: " << socket1.local_endpoint().port() << "\n";
-//
-//    boost::system::error_code err;
-//    auto sent = socket1.send_to(boost::asio::buffer(in), remoteEndpoint, 0, err);
-//    socket1.close();
-//    std::cout << "Sent Payload --- " << sent << " bytes " << "\n";
-//
-//}
-//
-//struct Client {
-//    boost::asio::io_service io_context;
-//    udp::socket socket{ io_context };
-//    std::vector<uint8_t> recv_buffer;
-//    udp::endpoint remote_endpoint;
-//
-//    int count = 3;
-//
-//    void handle_receive(const boost::system::error_code& error, size_t bytes_transferred) {
-//        if (error) {
-//            std::cout << "Receive failed: " << error.message() << "\n";
-//            return;
-//        }
-//        
-//        std::cout << "Received " << bytes_transferred << " bytes" << "(" << error.message() << "): \n";
-//
-//        for (size_t i = 0; i < recv_buffer.size(); ++i)
-//        {
-//            printf(" %x ", (unsigned char)recv_buffer[i]);
-//        }
-//
-//        wait();
-//
-//    }
-//
-//    void wait() {
-//        socket.async_receive_from(boost::asio::buffer(recv_buffer),
-//            remote_endpoint,
-//            boost::bind(&Client::handle_receive, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
-//    }
-//
-//    void Receiver()
-//    {
-//        socket.open(udp::v4());
-//        socket.bind(udp::endpoint(address::from_string(IPADDRESS), UDP_PORT));
-//
-//        wait();
-//
-//        std::cout << "Receiving\n";
-//        io_context.run();
-//        std::cout << "Receiver exit\n";
-//    }
-//
-//    Client()
-//        : recv_buffer(16) {}
-//};
-//
-//int main()
-//{
-//
-//    //build connect request buffer
-//    std::vector<uint8_t> protocolID = { 0x0, 0x0, 0x04, 0x17, 0x27, 0x10, 0x19, 0x80 };
-//    std::vector<uint8_t> connectAction = { 0x0, 0x0, 0x0, 0x0 };
-//
-//    //generate random int32 and pass into transactionID array 
-//    std::random_device dev;
-//    std::mt19937 rng(dev());
-//    const std::uniform_int_distribution<int32_t>
-//        dist6(0, std::numeric_limits<int32_t>::max());
-//    auto rndInt = dist6(rng);
-//
-//    //Big endian - but endianness doesn't matter since it's random anyway
-//    std::vector<uint8_t> sentTransactionID;
-//    sentTransactionID.resize(4);
-//    for (int i = 0; i <= 3; ++i) {
-//        sentTransactionID.at(i) = ((rndInt >> (8 * (3 - i))) & 0xff);
-//    }
-//
-//    //copy to buffer
-//    std::vector<uint8_t> connectVec;
-//    connectVec.insert(connectVec.begin(), std::begin(protocolID), std::end(protocolID));
-//    connectVec.insert(connectVec.begin() + 8, std::begin(connectAction), std::end(connectAction));
-//    connectVec.insert(connectVec.begin() + 12, std::begin(sentTransactionID), std::end(sentTransactionID));
-//
-//    std::cout << std::endl;
-//    std::cout << "Input is '";
-//
-//    for (auto i : connectVec)
-//    {
-//        printf("%x ", (unsigned char)i);
-//    } 
-//    std::cout << "'\nSending it to Sender Function...\n";
-//
-//    Client client;
-//    std::thread r([&] { client.Receiver(); });
-//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    Sender(connectVec);
-//
-//    r.join();
-//}

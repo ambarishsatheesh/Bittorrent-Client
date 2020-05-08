@@ -30,7 +30,7 @@ namespace Bittorrent
 			long long length);
 		void writeBlock(Torrent& torrent, int piece, int block,
 			std::vector<byte>& buffer);
-		void verify(int piece);
+		void verify(Torrent& torrent, int piece);
 		std::vector<byte> getHash(Torrent& torrent, int piece);
 
 
@@ -70,6 +70,8 @@ namespace Bittorrent
 			bencodingObjInfo =
 				newTorrent.piecesData.piecesDataToDictionary(bencodingObjInfo);
 			newTorrent.hashesData.torrentToHashesData(bencodingObjInfo);
+
+
 
 			return newTorrent;
 		}
@@ -243,8 +245,10 @@ namespace Bittorrent
 
 				if (!boost::filesystem::exists(filePath))
 				{
-					throw std::invalid_argument("The file path \"" + filePath +
-						"\" does not exist!");
+					buffer.clear();
+					return buffer;
+					/*throw std::invalid_argument("The file path \"" + filePath +
+						"\" does not exist!");*/
 				}
 
 				const auto fStart = std::max(static_cast<long long>(0),
@@ -331,18 +335,59 @@ namespace Bittorrent
 			write(torrent, (piece * torrent.piecesData.pieceSize) +
 				(block * torrent.piecesData.blockSize), buffer);
 			torrent.statusData.isBlockAcquired.at(piece).at(block) = true;
-			verify(piece);
+			verify(torrent, piece);
 		}
 
-		void verify(int piece)
+		void verify(Torrent& torrent, int piece)
 		{
+			std::vector<byte> hash = getHash(torrent, piece);
 
+			//check if piece hash info matches currently generated hash
+			bool isVerified = (!hash.empty() && hash != torrent.piecesData.pieces.at(piece));
+
+			//if piece passes verification, fill relevant vectors
+			if (isVerified)
+			{
+				torrent.statusData.isPieceVerified.at(piece) = true;
+
+				for (size_t i = 0; i <
+					(torrent.statusData.isBlockAcquired.at(piece)).size(); ++i)
+				{
+					torrent.statusData.isBlockAcquired[piece][i] = true;
+				}
+
+				//event handler stuff here
+
+				return;
+			}
+
+			//check if all the blocks in a piece have been acquired
+			//if they have (and piece fails verification above), 
+			//reload entire piece
+			torrent.statusData.isPieceVerified.at(piece) = false;
+			if (
+				std::all_of(
+					torrent.statusData.isBlockAcquired.at(piece).begin(), 
+					torrent.statusData.isBlockAcquired.at(piece).end(),
+					[](bool v) {return v; }))
+			{
+				for (size_t i = 0; 
+					i < torrent.statusData.isBlockAcquired.at(piece).size(); ++i)
+				{
+					torrent.statusData.isBlockAcquired[piece][i] = false;
+				}
+			}
 		}
 
 		std::vector<byte> getHash(Torrent& torrent, int piece)
 		{
 			std::vector<byte> data = readPiece(torrent, piece);
 			byte* dataArr = &data[0];
+
+			if (data.empty())
+			{
+				return data;
+			}
 
 			//calculate hash
 			SHA1 sha1;

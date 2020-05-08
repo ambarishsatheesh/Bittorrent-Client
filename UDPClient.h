@@ -23,47 +23,54 @@ namespace Bittorrent
 		std::vector<byte> connectAction;
 
 		//received variables
-		std::vector<byte> receivedTransactionID;
-		std::vector<byte> receivedAction;
 		std::vector<byte> connectionID;
 		boost::posix_time::ptime connIDReceivedTime;
 		boost::posix_time::ptime lastRequestTime;
+
+		//scrape variables
+		std::vector<byte> scrapeAction;
+		std::vector<byte> byteInfoHash;
 
 		//announce (send) variables
 		//using byte instead of byte (uint8_t) because announce buffer 
 		//contains -1 for num_want value
 		std::vector<byte> ancAction;
 		std::vector<byte> ancClientID;
-		std::vector<byte> ancInfoHash;
 		long long ancDownloaded;
 		long long ancUploaded;
 		long long ancRemaining;
 		int ancIntEvent;
 
-		//general UDP variables
-		std::string peerHost;
-		std::string peerPort;
-		std::string peerTarget;
-
-
-		std::vector<byte> buildConnectReq();
-		void dataTransmission(trackerUrl& parsedUrl);
-		void handleConnectResp(std::vector<byte>& receivedBuffer, 
-			const std::size_t& connBytesRec);
-		std::vector<byte> buildAnnounceReq();
-		void handleAnnounceResp(std::vector<byte>& receivedAncBuffer,
-			const std::size_t& AncBytesRec);
-
 		//send/receive buffers
 		std::vector<byte> receivedConnBuffer;
+		std::vector<byte> receivedScrapeBuffer;
 		std::vector<byte> receivedAncBuffer;
 
 		//announce response data
 		boost::posix_time::seconds interval;
 		int leechers;
 		int seeders;
+		int completed;
 		std::unordered_map<std::string, std::string> peers;
 
+		//general variables
+		std::string peerHost;
+		std::string peerPort;
+		std::string peerTarget;
+		std::vector<byte> errorAction;
+
+		void dataTransmission(trackerUrl& parsedUrl);
+		std::vector<byte> buildScrapeReq();
+		std::vector<byte> buildConnectReq();
+		std::vector<byte> buildAnnounceReq();
+
+		void handleConnectResp(const std::size_t& connBytesRec);
+		void handleScrapeResp(const std::size_t& scrapeBytesRec);
+		void handleAnnounceResp(const std::size_t& AncBytesRec);
+
+		void connectRequest(boost::system::error_code& err);
+		void scrapeRequest(boost::system::error_code& err);
+		void announceRequest(boost::system::error_code& err);
 
 		//default constructor & destructor
 		UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientId, std::vector<byte>& infoHash,
@@ -73,7 +80,11 @@ namespace Bittorrent
 
 	private:
 		boost::asio::io_context io_context;
-		udp::socket socket;
+		//Need two sockets since the connect free function will close the 
+		//socket and bind to an unspecified port.
+		//Easier to create a separate socket bound to the correct port
+		udp::socket socket_connect;
+		udp::socket socket_transmission;
 		udp::endpoint remoteEndpoint;
 		udp::endpoint localEndpoint;
 	};

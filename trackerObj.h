@@ -7,7 +7,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/buffers_iterator.hpp>
 
-#include "UDP.h"
+#include "UDPClient.h"
 
 #include <string>
 

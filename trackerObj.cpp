@@ -53,8 +53,8 @@ namespace Bittorrent
 
 		//compact defaulted to 1 for now
 		std::string url = trackerAddress + "?info_hash=" + urlEncodedInfoHash +
-			"&peer_id=" + urlEncodedClientID + "&port=" + std::to_string(port) + "&uploaded=" +
-			std::to_string(uploaded) + "&downloaded=" +
+			"&peer_id=" + urlEncodedClientID + "&port=" + std::to_string(port) 
+			+ "&uploaded=" + std::to_string(uploaded) + "&downloaded=" +
 			std::to_string(downloaded) + "&left=" + std::to_string(remaining) +
 			"&event=" + stringEvent + "&compact=" + std::to_string(compact);
 
@@ -69,15 +69,17 @@ namespace Bittorrent
 		}
 		else
 		{
-			UDP udp(parsedUrl, clientID, infoHash, uploaded, downloaded, 
+			UDPClient udp(parsedUrl, clientID, infoHash, uploaded, downloaded, 
 				remaining, intEvent);
 			//handle peers, seeders, leechers, interval
+			//need some event handling to scrape/announce after interval time has passed
 		}
 	}
 
 	void trackerObj::resetLastRequest()
 	{
-		lastPeerRequest = boost::posix_time::ptime(boost::posix_time::min_date_time);
+		lastPeerRequest = boost::posix_time::ptime(
+			boost::posix_time::min_date_time);
 	}
 
 
@@ -110,7 +112,8 @@ namespace Bittorrent
 			boost::asio::connect(socket, results.begin(), results.end());
 
 			// Set up an HTTP GET request message
-			http::request<boost::beast::http::string_body> req{ http::verb::get, target, version };
+			http::request<boost::beast::http::string_body> req{ http::verb::get,
+				target, version };
 			req.set(http::field::host, host);
 			req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
 
@@ -146,7 +149,8 @@ namespace Bittorrent
 		}
 	}
 
-	void trackerObj::handleHTTPResponse(http::response<http::dynamic_body> response, bool compact)
+	void trackerObj::handleHTTPResponse(
+		http::response<http::dynamic_body> response, bool compact)
 	{	
 		//stream response result object, extract status code and store in string
 		std::stringstream ss;
@@ -178,12 +182,14 @@ namespace Bittorrent
 
 		if (info.empty())
 		{
-			std::cout << "Unable to decode tracker announce response!" << std::endl;
+			std::cout << "Unable to decode tracker announce response!" << 
+				std::endl;
 			return;
 		}
 
 		peerRequestInterval =
-			boost::posix_time::seconds(boost::get<long long>(info.at("interval")));
+			boost::posix_time::seconds(boost::get<long long>(
+				info.at("interval")));
 
 		std::cout << "Peer Request Interval: " << peerRequestInterval << std::endl;
 
@@ -201,8 +207,10 @@ namespace Bittorrent
 			}
 			else
 			{
-				std::string peerInfoString = boost::get<std::string>(info.at("peers"));
-				std::vector<byte> peerInfo(peerInfoString.begin(), peerInfoString.end());
+				std::string peerInfoString = boost::get<std::string>(
+					info.at("peers"));
+				std::vector<byte> peerInfo(peerInfoString.begin(), 
+					peerInfoString.end());
 				//info is split into chunks of 6 bytes
 				for (size_t i = 0; i < peerInfo.size(); i+=6)
 				{
