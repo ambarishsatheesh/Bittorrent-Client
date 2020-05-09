@@ -11,18 +11,20 @@ namespace Bittorrent
 		: trackerAddress{ "" },
 		lastPeerRequest{ boost::posix_time::ptime(boost::posix_time::min_date_time) },
 		peerRequestInterval{ 1800 }, seeders(std::numeric_limits<int>::min()), 
-		leechers(std::numeric_limits<int>::min())
+		leechers(std::numeric_limits<int>::min()), 
+		complete{ std::numeric_limits<int>::min() }, 
+		incomplete{ std::numeric_limits<int>::min() }
 	{
 	}
 
 	//create required url for GET request
-	void trackerObj::update(trackerEvent trkEvent, std::vector<byte> clientID,
+	void trackerObj::update(trackerEvent trkEvent, std::vector<byte> clientID, 
 		int port, std::string urlEncodedInfoHash, std::vector<byte> infoHash,
-		long long uploaded, long long downloaded, long long remaining, bool compact)
+		long long uploaded, long long downloaded, long long remaining)
 	{
 		//switch case to get enumerator string
 		std::string stringEvent;
-		int intEvent;
+		int intEvent = 0;
 		switch (trkEvent)
 		{
 		case trackerEvent::started:
@@ -39,6 +41,17 @@ namespace Bittorrent
 				break;
 		}
 
+		//URL encode clientID
+		std::string clientIDString(clientID.begin(), clientID.end());
+		auto urlEncodedClientID = urlEncode(clientIDString);
+
+		//compact will be 1 but client will also support non-compact response
+		std::string url = trackerAddress + "?info_hash=" + urlEncodedInfoHash +
+			"&peer_id=" + urlEncodedClientID + "&port=" + std::to_string(port)
+			+ "&uploaded=" + std::to_string(uploaded) + "&downloaded=" +
+			std::to_string(downloaded) + "&left=" + std::to_string(remaining) +
+			"&event=" + std::to_string(intEvent) + "&compact=1";
+
 		//wait until time interval has elapsed before requesting new peers
 		if (trkEvent == trackerObj::trackerEvent::started &&
 			boost::posix_time::second_clock::universal_time() <
@@ -47,28 +60,38 @@ namespace Bittorrent
 			return;
 		}
 
-		lastPeerRequest = boost::posix_time::second_clock::universal_time();
-		//URL encode clientID
-		std::string clientIDString(clientID.begin(), clientID.end());
-		auto urlEncodedClientID = urlEncode(clientIDString);
-
-		//compact defaulted to 1 for now
-		std::string url = trackerAddress + "?info_hash=" + urlEncodedInfoHash +
-			"&peer_id=" + urlEncodedClientID + "&port=" + std::to_string(port) 
-			+ "&uploaded=" + std::to_string(uploaded) + "&downloaded=" +
-			std::to_string(downloaded) + "&left=" + std::to_string(remaining) +
-			"&event=" + stringEvent + "&compact=" + std::to_string(compact);
-
 		//parse url
 		trackerUrl parsedUrl(url);
 
 		//request url using appropriate protocol
 		if (parsedUrl.protocol == trackerUrl::protocolType::http)
 		{
-			HTTPRequest(parsedUrl, compact);
-			
+			if (complete == std::numeric_limits<int>::min() && 
+				incomplete == std::numeric_limits<int>::min())
+			{
+				HTTPClient httpAnnounce(parsedUrl, 1);
+				complete = httpAnnounce.complete;
+				incomplete = httpAnnounce.incomplete;
+				peers = httpAnnounce.peers;
+			}
+			else
+			{
+				HTTPClient httpAnnounce(parsedUrl, 0);
+				//announce and update if seeders/leechers values change
+				if (httpAnnounce.complete != complete || 
+					httpAnnounce.incomplete != incomplete
+					|| httpAnnounce.peers != peers)
+				{
+					httpAnnounce.dataTransmission(parsedUrl, 1);
+					complete = httpAnnounce.complete;
+					incomplete = httpAnnounce.incomplete;
+					peers = httpAnnounce.peers;
+				}
+			}
+			//handle peers, seeders, leechers, interval
+			//need some event handling to scrape/announce after interval time has passed
 		}
-		else
+		else if (parsedUrl.protocol == trackerUrl::protocolType::udp)
 		{
 			//announce if first time, otherwise scrape
 			if (seeders == std::numeric_limits<int>::min() &&
@@ -79,6 +102,7 @@ namespace Bittorrent
 				peers = udpAnnounce.peers;
 				seeders = udpAnnounce.seeders;
 				leechers = udpAnnounce.leechers;
+				peerRequestInterval = udpAnnounce.peerRequestInterval;
 			}
 			else
 			{
@@ -92,189 +116,25 @@ namespace Bittorrent
 					peers = udpGen.peers;
 					seeders = udpGen.seeders;
 					leechers = udpGen.leechers;
+					peerRequestInterval = udpGen.peerRequestInterval;
 				}
 			}
 
 			//handle peers, seeders, leechers, interval
 			//need some event handling to scrape/announce after interval time has passed
 		}
+		else
+		{
+			throw std::invalid_argument("Invalid protocol for trackers!");
+		}
+
+		//update request time
+		lastPeerRequest = boost::posix_time::second_clock::universal_time();
 	}
 
 	void trackerObj::resetLastRequest()
 	{
 		lastPeerRequest = boost::posix_time::ptime(
 			boost::posix_time::min_date_time);
-	}
-
-
-
-
-	void trackerObj::HTTPRequest(trackerUrl parsedUrl, bool compact)
-	{
-		try
-		{
-			//if empty use default values
-			const auto host = parsedUrl.hostname;
-			const auto port = parsedUrl.port.empty() ? "80" : parsedUrl.port;
-			const auto target = parsedUrl.target.empty() ? "/" : parsedUrl.target;
-			const auto version = 10;
-
-			// The io_context is required for all I/O
-			boost::asio::io_context io_context;
-
-			// These objects perform our I/O
-			tcp::resolver resolver{ io_context };
-			tcp::socket socket{ io_context };
-
-			socket.close();
-			socket.open(tcp::v4());
-
-			// Look up the domain name
-			auto const results = resolver.resolve(host, port);
-
-			// Make the connection on the IP address we get from a lookup
-			boost::asio::connect(socket, results.begin(), results.end());
-
-			// Set up an HTTP GET request message
-			http::request<boost::beast::http::string_body> req{ http::verb::get,
-				target, version };
-			req.set(http::field::host, host);
-			req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-
-			// Send the HTTP request to the remote host
-			boost::beast::http::write(socket, req);
-
-			// This buffer is used for reading and must be persisted
-			boost::beast::flat_buffer buffer;
-
-			// Declare a container to hold the response
-			http::response<http::dynamic_body> res;
-
-			// Receive the HTTP response
-			http::read(socket, buffer, res);
-
-			// Gracefully close the socket
-			boost::system::error_code ec;
-			socket.shutdown(tcp::socket::shutdown_both, ec);
-			socket.close();
-
-			// not_connected happens sometimes
-			// so don't bother reporting it.
-			//
-			if (ec && ec != boost::system::errc::not_connected)
-				throw boost::system::system_error{ ec };
-
-			// If we get here then the connection is closed gracefully
-			handleHTTPResponse(res, compact);
-		}
-		catch (std::exception const& e)
-		{
-			std::cerr << "Error: " << e.what() << std::endl;
-		}
-	}
-
-	void trackerObj::handleHTTPResponse(
-		http::response<http::dynamic_body> response, bool compact)
-	{	
-		//stream response result object, extract status code and store in string
-		std::stringstream ss;
-		ss << response.base();
-		std::string result;
-		std::getline(ss, result);
-		const auto space1 = result.find_first_of(" ");
-		const auto space2 = result.find(" ", space1+1);
-		if (space2 != std::string::npos)
-		{
-			result = result.substr(space1+1, space2-space1);
-		}
-
-		if (stoi(result) != 200)
-		{
-			std::cout << "Error reaching tracker \"" + trackerAddress + "\": " + 
-				"status code " + result << std::endl;
-			return;
-		}
-
-
-		//print body
-		std::string body{ boost::asio::buffers_begin(response.body().data()),
-				   boost::asio::buffers_end(response.body().data()) };
-
-		std::cout << body << std::endl;
-
-		valueDictionary info = boost::get<valueDictionary>(Decoder::decode(body));
-
-		if (info.empty())
-		{
-			std::cout << "Unable to decode tracker announce response!" << 
-				std::endl;
-			return;
-		}
-
-		peerRequestInterval =
-			boost::posix_time::seconds(boost::get<long long>(
-				info.at("interval")));
-
-		std::cout << "Peer Request Interval: " << peerRequestInterval << std::endl;
-
-
-		// TODO: tracker response needs testing
-		// compact version is a string of (multiple) 6 bytes 
-		// first 4 are IP address, last 2 are port number in network notation
-		// non compact uses a list of dictionaries
-		if (compact)
-		{
-			if (info.count("failure reason"))
-			{
-				std::cout << boost::get<std::string>(info.at("failure reason"));
-				return;
-			}
-			else
-			{
-				std::string peerInfoString = boost::get<std::string>(
-					info.at("peers"));
-				std::vector<byte> peerInfo(peerInfoString.begin(), 
-					peerInfoString.end());
-				//info is split into chunks of 6 bytes
-				for (size_t i = 0; i < peerInfo.size(); i+=6)
-				{
-					//first four bytes of each chunk form the ip address
-					std::string ipAddress = std::to_string(peerInfo.at(i)) 
-						+ "." + std::to_string(peerInfo.at(i + 1)) + "." +
-						std::to_string(peerInfo.at(i + 2)) + "."
-						+ std::to_string(peerInfo.at(i + 3));
-					//the two bytes representing port are in big endian
-					//read in correct order directly using bit shifting
-					std::string peerPort = std::to_string(
-						(peerInfo.at(i + 4) << 8) |
-						(peerInfo.at(i + 5)));
-					//add to peers list
-					peers.emplace(ipAddress, peerPort);
-				}
-			}
-		}
-		else
-		{
-			if (info.count("failure reason"))
-			{
-				std::cout << boost::get<std::string>(info.at("failure reason"));
-				return;
-			}
-			else
-			{
-				valueList peerInfoList = boost::get<valueList>(info.at("peers"));
-				for (size_t i = 0; i < peerInfoList.size(); ++i)
-				{
-					valueDictionary peerInfoDict =
-						boost::get<valueDictionary>(peerInfoList.at(i));
-					const std::string ipAddress =
-						boost::get<std::string>(peerInfoDict.at("ip"));
-					const int peerPort = boost::get<int>(peerInfoDict.at("ip"));
-					//add to peers list
-					peers.emplace(ipAddress, std::to_string(peerPort));
-				}
-			}
-		}
-
 	}
 }

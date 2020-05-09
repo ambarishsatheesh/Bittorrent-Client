@@ -38,7 +38,7 @@ namespace Bittorrent
 		}
 		else
 		{
-			port = port;
+			std::cout << "\n" << "Tracker URL does not contain a port!" << "\n";
 		}
 
 		//get target if not empty
@@ -49,7 +49,8 @@ namespace Bittorrent
 		}
 		else
 		{
-			target = target;
+			std::cout << "\n" << "Tracker URL does not contain a target!" 
+				<< "\n";
 		}
 	}
 }

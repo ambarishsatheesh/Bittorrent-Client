@@ -8,6 +8,7 @@
 #include <boost/asio/buffers_iterator.hpp>
 
 #include "UDPClient.h"
+#include "HTTPClient.h"
 
 #include <string>
 
@@ -36,15 +37,14 @@ namespace Bittorrent
 		//udp scrape data
 		int seeders;
 		int leechers;
+		int complete;
+		int incomplete;
 
 		void update(trackerEvent trkEvent, std::vector<byte> clientID,
 			int port, std::string urlEncodedInfoHash, std::vector<byte> infoHash,
-			long long uploaded, long long downloaded, long long remaining,
-			bool compact);
+			long long uploaded, long long downloaded, long long remaining);
 
 		void resetLastRequest();
-		void HTTPRequest(trackerUrl parsedURL, bool compact);
-		void handleHTTPResponse(http::response<http::dynamic_body> response, bool compact);
 
 		//default constructor
 		trackerObj();

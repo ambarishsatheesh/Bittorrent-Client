@@ -1,5 +1,4 @@
 #pragma once
-
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 
@@ -47,7 +46,7 @@ namespace Bittorrent
 		std::vector<byte> receivedAncBuffer;
 
 		//announce response data
-		boost::posix_time::seconds interval;
+		boost::posix_time::seconds peerRequestInterval;
 		int leechers;
 		int seeders;
 		int completed;
@@ -61,7 +60,7 @@ namespace Bittorrent
 		void dataTransmission(trackerUrl& parsedUrl, bool isAnnounce);
 
 		//default constructor & destructor
-		UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientId, 
+		UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID, 
 			std::vector<byte>& infoHash, long long& uploaded, 
 			long long& downloaded, long long& remaining, int& intEvent, 
 			bool isAnnounce);

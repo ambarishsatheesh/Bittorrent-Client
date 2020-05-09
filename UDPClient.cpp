@@ -1,8 +1,6 @@
 #include "UDPClient.h"
 #include "Utility.h"
 
-#include <boost/bind.hpp>
-
 #include <iostream>
 #include <iomanip>
 #include <random>
@@ -26,7 +24,7 @@ namespace Bittorrent
 		ancRemaining{ remaining }, ancIntEvent{ intEvent },
 		peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port }, 
 		receivedConnBuffer(16), receivedScrapeBuffer(200), 
-		receivedAncBuffer(320), interval{ 0 }, leechers{ 0 }, seeders{ 0 },
+		receivedAncBuffer(320), peerRequestInterval{ 0 }, leechers{ 0 }, seeders{ 0 },
 		completed{ 0 }, io_context(), 
 		socket_connect(io_context, udp::endpoint(udp::v4(), 2)), 
 		socket_transmission(io_context, udp::endpoint(udp::v4(), 6681)),
@@ -39,8 +37,7 @@ namespace Bittorrent
 			udp::resolver resolver{ io_context };
 
 			// Look up the domain name
-			//auto const results = resolver.resolve(peerHost, peerPort);
-			const auto results = resolver.resolve("open.stealth.si", "80");
+			const auto results = resolver.resolve(peerHost, peerPort);
 
 			//iterate and get successful connection endpoint
 			const auto remoteEndpointIter =
@@ -515,7 +512,7 @@ namespace Bittorrent
 			intInterval <<= 8;
 			intInterval |= receivedAncBuffer.at(i);
 		}
-		interval = boost::posix_time::seconds(intInterval);
+		peerRequestInterval = boost::posix_time::seconds(intInterval);
 
 		//convert leechers bytes to int
 		for (size_t i = 12; i < 16; ++i)
@@ -553,26 +550,18 @@ namespace Bittorrent
 
 	void UDPClient::dataTransmission(trackerUrl& parsedUrl, bool isAnnounce)
 	{
-		try
+
+		boost::system::error_code err;
+
+		connectRequest(err);
+		//use interval value to check if we have announced before
+		if (isAnnounce)
 		{
-			boost::system::error_code err;
-
-			connectRequest(err);
-			//use interval value to check if we have announced before
-			if (isAnnounce)
-			{
-				announceRequest(err);
-			}
-			else
-			{
-				scrapeRequest(err);
-			}
-
+			announceRequest(err);
 		}
-		catch (const boost::system::system_error& e)
+		else
 		{
-			std::cout << "\n" << "Error occured! Error code = " << e.code()
-				<< ". Message: " << e.what();
+			scrapeRequest(err);
 		}
 	}
 }
