@@ -97,13 +97,7 @@ int main(int argc, char* argv[])
 
 	Torrent udpTestTorrent = toTorrentObj(fullFilePath, torrent);
 
-	std::cout << udpTestTorrent.generalData.trackerList[4].trackerAddress << std::endl;
-	std::cout << "info hash: ";
-	for (auto i : udpTestTorrent.hashesData.infoHash)
-	{
-		std::cout << i;
-	}
-	std::cout << "\n";
+	std::cout << "Tracker: " << udpTestTorrent.generalData.trackerList[4].trackerAddress << std::endl;
 
 	udpTestTorrent.generalData.trackerList[4].update(trackerObj::trackerEvent::started,
 		testClientID, 6681, udpTestTorrent.hashesData.urlEncodedInfoHash, udpTestTorrent.hashesData.infoHash, 2500, 1200, 0);

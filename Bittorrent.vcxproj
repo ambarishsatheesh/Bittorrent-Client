@@ -22,6 +22,7 @@
     <ClCompile Include="HTTPClient.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="encodeVisitor.cpp" />
+    <ClCompile Include="Peer.cpp" />
     <ClCompile Include="sha1.cpp" />
     <ClCompile Include="Tokenizer.cpp" />
     <ClCompile Include="Torrent.cpp" />
@@ -38,6 +39,7 @@
     <ClInclude Include="encodeVisitor.h" />
     <ClInclude Include="fileObj.h" />
     <ClInclude Include="HTTPClient.h" />
+    <ClInclude Include="Peer.h" />
     <ClInclude Include="sha1.h" />
     <ClInclude Include="Tokenizer.h" />
     <ClInclude Include="Torrent.h" />

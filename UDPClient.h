@@ -50,7 +50,7 @@ namespace Bittorrent
 		int leechers;
 		int seeders;
 		int completed;
-		std::vector<peer> peers;
+		std::vector<peer> peerList;
 
 		//general variables
 		std::string peerHost;

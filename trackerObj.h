@@ -34,7 +34,7 @@ namespace Bittorrent
 
 		boost::posix_time::ptime lastPeerRequest;
 		boost::posix_time::seconds peerRequestInterval;
-		std::vector<peer> peers;
+		std::vector<peer> peerList;
 
 		//udp scrape data
 		int seeders;

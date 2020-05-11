@@ -297,7 +297,7 @@ namespace Bittorrent
 						peer singlePeer;
 						singlePeer.ipAddress = ipAddress;
 						singlePeer.port = peerPort;
-						peers.push_back(singlePeer);
+						peerList.push_back(singlePeer);
 					}
 				}
 				//non compact uses a list of dictionaries
@@ -317,7 +317,7 @@ namespace Bittorrent
 						peer singlePeer;
 						singlePeer.ipAddress = ipAddress;
 						singlePeer.port = peerPort;
-						peers.push_back(singlePeer);
+						peerList.push_back(singlePeer);
 					}
 				}
 			}

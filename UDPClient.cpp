@@ -547,7 +547,7 @@ namespace Bittorrent
 			peer singlePeer;
 			singlePeer.ipAddress = ipAddress;
 			singlePeer.port = peerPort;
-			peers.push_back(singlePeer);
+			peerList.push_back(singlePeer);
 		}
 	}
 

@@ -73,9 +73,9 @@ namespace Bittorrent
 				complete = httpAnnounce.complete;
 				incomplete = httpAnnounce.incomplete;
 				//not thread safe
-				for (auto singlePeer : httpAnnounce.peers)
+				for (auto singlePeer : httpAnnounce.peerList)
 				{
-					peers.push_back(singlePeer);
+					peerList.push_back(singlePeer);
 				}
 			}
 			else
@@ -84,7 +84,7 @@ namespace Bittorrent
 				//announce and update if seeders/leechers values change
 				if (httpAnnounce.complete != complete || 
 					httpAnnounce.incomplete != incomplete
-					|| httpAnnounce.peers != peers)
+					|| httpAnnounce.peerList != peerList)
 				{
 					std::cout << "\n" <<
 						"Tracker info changed. Switching to announce request."
@@ -93,9 +93,9 @@ namespace Bittorrent
 					complete = httpAnnounce.complete;
 					incomplete = httpAnnounce.incomplete;
 					//not thread safe
-					for (auto singlePeer : httpAnnounce.peers)
+					for (auto singlePeer : httpAnnounce.peerList)
 					{
-						peers.push_back(singlePeer);
+						peerList.push_back(singlePeer);
 					}
 				}
 			}
@@ -111,9 +111,9 @@ namespace Bittorrent
 				UDPClient udpAnnounce(parsedUrl, clientID, infoHash, uploaded, 
 					downloaded, remaining, intEvent, 1);
 				//not thread safe
-				for (auto singlePeer : udpAnnounce.peers)
+				for (auto singlePeer : udpAnnounce.peerList)
 				{
-					peers.push_back(singlePeer);
+					peerList.push_back(singlePeer);
 				}
 				seeders = udpAnnounce.seeders;
 				leechers = udpAnnounce.leechers;
@@ -125,16 +125,16 @@ namespace Bittorrent
 					downloaded, remaining, intEvent, 0);
 				//announce and update if seeders/leechers values change
 				if (udpGen.seeders != seeders || udpGen.leechers != leechers
-					|| udpGen.peers != peers)
+					|| udpGen.peerList != peerList)
 				{
 					std::cout << "\n" << 
 						"Tracker info changed. Switching to announce request." 
 						<< "\n";
 					udpGen.dataTransmission(parsedUrl, 1);
 					//not thread safe
-					for (auto singlePeer : udpGen.peers)
+					for (auto singlePeer : udpGen.peerList)
 					{
-						peers.push_back(singlePeer);
+						peerList.push_back(singlePeer);
 					}
 					seeders = udpGen.seeders;
 					leechers = udpGen.leechers;
@@ -154,9 +154,9 @@ namespace Bittorrent
 		lastPeerRequest = boost::posix_time::second_clock::universal_time();
 
 		std::cout << "\n" << "Received peer information from " << trackerAddress << "\n";
-		std::cout << "Peer count:  " << peers.size() << "\n";
-		std::cout << "Peers: " << peers.size() << "\n";
-		for (auto peer : peers)
+		std::cout << "Peer count:  " << peerList.size() << "\n";
+		std::cout << "Peers: " << peerList.size() << "\n";
+		for (auto peer : peerList)
 		{
 			std::cout << "IP Address: " << peer.ipAddress << ", Port: " <<
 				peer.port << "\n";
