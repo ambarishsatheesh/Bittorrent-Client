@@ -1,4 +1,5 @@
-// TODO: Change UDP from sync to async
+// TODO: REFACTOR TO PROPER OOP - encapsulate properly (getters/setters vs?
+// TODO: Change UDP from sync to async?
 // TODO: make sure all class members are initialised
 // TODO: event handler for peer list (for creating both new torrents and processing exsting ones)
 // TODO: re-design remaining download

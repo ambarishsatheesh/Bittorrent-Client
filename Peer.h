@@ -23,16 +23,12 @@ namespace Bittorrent
 		std::string localID;
 		std::string peerID;
 
-		std::unique_ptr<Torrent> torrent;
+		std::shared_ptr<Torrent> peerTorrent;
 
 		std::string key;
 
 		//piece info
 		std::vector<bool> isPieceDownloaded;
-		std::string piecesDownloaded;
-		int piecesRequiredAvailable;
-		int piecesDownloadedCount;
-		bool isCompleted;
 
 		//status info
 		bool isDisconnected;
@@ -55,6 +51,12 @@ namespace Bittorrent
 		boost::asio::io_context io_context;
 		tcp::socket socket;
 		tcp::endpoint endpoint;
+
+		std::string piecesDownloaded();
+		int piecesRequiredAvailable();
+		int piecesDownloadedCount();
+		bool isCompleted();
+
 
 		//delete default constructor
 		Peer() = delete;

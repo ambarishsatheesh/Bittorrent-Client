@@ -367,9 +367,9 @@ namespace Bittorrent
 
 				//if slots are connected to signal, call slots
 				//need to implement properly after slot function is defined
-				if (!torrent.piecesData.pieceVerifiedSig.empty())
+				if (!torrent.piecesData.pieceVerifiedSig.get()->empty())
 				{
-					torrent.piecesData.pieceVerifiedSig();
+					torrent.piecesData.pieceVerifiedSig.get();
 				}
 
 				return;
