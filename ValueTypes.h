@@ -30,4 +30,10 @@ namespace Bittorrent
 	using valueDictionary = std::map<std::string, value>;
 	using valueList = std::vector<value>;
 
+	struct peer
+	{
+		std::string ipAddress;
+		std::string port;
+	};
+
 }

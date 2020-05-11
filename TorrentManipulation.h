@@ -98,7 +98,7 @@ namespace Bittorrent
 		//create torrent with default empty tracker list and comment
 		Torrent createNewTorrent(std::string fileName, const char* path,
 			bool isPrivate, const std::string& comment,
-			std::vector<trackerObj> trackerList)
+			std::vector<std::string> trackerList)
 		{
 			Torrent createdTorrent(path);
 
@@ -111,7 +111,16 @@ namespace Bittorrent
 				boost::posix_time::second_clock::local_time();
 			createdTorrent.generalData.encoding = "UTF-8";
 			createdTorrent.generalData.isPrivate = isPrivate;
-			createdTorrent.generalData.trackerList = trackerList;
+
+			//tracker data
+			std::vector<trackerObj> trackers;
+			for (auto singleTracker : trackerList)
+			{
+				trackerObj trkObj;
+				trkObj.trackerAddress = singleTracker;
+				trackers.push_back(trkObj);
+			}
+			createdTorrent.generalData.trackerList = trackers;
 
 			// File data 
 			std::vector<fileObj> files;
@@ -356,7 +365,12 @@ namespace Bittorrent
 					torrent.statusData.isBlockAcquired[piece][i] = true;
 				}
 
-				//event handler stuff here
+				//if slots are connected to signal, call slots
+				//need to implement properly after slot function is defined
+				if (!torrent.piecesData.pieceVerifiedSig.empty())
+				{
+					torrent.piecesData.pieceVerifiedSig();
+				}
 
 				return;
 			}

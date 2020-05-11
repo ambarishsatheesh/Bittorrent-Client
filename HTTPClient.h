@@ -29,7 +29,7 @@ namespace Bittorrent
 		boost::posix_time::seconds peerRequestInterval;
 		int complete;
 		int incomplete;
-		std::unordered_map<std::string, std::string> peers;
+		std::vector<peer> peers;
 
 		void dataTransmission(trackerUrl& parsedUrl, bool isAnnounce);
 

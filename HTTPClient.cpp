@@ -294,7 +294,10 @@ namespace Bittorrent
 							(peerInfo.at(i + 4) << 8) |
 							(peerInfo.at(i + 5)));
 						//add to peers list
-						peers.emplace(ipAddress, peerPort);
+						peer singlePeer;
+						singlePeer.ipAddress = ipAddress;
+						singlePeer.port = peerPort;
+						peers.push_back(singlePeer);
 					}
 				}
 				//non compact uses a list of dictionaries
@@ -311,7 +314,10 @@ namespace Bittorrent
 						const int peerPort = static_cast<int>(
 							boost::get<long long>(peerInfoDict.at("ip")));
 						//add to peers list
-						peers.emplace(ipAddress, std::to_string(peerPort));
+						peer singlePeer;
+						singlePeer.ipAddress = ipAddress;
+						singlePeer.port = peerPort;
+						peers.push_back(singlePeer);
 					}
 				}
 			}

@@ -6,9 +6,11 @@
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/buffers_iterator.hpp>
+#include <boost/signals2.hpp>
 
 #include "UDPClient.h"
 #include "HTTPClient.h"
+#include "ValueTypes.h"
 
 #include <string>
 
@@ -32,7 +34,7 @@ namespace Bittorrent
 
 		boost::posix_time::ptime lastPeerRequest;
 		boost::posix_time::seconds peerRequestInterval;
-		std::unordered_map<std::string, std::string> peers;
+		std::vector<peer> peers;
 
 		//udp scrape data
 		int seeders;

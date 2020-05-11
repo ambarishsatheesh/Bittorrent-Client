@@ -2,8 +2,8 @@
 #include "ValueTypes.h"
 #include "trackerObj.h"
 #include "Utility.h"
-#include "boost/date_time/posix_time/posix_time.hpp"
-#include "boost/date_time/posix_time/conversion.hpp"
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/conversion.hpp>
 
 #include <ctime>
 
@@ -22,6 +22,7 @@ namespace Bittorrent
 		std::string encoding; //unsure
 		bool isPrivate;
 		std::string urlEncodedClientID;
+
 
 		//fill general info
 		void torrentToGeneralData(const char* fullFilePath, 

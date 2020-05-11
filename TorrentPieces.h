@@ -1,6 +1,7 @@
 #pragma once
 #include "ValueTypes.h"
 #include "fileObj.h"
+#include <boost/signals2.hpp>
 
 
 namespace Bittorrent
@@ -22,6 +23,9 @@ namespace Bittorrent
 			const valueDictionary& torrent);
 
 		valueDictionary piecesDataToDictionary(valueDictionary& dict);
+
+		//piece verification signal
+		boost::signals2::signal<void()> pieceVerifiedSig;
 
 		void setReadablePieceSize()
 		{

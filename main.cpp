@@ -46,17 +46,11 @@ int main(int argc, char* argv[])
 
 	bool isPrivate = false;
 
-	std::vector<trackerObj> trackers;
-	trackerObj one, two, three, four;
-	one.trackerAddress = "http://www.cplusplus.com/forum/beginner/104849/";
-	two.trackerAddress = "https://www.google.com/";
-	three.trackerAddress = "https://www.youtube.com/watch?v=q86g1aop6a8";
-	four.trackerAddress = "http://www.reddit.com/";
-
-	trackers.push_back(one);
-	trackers.push_back(two);
-	trackers.push_back(three);
-	trackers.push_back(four);
+	std::vector<std::string> trackers;
+	trackers.push_back("http://www.cplusplus.com/forum/beginner/104849/");
+	trackers.push_back("https://www.google.com/");
+	trackers.push_back("https://www.youtube.com/watch?v=q86g1aop6a8");
+	trackers.push_back("http://www.reddit.com/");
 
 	Torrent temp = createNewTorrent("test", fullFilePath, isPrivate, "test comment", trackers);
 

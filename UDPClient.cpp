@@ -544,7 +544,10 @@ namespace Bittorrent
 			std::string peerPort = std::to_string(
 				(peerInfo.at(i + 4) << 8) | (peerInfo.at(i + 5)));
 			//add to peers list
-			peers.emplace(ipAddress, peerPort);
+			peer singlePeer;
+			singlePeer.ipAddress = ipAddress;
+			singlePeer.port = peerPort;
+			peers.push_back(singlePeer);
 		}
 	}
 
