@@ -23,10 +23,46 @@ namespace Bittorrent
 		std::string localID;
 		std::string peerID;
 
-		Torrent torrent;
-		//peer endpoint;
+		std::unique_ptr<Torrent> torrent;
+
+		std::string key;
+
+		//piece info
+		std::vector<bool> isPieceDownloaded;
+		std::string piecesDownloaded;
+		int piecesRequiredAvailable;
+		int piecesDownloadedCount;
+		bool isCompleted;
+
+		//status info
+		bool isDisconnected;
+		bool isPositionSent;
+		bool isChokeSent;
+		bool isInterestSent;
+		bool isHandshakeReceived;
+		bool IsChokeReceived;
+		bool IsInterestedReceived;
+		std::vector<std::vector<bool>> isBlockRequested;
+		int blocksRequested;
+
+		boost::posix_time::ptime lastActive;
+		boost::posix_time::ptime lastKeepAlive;
+
+		long long uploaded;
+		long long downloaded;
+
+		//tcp data
+		boost::asio::io_context io_context;
+		tcp::socket socket;
 		tcp::endpoint endpoint;
 
+		//delete default constructor
+		Peer() = delete;
+		//client opened connection constructors
+		Peer(Torrent& torrent, std::string& localID, tcp::endpoint& endpoint);
+		Peer(Torrent& torrent, std::string& localID);
+		//peer-opened connection constructor
+		Peer(Torrent& torrent, std::string& localID, tcp::socket* tcpClient);
 
 
 	};

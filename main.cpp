@@ -7,6 +7,7 @@
 // TODO: fix humanReadableBytes function - doesn't round properly
 // TODO: clean up error catching - currently all invalid arguments
 // TODO: implement method to add trackers to torrent
+// TODO: break up Peer class into smaller compositions
 // TODO: test piece verification
 // TODO: clean up decoder
 // TODO: implement magnet link functionality

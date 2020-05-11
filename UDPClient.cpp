@@ -294,8 +294,8 @@ namespace Bittorrent
 				<< ") \n";
 
 			//update relevant timekeeping
-			connIDReceivedTime = boost::posix_time::second_clock::universal_time();
-			lastRequestTime = boost::posix_time::second_clock::universal_time();
+			connIDReceivedTime = boost::posix_time::second_clock::local_time();
+			lastRequestTime = boost::posix_time::second_clock::local_time();
 
 			//handle connect response
 			handleConnectResp(connBytesRec);
@@ -340,8 +340,8 @@ namespace Bittorrent
 				<< ") \n";
 
 			//update relevant timekeeping
-			connIDReceivedTime = boost::posix_time::second_clock::universal_time();
-			lastRequestTime = boost::posix_time::second_clock::universal_time();
+			connIDReceivedTime = boost::posix_time::second_clock::local_time();
+			lastRequestTime = boost::posix_time::second_clock::local_time();
 
 			//handle connect response
 			handleScrapeResp(scrapeBytesRec);
@@ -384,7 +384,7 @@ namespace Bittorrent
 				ancBytesRec << " bytes" << " (" << err.message() << ") \n";
 
 			//update relevant timekeeping
-			lastRequestTime = boost::posix_time::second_clock::universal_time();
+			lastRequestTime = boost::posix_time::second_clock::local_time();
 
 			//handle announce response
 			handleAnnounceResp(ancBytesRec);
