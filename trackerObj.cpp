@@ -13,7 +13,8 @@ namespace Bittorrent
 		peerRequestInterval{ 1800 }, seeders(std::numeric_limits<int>::min()), 
 		leechers(std::numeric_limits<int>::min()), 
 		complete{ std::numeric_limits<int>::min() }, 
-		incomplete{ std::numeric_limits<int>::min() }
+		incomplete{ std::numeric_limits<int>::min() }, 
+		peerListUpdated{ std::make_shared<sigPeer>() }
 	{
 	}
 
@@ -63,6 +64,9 @@ namespace Bittorrent
 		//parse url
 		trackerUrl parsedUrl(url);
 
+		//temp vector for printing peers
+		std::vector<peer> tempPeerList;
+
 		//request url using appropriate protocol
 		if (parsedUrl.protocol == trackerUrl::protocolType::http)
 		{
@@ -72,19 +76,18 @@ namespace Bittorrent
 				HTTPClient httpAnnounce(parsedUrl, 1);
 				complete = httpAnnounce.complete;
 				incomplete = httpAnnounce.incomplete;
-				//not thread safe
-				for (auto singlePeer : httpAnnounce.peerList)
-				{
-					peerList.push_back(singlePeer);
-				}
+				//call signal to fire peerListUpdated event
+				//not thread safe?
+				(*peerListUpdated)(httpAnnounce.peerList);
+				//add to temp for printing
+				tempPeerList = httpAnnounce.peerList;
 			}
 			else
 			{
 				HTTPClient httpAnnounce(parsedUrl, 0);
 				//announce and update if seeders/leechers values change
 				if (httpAnnounce.complete != complete || 
-					httpAnnounce.incomplete != incomplete
-					|| httpAnnounce.peerList != peerList)
+					httpAnnounce.incomplete != incomplete)
 				{
 					std::cout << "\n" <<
 						"Tracker info changed. Switching to announce request."
@@ -92,11 +95,11 @@ namespace Bittorrent
 					httpAnnounce.dataTransmission(parsedUrl, 1);
 					complete = httpAnnounce.complete;
 					incomplete = httpAnnounce.incomplete;
-					//not thread safe
-					for (auto singlePeer : httpAnnounce.peerList)
-					{
-						peerList.push_back(singlePeer);
-					}
+					//call signal to fire peerListUpdated event
+					//not thread safe?
+					(*peerListUpdated)(httpAnnounce.peerList);
+					//add to temp for printing
+					tempPeerList = httpAnnounce.peerList;
 				}
 			}
 			//handle peers, seeders, leechers, interval
@@ -110,35 +113,34 @@ namespace Bittorrent
 			{
 				UDPClient udpAnnounce(parsedUrl, clientID, infoHash, uploaded, 
 					downloaded, remaining, intEvent, 1);
-				//not thread safe
-				for (auto singlePeer : udpAnnounce.peerList)
-				{
-					peerList.push_back(singlePeer);
-				}
 				seeders = udpAnnounce.seeders;
 				leechers = udpAnnounce.leechers;
 				peerRequestInterval = udpAnnounce.peerRequestInterval;
+				//call signal to fire peerListUpdated event
+				//not thread safe?
+				(*peerListUpdated)(udpAnnounce.peerList);
+				//add to temp for printing
+				tempPeerList = udpAnnounce.peerList;
 			}
 			else
 			{
 				UDPClient udpGen(parsedUrl, clientID, infoHash, uploaded, 
 					downloaded, remaining, intEvent, 0);
 				//announce and update if seeders/leechers values change
-				if (udpGen.seeders != seeders || udpGen.leechers != leechers
-					|| udpGen.peerList != peerList)
+				if (udpGen.seeders != seeders || udpGen.leechers != leechers)
 				{
 					std::cout << "\n" << 
 						"Tracker info changed. Switching to announce request." 
 						<< "\n";
 					udpGen.dataTransmission(parsedUrl, 1);
-					//not thread safe
-					for (auto singlePeer : udpGen.peerList)
-					{
-						peerList.push_back(singlePeer);
-					}
 					seeders = udpGen.seeders;
 					leechers = udpGen.leechers;
 					peerRequestInterval = udpGen.peerRequestInterval;
+					//call signal to fire peerListUpdated event
+					//not thread safe?
+					(*peerListUpdated)(udpGen.peerList);
+					//add to temp for printing
+					tempPeerList = udpGen.peerList;
 				}
 			}
 
@@ -154,9 +156,9 @@ namespace Bittorrent
 		lastPeerRequest = boost::posix_time::second_clock::universal_time();
 
 		std::cout << "\n" << "Received peer information from " << trackerAddress << "\n";
-		std::cout << "Peer count:  " << peerList.size() << "\n";
-		std::cout << "Peers: " << peerList.size() << "\n";
-		for (auto peer : peerList)
+		std::cout << "Peer count:  " << tempPeerList.size() << "\n";
+		std::cout << "Peers: ";
+		for (auto peer : tempPeerList)
 		{
 			std::cout << "IP Address: " << peer.ipAddress << ", Port: " <<
 				peer.port << "\n";
