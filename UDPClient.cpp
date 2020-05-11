@@ -133,7 +133,7 @@ namespace Bittorrent
 	std::vector<byte> UDPClient::buildAnnounceReq()
 	{
 		//generate announce action (1)
-		scrapeAction = { 0x0, 0x0, 0x0, 0x01 };
+		ancAction = { 0x0, 0x0, 0x0, 0x01 };
 
 		//generate random int32 and pass into transactionID array 
 		std::random_device dev;

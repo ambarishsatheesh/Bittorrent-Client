@@ -86,6 +86,9 @@ namespace Bittorrent
 					httpAnnounce.incomplete != incomplete
 					|| httpAnnounce.peers != peers)
 				{
+					std::cout << "\n" <<
+						"Tracker info changed. Switching to announce request."
+						<< "\n";
 					httpAnnounce.dataTransmission(parsedUrl, 1);
 					complete = httpAnnounce.complete;
 					incomplete = httpAnnounce.incomplete;
@@ -124,6 +127,9 @@ namespace Bittorrent
 				if (udpGen.seeders != seeders || udpGen.leechers != leechers
 					|| udpGen.peers != peers)
 				{
+					std::cout << "\n" << 
+						"Tracker info changed. Switching to announce request." 
+						<< "\n";
 					udpGen.dataTransmission(parsedUrl, 1);
 					//not thread safe
 					for (auto singlePeer : udpGen.peers)
@@ -149,6 +155,12 @@ namespace Bittorrent
 
 		std::cout << "\n" << "Received peer information from " << trackerAddress << "\n";
 		std::cout << "Peer count:  " << peers.size() << "\n";
+		std::cout << "Peers: " << peers.size() << "\n";
+		for (auto peer : peers)
+		{
+			std::cout << "IP Address: " << peer.ipAddress << ", Port: " <<
+				peer.port << "\n";
+		}
 	}
 
 	void trackerObj::resetLastRequest()
