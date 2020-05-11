@@ -84,12 +84,12 @@ namespace Bittorrent
 	//check if pieces that are not verified (i.e. required) are downloaded
 	int Peer::piecesRequiredAvailable()
 	{
-		//custom c
-		/*auto lambda = [&](bool i) {return isPieceDownloaded[i] &&
-			!peerTorrent->statusData.isPieceVerified[i]; };
+		//custom comparator (false verified, true downloaded)
+		const auto lambda = [this](bool i) {return i &&
+			!peerTorrent.get()->statusData.isPieceVerified.at(i); };
 
-		return std::count(isPieceDownloaded.begin(),
-			isPieceDownloaded.end(), lambda);*/
+		return std::count_if(isPieceDownloaded.begin(),
+			isPieceDownloaded.end(), lambda);
 	}
 
 	int Peer::piecesDownloadedCount()
@@ -102,6 +102,4 @@ namespace Bittorrent
 	{
 		return piecesDownloadedCount() == peerTorrent.get()->piecesData.pieceCount;
 	}
-
-
 }
