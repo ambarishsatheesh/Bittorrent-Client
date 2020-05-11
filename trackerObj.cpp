@@ -89,7 +89,11 @@ namespace Bittorrent
 					httpAnnounce.dataTransmission(parsedUrl, 1);
 					complete = httpAnnounce.complete;
 					incomplete = httpAnnounce.incomplete;
-					peers = httpAnnounce.peers;
+					//not thread safe
+					for (auto singlePeer : httpAnnounce.peers)
+					{
+						peers.push_back(singlePeer);
+					}
 				}
 			}
 			//handle peers, seeders, leechers, interval
@@ -103,6 +107,7 @@ namespace Bittorrent
 			{
 				UDPClient udpAnnounce(parsedUrl, clientID, infoHash, uploaded, 
 					downloaded, remaining, intEvent, 1);
+				//not thread safe
 				for (auto singlePeer : udpAnnounce.peers)
 				{
 					peers.push_back(singlePeer);
@@ -120,6 +125,7 @@ namespace Bittorrent
 					|| udpGen.peers != peers)
 				{
 					udpGen.dataTransmission(parsedUrl, 1);
+					//not thread safe
 					for (auto singlePeer : udpGen.peers)
 					{
 						peers.push_back(singlePeer);
@@ -141,7 +147,7 @@ namespace Bittorrent
 		//update request time
 		lastPeerRequest = boost::posix_time::second_clock::universal_time();
 
-		std::cout << "Received peer information from " << trackerAddress << "\n";
+		std::cout << "\n" << "Received peer information from " << trackerAddress << "\n";
 		std::cout << "Peer count:  " << peers.size() << "\n";
 	}
 
