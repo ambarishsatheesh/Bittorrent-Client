@@ -11,7 +11,7 @@ namespace Bittorrent
 		isPieceDownloaded(torrent.piecesData.pieceCount),  isDisconnected{}, 
 		isPositionSent{}, isChokeSent{ true },
 		isInterestSent{ false }, isHandshakeReceived{}, IsChokeReceived{ true },
-		IsInterestedReceived{ false }, blocksRequested{ 0 }, 
+		IsInterestedReceived{ false },  
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 }, 
 		downloaded{ 0 }, io_context(), socket(io_context), endpoint(endpoint)
@@ -29,8 +29,8 @@ namespace Bittorrent
 		isPieceDownloaded(torrent.piecesData.pieceCount), isDisconnected{}, 
 		isPositionSent{}, isChokeSent{ true },
 		isInterestSent{ false }, isHandshakeReceived{}, IsChokeReceived{ true },
-		IsInterestedReceived{ false }, blocksRequested{ 0 }, 
-		lastActive{ boost::posix_time::second_clock::local_time() },
+		IsInterestedReceived{ false }, 
+lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
 		downloaded{ 0 }, io_context(), socket(io_context), endpoint()
 	{
@@ -47,7 +47,7 @@ namespace Bittorrent
 		isPieceDownloaded(torrent.piecesData.pieceCount), isDisconnected{}, 
 		isPositionSent{}, isChokeSent{ true },
 		isInterestSent{ false }, isHandshakeReceived{}, IsChokeReceived{ true },
-		IsInterestedReceived{ false }, blocksRequested{ 0 }, 
+		IsInterestedReceived{ false }, 
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
 		downloaded{ 0 }, io_context(), socket(io_context), endpoint()
@@ -81,25 +81,39 @@ namespace Bittorrent
 		return boost::algorithm::join(tempVec, "");
 	}
 
-	//check if pieces that are not verified (i.e. required) are downloaded
+	//count how many pieces that aren't verified (i.e. are required) 
+	//are downloaded
 	int Peer::piecesRequiredAvailable()
 	{
 		//custom comparator (false verified, true downloaded)
 		const auto lambda = [this](bool i) {return i &&
 			!peerTorrent.get()->statusData.isPieceVerified.at(i); };
 
-		return std::count_if(isPieceDownloaded.begin(),
-			isPieceDownloaded.end(), lambda);
+		return std::count_if(isPieceDownloaded.cbegin(),
+			isPieceDownloaded.cend(), lambda);
 	}
 
 	int Peer::piecesDownloadedCount()
 	{
-		return std::count(isPieceDownloaded.begin(), 
-			isPieceDownloaded.end(), true);
+		return std::count(isPieceDownloaded.cbegin(), 
+			isPieceDownloaded.cend(), true);
 	}
 
 	bool Peer::isCompleted()
 	{
 		return piecesDownloadedCount() == peerTorrent.get()->piecesData.pieceCount;
+	}
+
+	//count how many total blocks are requested
+	int Peer::blocksRequested()
+	{
+		int sum = 0;
+		for (size_t i = 0; i < isBlockRequested.size(); ++i)
+		{
+			sum += std::count(isBlockRequested.at(i).cbegin(), 
+				isBlockRequested.at(i).cend(), true);
+		}
+
+		return sum;
 	}
 }

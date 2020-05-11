@@ -39,7 +39,7 @@ namespace Bittorrent
 		bool IsChokeReceived;
 		bool IsInterestedReceived;
 		std::vector<std::vector<bool>> isBlockRequested;
-		int blocksRequested;
+		
 
 		boost::posix_time::ptime lastActive;
 		boost::posix_time::ptime lastKeepAlive;
@@ -56,7 +56,7 @@ namespace Bittorrent
 		int piecesRequiredAvailable();
 		int piecesDownloadedCount();
 		bool isCompleted();
-
+		int blocksRequested();
 
 		//delete default constructor
 		Peer() = delete;
