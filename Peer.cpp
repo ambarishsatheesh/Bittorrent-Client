@@ -9,10 +9,10 @@ namespace Bittorrent
 		boost::asio::io_context& io_context, tcp::resolver::results_type& results)
 		: localID{ localID }, peerID{ "" }, 
 		peerTorrent{ torrent->getPtr() }, key{ "" },
-		isPieceDownloaded(peerTorrent.get()->piecesData.pieceCount),  isDisconnected{},
-		isPositionSent{}, isChokeSent{ true },
-		isInterestSent{ false }, isHandshakeReceived{}, IsChokeReceived{ true },
-		IsInterestedReceived{ false },  
+		isPieceDownloaded(peerTorrent.get()->piecesData.pieceCount), 
+		isDisconnected{}, isHandshakeSent{}, isPositionSent{}, 
+		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{}, 
+		IsChokeReceived{ true }, IsInterestedReceived{ false },  
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 }, 
 		downloaded{ 0 }, socket(io_context), peerResults(results),
@@ -37,10 +37,10 @@ namespace Bittorrent
 		boost::asio::io_context& io_context, tcp::socket tcpClient)
 		: localID{ localID }, peerID{ "" }, 
 		peerTorrent{ torrent->getPtr() }, key{ "" },
-		isPieceDownloaded(peerTorrent.get()->piecesData.pieceCount), isDisconnected{},
-		isPositionSent{}, isChokeSent{ true },
-		isInterestSent{ false }, isHandshakeReceived{}, IsChokeReceived{ true },
-		IsInterestedReceived{ false }, 
+		isPieceDownloaded(peerTorrent.get()->piecesData.pieceCount), 
+		isDisconnected{}, isHandshakeSent{}, isPositionSent{}, 
+		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{}, 
+		IsChokeReceived{ true }, IsInterestedReceived{ false }, 
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
 		downloaded{ 0 }, socket(std::move(tcpClient)), endpoint(), 
@@ -139,7 +139,9 @@ namespace Bittorrent
 		tcp::resolver::results_type::iterator endpointItr)
 	{
 		if (isDisconnected)
+		{
 			return;
+		}
 
 		//async_connect() automatically opens the socket
 		//Check if socket is closed, if it is, the timeout handler must have run
@@ -168,7 +170,7 @@ namespace Bittorrent
 			std::cout << "Connected to " << endpointItr->endpoint() << "\n";
 
 			startNewRead();
-			startNewWrite();
+			sendHandShake();
 		}
 
 	}
@@ -178,9 +180,19 @@ namespace Bittorrent
 
 	}
 
-	void Peer::startNewWrite()
+	void Peer::sendHandShake()
 	{
+		if (isHandshakeSent)
+		{
+			return;
+		}
 
+		//add error to end 
+		std::cout << "Sending handshake..." << "...\n";
+
+		//sendhandshake code here
+
+		isHandshakeSent = true;
 	}
 
 	void Peer::disconnect()
@@ -203,7 +215,9 @@ namespace Bittorrent
 	void Peer::check_deadline()
 	{
 		if (isDisconnected)
+		{
 			return;
+		}
 
 		// Check whether the deadline has passed. We compare the deadline against
 		// the current time since a new asynchronous operation may have moved the

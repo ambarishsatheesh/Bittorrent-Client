@@ -34,6 +34,7 @@ namespace Bittorrent
 
 		//status info
 		bool isDisconnected;
+		bool isHandshakeSent;
 		bool isPositionSent;
 		bool isChokeSent;
 		bool isInterestSent;
@@ -66,7 +67,7 @@ namespace Bittorrent
 		void check_deadline();
 		void disconnect();
 		void startNewRead();
-		void startNewWrite();
+		void sendHandShake();
 
 
 		//delete default constructor
