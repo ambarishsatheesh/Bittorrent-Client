@@ -13,7 +13,7 @@ namespace Bittorrent
 	{
 	public:
 		std::shared_ptr<Torrent> torrent;
-
+		std::string localID;
 		
 		void handlePeerListUpdated(std::vector<peer> peerList);
 

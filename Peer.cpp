@@ -6,7 +6,7 @@
 namespace Bittorrent
 {
 	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
-		boost::asio::io_context io_context, tcp::resolver::results_type results)
+		boost::asio::io_context& io_context, tcp::resolver::results_type& results)
 		: localID{ localID }, peerID{ "" }, 
 		peerTorrent{ torrent->getPtr() }, key{ "" },
 		isPieceDownloaded(peerTorrent.get()->piecesData.pieceCount),  isDisconnected{},
@@ -15,8 +15,8 @@ namespace Bittorrent
 		IsInterestedReceived{ false },  
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 }, 
-		downloaded{ 0 }, socket(io_context), endpoint(endpoint),
-		deadline{io_context}, heartbeatTimer{io_context}
+		downloaded{ 0 }, socket(io_context), peerResults(results),
+		endpoint(), deadline{io_context}, heartbeatTimer{io_context}
 	{
 		isBlockRequested.resize(peerTorrent.get()->piecesData.pieceCount);
 		for (size_t i = 0; i < peerTorrent.get()->piecesData.pieceCount; ++i)
@@ -24,7 +24,8 @@ namespace Bittorrent
 			isBlockRequested.at(i).resize(peerTorrent->piecesData.setBlockCount(i));
 		}
 
-		startNewConnect(results.begin());
+		//begin connecting
+		connectToNewPeer(results.begin());
 
 		// Start the deadline actor. The connect and input actors will
 		// update the deadline prior to each asynchronous operation.
@@ -33,7 +34,7 @@ namespace Bittorrent
 
 	//construct peer from accepted connection started by another peer
 	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
-		boost::asio::io_context io_context, tcp::socket tcpClient)
+		boost::asio::io_context& io_context, tcp::socket tcpClient)
 		: localID{ localID }, peerID{ "" }, 
 		peerTorrent{ torrent->getPtr() }, key{ "" },
 		isPieceDownloaded(peerTorrent.get()->piecesData.pieceCount), isDisconnected{},
@@ -110,15 +111,43 @@ namespace Bittorrent
 		return sum;
 	}
 
-	void Peer::startNewConnect(tcp::resolver::results_type::iterator endpointItr)
+	void Peer::connectToNewPeer(tcp::resolver::results_type::iterator endpointItr)
 	{
+		if (endpointItr != peerResults.end())
+		{
+			std::cout << "Trying to connect to: " << endpointItr->endpoint() 
+				<< "...\n";
+
+			// Set a deadline for the connect operation (10s)
+			deadline.expires_after(boost::asio::chrono::seconds(10));
+
+			// Start the asynchronous connect operation.
+			socket.async_connect(endpointItr->endpoint(),
+				boost::bind(&Peer::handleNewConnect, this,
+					boost::placeholders::_1, endpointItr));
+		}
+		else
+		{
+			// There are no more endpoints to try. Shut down the client.
+			disconnect();
+		}
+	}
+
+	void Peer::handleNewConnect(const boost::system::error_code& ec,
+		tcp::resolver::results_type::iterator endpointItr)
+	{
+
 
 	}
 
-	void Peer::connectToCreatedPeer()
+	void Peer::disconnect()
 	{
+		isDisconnected = true;
+		std::cout << "\n" << "Disonnected, downloaded: " << downloaded 
+			<< ", uploaded: " << uploaded << "\n";
 
-
+		//call slot
+		disconnected();
 	}
 
 	void Peer::check_deadline()

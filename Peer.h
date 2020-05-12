@@ -60,24 +60,28 @@ namespace Bittorrent
 		void connectToCreatedPeer();
 
 		//new connection methods
-		void startNewConnect(tcp::resolver::results_type::iterator endpointItr);
+		void connectToNewPeer(tcp::resolver::results_type::iterator endpointItr);
+		void handleNewConnect(const boost::system::error_code& ec,
+			tcp::resolver::results_type::iterator endpointItr);
 		void check_deadline();
+		void disconnect();
 
 
 		//delete default constructor
 		Peer() = delete;
 		//client-opened connection constructors
 		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
-			boost::asio::io_context io_context,
-			tcp::resolver::results_type results);
+			boost::asio::io_context& io_context,
+			tcp::resolver::results_type& results);
 		//peer-opened connection constructor
 		//need io_context here to initialise timers
 		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
-			boost::asio::io_context io_context, tcp::socket tcpClient);
+			boost::asio::io_context& io_context, tcp::socket tcpClient);
 
 	private:
 		//tcp data
 		tcp::socket socket;
+		tcp::resolver::results_type peerResults;
 		tcp::endpoint endpoint;
 		boost::asio::steady_timer deadline;
 		boost::asio::steady_timer heartbeatTimer;
