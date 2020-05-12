@@ -84,13 +84,11 @@ namespace Bittorrent
 		}
 
 		//copy to buffer
-		std::vector<byte> connectVec;
-		connectVec.insert(connectVec.begin(), std::begin(protocolID), 
-			std::end(protocolID));
-		connectVec.insert(connectVec.begin() + 8, std::begin(connectAction), 
-			std::end(connectAction));
-		connectVec.insert(connectVec.begin() + 12, std::begin(sentTransactionID),
-			std::end(sentTransactionID));
+		std::vector<byte> connectVec(16);
+		auto last = std::copy(protocolID.begin(), protocolID.end(), 
+			connectVec.begin());
+		last = std::copy(connectAction.begin(), connectAction.end(), last);
+		last = std::copy(sentTransactionID.begin(), sentTransactionID.end(), last);
 
 		//convert to appropriate buffer for sending via UDP and return
 		return connectVec;
@@ -116,15 +114,13 @@ namespace Bittorrent
 		}
 
 		//copy to buffer
-		std::vector<byte> scrapeVec;
-		scrapeVec.insert(scrapeVec.begin(), std::begin(connectionID),
-			std::end(connectionID));
-		scrapeVec.insert(scrapeVec.begin() + 8, std::begin(scrapeAction),
-			std::end(scrapeAction));
-		scrapeVec.insert(scrapeVec.begin() + 12, std::begin(sentTransactionID),
-			std::end(sentTransactionID));
-		scrapeVec.insert(scrapeVec.begin() + 16, std::begin(byteInfoHash),
-			std::end(byteInfoHash));
+		std::vector<byte> scrapeVec(36);
+		auto last = std::copy(connectionID.begin(), connectionID.end(), 
+			scrapeVec.begin());
+		last = std::copy(scrapeAction.begin(), scrapeAction.end(), last);
+		last = std::copy(sentTransactionID.begin(), sentTransactionID.end(), 
+			last);
+		last = std::copy(byteInfoHash.begin(), byteInfoHash.end(), last);
 
 		//convert to appropriate buffer for sending via UDP and return
 		return scrapeVec;
@@ -222,33 +218,20 @@ namespace Bittorrent
 		}
 
 		//copy each section to buffer
-		std::vector<byte> announceVec;
-		announceVec.insert(announceVec.begin(), std::begin(connectionID), 
-			std::end(connectionID));
-		announceVec.insert(announceVec.begin() + 8, std::begin(ancAction),
-			std::end(ancAction));
-		announceVec.insert(announceVec.begin() + 12, 
-			std::begin(sentTransactionID), std::end(sentTransactionID));
-		announceVec.insert(announceVec.begin() + 16, std::begin(byteInfoHash),
-			std::end(byteInfoHash));
-		announceVec.insert(announceVec.begin() + 36, std::begin(ancClientID), 
-			std::end(ancClientID));
-		announceVec.insert(announceVec.begin() + 56, std::begin(downloadedVec),
-			std::end(downloadedVec));
-		announceVec.insert(announceVec.begin() + 64, std::begin(remainingVec), 
-			std::end(remainingVec));
-		announceVec.insert(announceVec.begin() + 72, std::begin(uploadedVec), 
-			std::end(uploadedVec));
-		announceVec.insert(announceVec.begin() + 80, std::begin(eventVec),
-			std::end(eventVec));
-		announceVec.insert(announceVec.begin() + 84, std::begin(ipVec), 
-			std::end(ipVec));
-		announceVec.insert(announceVec.begin() + 88, std::begin(keyVec), 
-			std::end(keyVec));
-		announceVec.insert(announceVec.begin() + 92, std::begin(numWantVec),
-			std::end(numWantVec));
-		announceVec.insert(announceVec.begin() + 96, std::begin(portVec),
-			std::end(portVec));
+		std::vector<byte> announceVec(98);
+		auto last = std::copy(connectionID.begin(), connectionID.end(), announceVec.begin());
+		last = std::copy(ancAction.begin(), ancAction.end(), last);
+		last = std::copy(sentTransactionID.begin(), sentTransactionID.end(), last);
+		last = std::copy(byteInfoHash.begin(), byteInfoHash.end(), last);
+		last = std::copy(ancClientID.begin(), ancClientID.end(), last);
+		last = std::copy(downloadedVec.begin(), downloadedVec.end(), last);
+		last = std::copy(remainingVec.begin(), remainingVec.end(), last);
+		last = std::copy(uploadedVec.begin(), uploadedVec.end(), last);
+		last = std::copy(eventVec.begin(), eventVec.end(), last);
+		last = std::copy(ipVec.begin(), ipVec.end(), last);
+		last = std::copy(keyVec.begin(), keyVec.end(), last);
+		last = std::copy(numWantVec.begin(), numWantVec.end(), last);
+		last = std::copy(portVec.begin(), portVec.end(), last);
 
 		/*//print for testing
 		std::cout << "Announce request data: " << "\n";
