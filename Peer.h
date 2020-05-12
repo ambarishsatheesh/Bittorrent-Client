@@ -121,6 +121,7 @@ namespace Bittorrent
 		//general processing
 		void handleMessage();
 		bool decodeHandshake(std::vector<byte>& hash, std::string& id);
+		bool encodeHandshake(std::vector<byte>& hash, std::string& id);
 	};
 }
 

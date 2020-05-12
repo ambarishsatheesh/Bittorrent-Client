@@ -366,6 +366,22 @@ namespace Bittorrent
 		return true;
 	}
 
+	bool Peer::encodeHandshake(std::vector<byte>& hash, std::string& id)
+	{
+		std::vector<byte> message;
+		std::string protocolStr = "Bittorrent protocol";
+
+		message.insert(message.begin(), 19);
+		message.insert(message.begin() + 1, protocolStr.begin(), 
+			protocolStr.end());
+		message.insert(message.begin() + 28,
+			peerTorrent->hashesData.infoHash.begin(),
+			peerTorrent->hashesData.infoHash.end());
+		message.insert(message.begin() + 48,
+			localID.begin(), localID.end());
+
+	}
+
 	void Peer::check_deadline()
 	{
 		if (isDisconnected)
