@@ -204,6 +204,7 @@ namespace Bittorrent
 			{
 				//process handshake
 				processBuffer = recBuffer;
+				handleMessage();
 
 				//clear and resize buffer to receive new header packet
 				recBuffer.clear();
@@ -232,7 +233,7 @@ namespace Bittorrent
 					recBuffer.begin(), recBuffer.end());
 
 				//process complete message
-
+				handleMessage();
 
 				//clear and resize buffer to receive new header packet
 				recBuffer.clear();
@@ -328,6 +329,41 @@ namespace Bittorrent
 
 		//call slot
 		disconnected();
+	}
+
+	void Peer::handleMessage()
+	{
+
+	}
+
+	bool Peer::decodeHandshake(std::vector<byte>& hash, std::string& id)
+	{
+		hash.resize(20);
+		id = "";
+
+		if (processBuffer.size() != 68 || processBuffer.at(0) != 19)
+		{
+			std::cout << "Invalid handshake! Must be 68 bytes long and the " <<
+				"byte must equal 19." << "\n";
+			return false;
+		}
+
+		//get first 19 byte string (UTF-8) after length byte
+		std::string protocolStr(processBuffer.begin() + 1,
+			processBuffer.begin() + 20);
+
+		if (protocolStr != "Bittorrent protocol")
+		{
+			std::cout << "Invalid handshake! Protocol must equal " <<
+				"\"Bittorrent protocol\"." << "\n";
+			return false;
+		}
+
+		//byte 21-28 represent flags (all 0) - can be ignored
+		hash = { processBuffer.begin() + 28, processBuffer.begin() + 48 };
+		id = { processBuffer.begin() + 48, processBuffer.end()};
+
+		return true;
 	}
 
 	void Peer::check_deadline()

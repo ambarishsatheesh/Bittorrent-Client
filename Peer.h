@@ -67,33 +67,6 @@ namespace Bittorrent
 		long long uploaded;
 		long long downloaded;
 
-		//status functions
-		std::string piecesDownloaded();
-		int piecesRequiredAvailable();
-		int piecesDownloadedCount();
-		bool isCompleted();
-		int blocksRequested();
-
-		//established connection methods
-		void connectToCreatedPeer();
-
-		//new connection methods
-		void connectToNewPeer(tcp::resolver::results_type::iterator endpointItr);
-		void handleNewConnect(const boost::system::error_code& ec,
-			tcp::resolver::results_type::iterator endpointItr);
-		void sendHandShake();
-		void startNewRead();
-		void handleNewRead(const boost::system::error_code& ec, 
-			std::size_t receivedBytes);
-		int getMessageLength();
-		void sendNewBytes();
-		void handleNewSend(const boost::system::error_code& ec, 
-			std::size_t receivedBytes);
-		void check_deadline();
-		void disconnect();
-
-
-
 		//delete default constructor
 		Peer() = delete;
 		//client-opened connection constructors
@@ -118,6 +91,36 @@ namespace Bittorrent
 		std::vector<byte> sendBuffer;
 		std::vector<byte> processBuffer;
 		std::vector<byte> recBuffer;
+
+
+		//status functions
+		std::string piecesDownloaded();
+		int piecesRequiredAvailable();
+		int piecesDownloadedCount();
+		bool isCompleted();
+		int blocksRequested();
+
+		//established connection functions - maybe separate class?
+		void connectToCreatedPeer();
+
+		//new connection methods
+		void connectToNewPeer(tcp::resolver::results_type::iterator endpointItr);
+		void handleNewConnect(const boost::system::error_code& ec,
+			tcp::resolver::results_type::iterator endpointItr);
+		void sendHandShake();
+		void startNewRead();
+		void handleNewRead(const boost::system::error_code& ec,
+			std::size_t receivedBytes);
+		int getMessageLength();
+		void sendNewBytes();
+		void handleNewSend(const boost::system::error_code& ec,
+			std::size_t receivedBytes);
+		void check_deadline();
+		void disconnect();
+
+		//general processing
+		void handleMessage();
+		bool decodeHandshake(std::vector<byte>& hash, std::string& id);
 	};
 }
 
