@@ -3,6 +3,7 @@
 #include <string>
 #include <boost/asio.hpp>
 #include <boost/signals2.hpp>
+#include <boost/asio/steady_timer.hpp>
 
 #include "Torrent.h"
 #include "ValueTypes.h"
@@ -48,11 +49,6 @@ namespace Bittorrent
 		long long uploaded;
 		long long downloaded;
 
-		//tcp data
-		boost::asio::io_context io_context;
-		tcp::socket socket;
-		tcp::endpoint endpoint;
-
 		//status functions
 		std::string piecesDownloaded();
 		int piecesRequiredAvailable();
@@ -60,20 +56,31 @@ namespace Bittorrent
 		bool isCompleted();
 		int blocksRequested();
 
-		//connection methods
+		//established connection methods
 		void connectToCreatedPeer();
+
+		//new connection methods
+		void startNewConnect(tcp::resolver::results_type::iterator endpointItr);
+		void check_deadline();
 
 
 		//delete default constructor
 		Peer() = delete;
 		//client-opened connection constructors
 		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
+			boost::asio::io_context io_context,
 			tcp::resolver::results_type results);
-		Peer(std::shared_ptr<Torrent> torrent, std::string& localID);
 		//peer-opened connection constructor
-		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, tcp::socket tcpClient);
+		//need io_context here to initialise timers
+		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
+			boost::asio::io_context io_context, tcp::socket tcpClient);
 
-
+	private:
+		//tcp data
+		tcp::socket socket;
+		tcp::endpoint endpoint;
+		boost::asio::steady_timer deadline;
+		boost::asio::steady_timer heartbeatTimer;
 	};
 }
 
