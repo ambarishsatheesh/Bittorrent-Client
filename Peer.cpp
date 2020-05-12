@@ -366,7 +366,8 @@ namespace Bittorrent
 		return true;
 	}
 
-	bool Peer::encodeHandshake(std::vector<byte>& hash, std::string& id)
+	std::vector<byte> Peer::encodeHandshake(std::vector<byte>& hash, 
+		std::string& id)
 	{
 		std::vector<byte> message(68);
 		std::string protocolStr = "Bittorrent protocol";
@@ -378,7 +379,33 @@ namespace Bittorrent
 		last = std::copy(peerTorrent->hashesData.infoHash.begin(), 
 			peerTorrent->hashesData.infoHash.end(), message.begin() + 28);
 		last = std::copy(localID.begin(), localID.end(), last);
+
+		return message;
 	}
+
+	bool Peer::decodeKeepAlive()
+	{
+		//convert bytes to int
+		int value = 0;
+		for (size_t i = 0; i < 4; ++i)
+		{
+			value <<= 8;
+			value |= processBuffer.at(i);
+		}
+		if (processBuffer.size() != 4 || value != 0)
+		{
+			std::cout << "Invalid keepAlive!" << "\n";
+			return false;
+		}
+		return true;
+	}
+
+	std::vector<byte> Peer::encodeKeepAlive()
+	{
+		std::vector<byte> newKeepAlive(4, 0);
+		return newKeepAlive;
+	}
+
 
 	void Peer::check_deadline()
 	{
