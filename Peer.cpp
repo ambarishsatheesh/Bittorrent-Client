@@ -368,18 +368,16 @@ namespace Bittorrent
 
 	bool Peer::encodeHandshake(std::vector<byte>& hash, std::string& id)
 	{
-		std::vector<byte> message;
+		std::vector<byte> message(68);
 		std::string protocolStr = "Bittorrent protocol";
 
-		message.insert(message.begin(), 19);
-		message.insert(message.begin() + 1, protocolStr.begin(), 
-			protocolStr.end());
-		message.insert(message.begin() + 28,
-			peerTorrent->hashesData.infoHash.begin(),
-			peerTorrent->hashesData.infoHash.end());
-		message.insert(message.begin() + 48,
-			localID.begin(), localID.end());
-
+		message.at(0) = 19;
+		auto last = std::copy(protocolStr.begin(), protocolStr.end(), 
+			message.begin()+1);
+		//bytes 21-28 are already 0 due to initialisation, can skip to byte 29
+		last = std::copy(peerTorrent->hashesData.infoHash.begin(), 
+			peerTorrent->hashesData.infoHash.end(), message.begin() + 28);
+		last = std::copy(localID.begin(), localID.end(), last);
 	}
 
 	void Peer::check_deadline()
