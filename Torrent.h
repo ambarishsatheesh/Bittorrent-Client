@@ -13,6 +13,7 @@
 namespace Bittorrent
 {
 	class Torrent
+		: public std::enable_shared_from_this<Torrent>
 	{
 	public:
 
