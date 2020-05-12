@@ -64,10 +64,12 @@ namespace Bittorrent
 		void connectToNewPeer(tcp::resolver::results_type::iterator endpointItr);
 		void handleNewConnect(const boost::system::error_code& ec,
 			tcp::resolver::results_type::iterator endpointItr);
+		void sendHandShake();
+		void startNewRead();
+		void handleNewRead(const boost::system::error_code& ec, std::size_t n);
 		void check_deadline();
 		void disconnect();
-		void startNewRead();
-		void sendHandShake();
+
 
 
 		//delete default constructor
@@ -88,6 +90,9 @@ namespace Bittorrent
 		tcp::endpoint endpoint;
 		boost::asio::steady_timer deadline;
 		boost::asio::steady_timer heartbeatTimer;
+
+		std::vector<byte> sendBuffer;
+		std::vector<byte> recBuffer;
 	};
 }
 

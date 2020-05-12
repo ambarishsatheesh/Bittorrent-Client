@@ -177,7 +177,48 @@ namespace Bittorrent
 
 	void Peer::startNewRead()
 	{
+		// Set a deadline for the read operation.
+		deadline.expires_after(boost::asio::chrono::seconds(30));
 
+		// Start asynchronous read a newline-delimited message.
+		boost::asio::async_read(socket,
+			boost::asio::dynamic_buffer(recBuffer),
+			boost::bind(&Peer::handleNewRead, this,
+				boost::placeholders::_1, boost::placeholders::_2));
+	}
+
+	void Peer::handleNewRead(const boost::system::error_code& ec, std::size_t n)
+	{
+		if (isDisconnected)
+		{
+			return;
+		}
+
+		if (!ec)
+		{
+			auto sizeBytes = n;
+
+
+			startNewRead();
+		}
+		else
+		{
+			std::cout << "Error on receive: " << ec.message() << "\n";
+
+			disconnect();
+		}
+	}
+
+	void sendNewBytes(std::vector<byte> sendBuffer)
+	{
+		try
+		{
+
+		}
+		catch(const boost::system::system_error& e)
+		{
+
+		}
 	}
 
 	void Peer::sendHandShake()

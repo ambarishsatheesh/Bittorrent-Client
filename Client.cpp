@@ -23,6 +23,9 @@ namespace Bittorrent
             //create new peer instance
             Peer peer(torrent, localID, io_context, results);
 
+            //can be shared among threads if needed - not a good idea until
+            //everything is thread safe
+            io_context.run();
         }
 	}
 }
