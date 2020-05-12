@@ -128,7 +128,9 @@ namespace Bittorrent
 		}
 		else
 		{
-			// There are no more endpoints to try. Shut down the client.
+			//No more endpoints to try. Shut down tcp client.
+			std::cout << "Peer connection attempt failed! " << 
+				"No more endpoints to try connecting to." << "\n";
 			disconnect();
 		}
 	}
@@ -136,7 +138,48 @@ namespace Bittorrent
 	void Peer::handleNewConnect(const boost::system::error_code& ec,
 		tcp::resolver::results_type::iterator endpointItr)
 	{
+		if (isDisconnected)
+			return;
 
+		//async_connect() automatically opens the socket
+		//Check if socket is closed, if it is, the timeout handler must have run
+		if (!socket.is_open())
+		{
+			std::cout << "Connect timed out" << "\n";
+
+			// Try the next available endpoint.
+			connectToNewPeer(++endpointItr);
+		}
+		// Check if connect operation failed before the deadline expired.
+		else if (ec)
+		{
+			std::cout << "Connect error: " << ec.message() << "\n";
+
+			// We need to close the socket used in the previous connection attempt
+			// before starting a new one.
+			socket.close();
+
+			// Try the next available endpoint.
+			connectToNewPeer(++endpointItr);
+		}
+		// else connection successful
+		else
+		{
+			std::cout << "Connected to " << endpointItr->endpoint() << "\n";
+
+			startNewRead();
+			startNewWrite();
+		}
+
+	}
+
+	void Peer::startNewRead()
+	{
+
+	}
+
+	void Peer::startNewWrite()
+	{
 
 	}
 

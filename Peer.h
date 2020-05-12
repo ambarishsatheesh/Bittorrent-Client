@@ -65,6 +65,8 @@ namespace Bittorrent
 			tcp::resolver::results_type::iterator endpointItr);
 		void check_deadline();
 		void disconnect();
+		void startNewRead();
+		void startNewWrite();
 
 
 		//delete default constructor
