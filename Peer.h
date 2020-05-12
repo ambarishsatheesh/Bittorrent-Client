@@ -22,6 +22,23 @@ namespace Bittorrent
 		boost::signals2::signal<void()> blockCancelled;
 		boost::signals2::signal<void()> blockReceived;
 
+		enum messageType
+		{
+			unknown = -3,
+			handshake = -2,
+			keepAlive = -1,
+			choke = 0,
+			unchoke = 1,
+			interested = 2,
+			notInterested = 3,
+			have = 4,
+			bitfield = 5,
+			request = 6,
+			piece = 7,
+			cancel = 8,
+			port = 9,
+		};
+
 		std::string localID;
 		std::string peerID;
 
