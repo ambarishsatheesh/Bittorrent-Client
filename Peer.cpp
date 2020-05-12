@@ -142,8 +142,15 @@ namespace Bittorrent
 
 	void Peer::disconnect()
 	{
+		std::cout << "\n" << "Disconnecting..." << "\n";
+
 		isDisconnected = true;
-		std::cout << "\n" << "Disonnected, downloaded: " << downloaded 
+		boost::system::error_code ignored_ec;
+		socket.close(ignored_ec);
+		deadline.cancel();
+		heartbeatTimer.cancel();
+
+		std::cout << "\n" << "Disconnected from peer, downloaded: " << downloaded
 			<< ", uploaded: " << uploaded << "\n";
 
 		//call slot
