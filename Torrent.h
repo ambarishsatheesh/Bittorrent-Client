@@ -43,6 +43,8 @@ namespace Bittorrent
 		void setFileList(const valueDictionary& torrent);
 		valueDictionary filesToDictionary(valueDictionary& dict);
 
+		std::shared_ptr<Torrent> getPtr();
+
 	private:
 
 	};

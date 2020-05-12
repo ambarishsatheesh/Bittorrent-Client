@@ -136,4 +136,9 @@ namespace Bittorrent
 		//std::string test = boost::get<std::string>(decodedTorrent.at("info"));
 		//std::cout << test << std::endl;
 	}
+
+	std::shared_ptr<Torrent> Torrent::getPtr()
+	{
+		return shared_from_this();
+	}
 }
