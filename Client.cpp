@@ -21,7 +21,7 @@ namespace Bittorrent
                 peer.ipAddress, peer.port);
 
             //create new peer instance
-            //Peer peer()
+            Peer peer();
 
         }
 	}

@@ -5,7 +5,8 @@
 
 namespace Bittorrent
 {
-	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID, tcp::endpoint& endpoint)
+	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
+		tcp::resolver::results_type results)
 		: localID{ localID }, peerID{ "" }, 
 		peerTorrent{ torrent->getPtr() }, key{ "" },
 		isPieceDownloaded(peerTorrent.get()->piecesData.pieceCount),  isDisconnected{},
@@ -20,24 +21,6 @@ namespace Bittorrent
 		for (size_t i = 0; i < peerTorrent.get()->piecesData.pieceCount; ++i)
 		{
 			isBlockRequested.at(i).resize(peerTorrent->piecesData.setBlockCount(i));
-		}
-	}
-
-	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID)
-		: localID{ localID }, peerID{ "" }, 
-		peerTorrent{ torrent->getPtr() }, key{ "" },
-		isPieceDownloaded(peerTorrent.get()->piecesData.pieceCount), isDisconnected{},
-		isPositionSent{}, isChokeSent{ true },
-		isInterestSent{ false }, isHandshakeReceived{}, IsChokeReceived{ true },
-		IsInterestedReceived{ false }, 
-lastActive{ boost::posix_time::second_clock::local_time() },
-		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
-		downloaded{ 0 }, io_context(), socket(io_context), endpoint()
-	{
-		isBlockRequested.resize(peerTorrent.get()->piecesData.pieceCount);
-		for (size_t i = 0; i < peerTorrent.get()->piecesData.pieceCount; ++i)
-		{
-			isBlockRequested.at(i).resize(peerTorrent.get()->piecesData.setBlockCount(i));
 		}
 	}
 

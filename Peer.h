@@ -66,8 +66,9 @@ namespace Bittorrent
 
 		//delete default constructor
 		Peer() = delete;
-		//client opened connection constructors
-		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, tcp::endpoint& endpoint);
+		//client-opened connection constructors
+		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
+			tcp::resolver::results_type results);
 		Peer(std::shared_ptr<Torrent> torrent, std::string& localID);
 		//peer-opened connection constructor
 		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, tcp::socket tcpClient);
