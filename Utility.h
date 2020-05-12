@@ -10,15 +10,11 @@
 #include <boost/uuid/detail/sha1.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/asio.hpp>
 
 #include "ValueTypes.h"
 
-
 namespace Bittorrent
 {
-    //remove after moving tcp handle functions to client class
-    using boost::asio::ip::tcp;
 
     namespace utility
     {
@@ -269,33 +265,6 @@ namespace Bittorrent
             {
                 return 16777216;
             }
-        }
-
-        inline void handlePeerListUpdated(std::vector<peer> peerList)
-        {
-            //TCP setup
-            boost::asio::io_context io_context;
-            tcp::resolver resolver(io_context);
-            tcp::socket socket(io_context);
-            socket.open(tcp::v4());
-
-            //new peer instance using peer data from vector
-            for (auto peer : peerList)
-            {
-
-                boost::asio::ip::tcp::endpoint peerEndpoint;
-
-                // Look up the domain name
-                auto const results = resolver.resolve(peer.ipAddress, peer.port);
-                peerEndpoint = boost::asio::connect(socket, results.begin(),
-                    results.end())->endpoint();
-
-                //create new peer instance
-
-                
-            }
-
-            socket.close();
         }
 
     }

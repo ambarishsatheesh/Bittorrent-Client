@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Client.cpp" />
     <ClCompile Include="HTTPClient.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="encodeVisitor.cpp" />
@@ -35,6 +36,7 @@
     <ClCompile Include="UDPClient.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Client.h" />
     <ClInclude Include="Decoder.h" />
     <ClInclude Include="encodeVisitor.h" />
     <ClInclude Include="fileObj.h" />

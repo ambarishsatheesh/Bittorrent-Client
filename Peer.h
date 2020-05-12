@@ -12,6 +12,7 @@ namespace Bittorrent
 	using boost::asio::ip::tcp;
 
 	class Peer
+		: public std::enable_shared_from_this<Peer>
 	{
 	public:
 		boost::signals2::signal<void()> disconnected;
@@ -52,19 +53,24 @@ namespace Bittorrent
 		tcp::socket socket;
 		tcp::endpoint endpoint;
 
+		//status functions
 		std::string piecesDownloaded();
 		int piecesRequiredAvailable();
 		int piecesDownloadedCount();
 		bool isCompleted();
 		int blocksRequested();
 
+		//connection methods
+		void connectToCreatedPeer();
+
+
 		//delete default constructor
 		Peer() = delete;
 		//client opened connection constructors
-		Peer(Torrent& torrent, std::string& localID, tcp::endpoint& endpoint);
-		Peer(Torrent& torrent, std::string& localID);
+		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, tcp::endpoint& endpoint);
+		Peer(std::shared_ptr<Torrent> torrent, std::string& localID);
 		//peer-opened connection constructor
-		Peer(Torrent& torrent, std::string& localID, tcp::socket* tcpClient);
+		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, tcp::socket tcpClient);
 
 
 	};
