@@ -66,7 +66,12 @@ namespace Bittorrent
 			tcp::resolver::results_type::iterator endpointItr);
 		void sendHandShake();
 		void startNewRead();
-		void handleNewRead(const boost::system::error_code& ec, std::size_t n);
+		void handleNewRead(const boost::system::error_code& ec, 
+			std::size_t receivedBytes);
+		int getMessageLength();
+		void sendNewBytes();
+		void handleNewSend(const boost::system::error_code& ec, 
+			std::size_t receivedBytes);
 		void check_deadline();
 		void disconnect();
 
@@ -91,7 +96,10 @@ namespace Bittorrent
 		boost::asio::steady_timer deadline;
 		boost::asio::steady_timer heartbeatTimer;
 
+		//initialised to max block size (16384bytes)
+		//since message size is generally unknown
 		std::vector<byte> sendBuffer;
+		std::vector<byte> processBuffer;
 		std::vector<byte> recBuffer;
 	};
 }

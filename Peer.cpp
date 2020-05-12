@@ -16,7 +16,8 @@ namespace Bittorrent
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 }, 
 		downloaded{ 0 }, socket(io_context), peerResults(results),
-		endpoint(), deadline{io_context}, heartbeatTimer{io_context}
+		endpoint(), deadline{io_context}, heartbeatTimer{io_context}, 
+		sendBuffer(68), recBuffer(68)
 	{
 		isBlockRequested.resize(peerTorrent.get()->piecesData.pieceCount);
 		for (size_t i = 0; i < peerTorrent.get()->piecesData.pieceCount; ++i)
@@ -44,7 +45,8 @@ namespace Bittorrent
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
 		downloaded{ 0 }, socket(std::move(tcpClient)), endpoint(), 
-		deadline{ io_context }, heartbeatTimer{ io_context }
+		deadline{ io_context }, heartbeatTimer{ io_context }, sendBuffer(68),
+		recBuffer(68)
 	{
 		isBlockRequested.resize(peerTorrent.get()->piecesData.pieceCount);
 		for (size_t i = 0; i < peerTorrent.get()->piecesData.pieceCount; ++i)
@@ -180,14 +182,15 @@ namespace Bittorrent
 		// Set a deadline for the read operation.
 		deadline.expires_after(boost::asio::chrono::seconds(30));
 
-		// Start asynchronous read a newline-delimited message.
+		// start async receive and immediately call the handler func
 		boost::asio::async_read(socket,
-			boost::asio::dynamic_buffer(recBuffer),
+			boost::asio::buffer(recBuffer),
 			boost::bind(&Peer::handleNewRead, this,
 				boost::placeholders::_1, boost::placeholders::_2));
 	}
 
-	void Peer::handleNewRead(const boost::system::error_code& ec, std::size_t n)
+	void Peer::handleNewRead(const boost::system::error_code& ec, 
+		std::size_t receivedBytes)
 	{
 		if (isDisconnected)
 		{
@@ -196,10 +199,47 @@ namespace Bittorrent
 
 		if (!ec)
 		{
-			auto sizeBytes = n;
+			//handshake message
+			if (!isHandshakeReceived)
+			{
+				//process handshake
+				processBuffer = recBuffer;
+
+				//clear and resize buffer to receive new header packet
+				recBuffer.clear();
+				recBuffer.resize(4);
+
+				startNewRead();
+			}
+			//if header, copy data, clear recBuffer and wait for entire message
+			//use header data to find remaining message length
+			else if (receivedBytes == 4)
+			{
+				processBuffer = recBuffer;
+				int messageLength = getMessageLength();
+
+				//clear and resize buffer to receive rest of the message
+				recBuffer.clear();
+				recBuffer.resize(messageLength);
+
+				startNewRead();
+			}
+			//rest of the message
+			else
+			{
+				//insert rest of message after stored header
+				processBuffer.insert(processBuffer.begin() + 4,
+					recBuffer.begin(), recBuffer.end());
+
+				//process complete message
 
 
-			startNewRead();
+				//clear and resize buffer to receive new header packet
+				recBuffer.clear();
+				recBuffer.resize(4);
+
+				startNewRead();
+			}
 		}
 		else
 		{
@@ -209,16 +249,53 @@ namespace Bittorrent
 		}
 	}
 
-	void sendNewBytes(std::vector<byte> sendBuffer)
+	int Peer::getMessageLength()
 	{
-		try
+		//header packet (4 bytes) gives message length
+		//convert bytes to int
+		int length = 0;
+		for (size_t i = 0; i < 4; ++i)
 		{
-
+			length <<= 8;
+			length |= recBuffer.at(i);
 		}
-		catch(const boost::system::system_error& e)
+		return length;
+	}
+
+	void Peer::sendNewBytes()
+	{
+		if (isDisconnected)
 		{
-
+			return;
 		}
+
+		// start async send and immediately call the handler func
+		boost::asio::async_write(socket,
+			boost::asio::buffer(sendBuffer),
+			boost::bind(&Peer::handleNewSend, this,
+				boost::placeholders::_1, boost::placeholders::_2));
+	}
+
+	void Peer::handleNewSend(const boost::system::error_code& ec, 
+		std::size_t receivedBytes)
+	{
+		if (isDisconnected)
+		{
+			return;
+		}
+
+		if (!ec)
+		{
+			std::cout << "Sent " << receivedBytes << " bytes"<< "\n";
+			sendBuffer.clear();
+		}
+		else
+		{
+			std::cout << "Error on send: " << ec.message() << "\n";
+
+			disconnect();
+		}
+
 	}
 
 	void Peer::sendHandShake()
