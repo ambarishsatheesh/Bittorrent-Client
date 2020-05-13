@@ -478,7 +478,7 @@ namespace Bittorrent
 		return encodeState(messageType::choke);
 	}
 
-	std::vector<byte> Peer::encodeChoke()
+	std::vector<byte> Peer::encodeUnchoke()
 	{
 		return encodeState(messageType::unchoke);
 	}
