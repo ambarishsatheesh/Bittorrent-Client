@@ -146,9 +146,11 @@ namespace Bittorrent
 		std::vector<byte> encodeInterested();
 		std::vector<byte> encodeNotInterested();
 		std::vector<byte> encodeState(messageType type);
-		std::vector<byte> encodeHave(int& index);
+		std::vector<byte> encodeHave(int index);
 		std::vector<byte> encodeBitfield(
-			std::vector<bool>& recIsPieceDownloaded);
+			std::vector<bool> recIsPieceDownloaded);
+		std::vector<byte> encodeDataRequest(int index, int offset, 
+			int dataSize);
 	};
 }
 

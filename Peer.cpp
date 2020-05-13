@@ -639,7 +639,6 @@ namespace Bittorrent
 		return true;
 	}
 
-
 	std::vector<byte> Peer::encodeHandshake(std::vector<byte>& hash,
 		std::string& id)
 	{
@@ -699,7 +698,7 @@ namespace Bittorrent
 		return newMessage;
 	}
 
-	std::vector<byte> Peer::encodeHave(int& index)
+	std::vector<byte> Peer::encodeHave(int index)
 	{
 		std::vector<byte> newHave(9, 0);
 
@@ -719,7 +718,7 @@ namespace Bittorrent
 	}
 
 	std::vector<byte> Peer::encodeBitfield(
-		std::vector<bool>& recIsPieceDownloaded)
+		std::vector<bool> recIsPieceDownloaded)
 	{
 		const int numPieces = recIsPieceDownloaded.size();
 		const int numBytes = std::ceil(numPieces / 8.0);
@@ -766,6 +765,39 @@ namespace Bittorrent
 
 		return newBitfield;
 	}
+
+	std::vector<byte> Peer::encodeDataRequest(int index, int offset, 
+		int dataSize)
+	{
+		std::vector<byte> newDataRequest(17);
+
+		//length byte
+		newDataRequest.at(3) = static_cast<byte>(13);
+
+		//type byte
+		newDataRequest.at(4) = static_cast<byte>(messageType::request);
+
+		//index bytes (big endian)
+		newDataRequest.at(5) = (index >> 24) & 0xFF;
+		newDataRequest.at(6) = (index >> 16) & 0xFF;
+		newDataRequest.at(7) = (index >> 8) & 0xFF;
+		newDataRequest.at(8) = index & 0xFF;
+
+		//offset bytes (big endian)
+		newDataRequest.at(9) = (offset >> 24) & 0xFF;
+		newDataRequest.at(10) = (offset >> 16) & 0xFF;
+		newDataRequest.at(11) = (offset >> 8) & 0xFF;
+		newDataRequest.at(12) = offset & 0xFF;
+
+		//data size bytes (big endian)
+		newDataRequest.at(13) = (dataSize >> 24) & 0xFF;
+		newDataRequest.at(14) = (dataSize >> 16) & 0xFF;
+		newDataRequest.at(15) = (dataSize >> 8) & 0xFF;
+		newDataRequest.at(16) = dataSize & 0xFF;
+
+		return newDataRequest;
+	}
+
 
 
 	void Peer::check_deadline()
