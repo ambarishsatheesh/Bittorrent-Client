@@ -935,7 +935,23 @@ namespace Bittorrent
 
 	void Peer::sendBitfield(std::vector<bool> isPieceDownloaded)
 	{
+		//create temp vec to store string bool, then return all as single string
+		std::vector<std::string> tempVec(isPieceDownloaded.size());
+		for (auto i : isPieceDownloaded)
+		{
+			if (i == 1)
+			{
+				tempVec.at(i) = "1";
+			}
+			else
+			{
+				tempVec.at(i) = "0";
+			}
+		}
+		std::string bitfieldStr = boost::algorithm::join(tempVec, "");
 
+		std::cout << "Sending bitfield message: " << bitfieldStr << "...\n";
+		sendNewBytes(encodeBitfield(isPieceDownloaded));
 	}
 
 	void Peer::sendDataRequest(int index, int offset, int dataSize)
@@ -952,7 +968,13 @@ namespace Bittorrent
 
 	void Peer::sendPiece(int index, int offset, std::vector<byte> data)
 	{
+		std::cout << "Sending piece message... " << "index: " << index 
+			<< ", offset: " << offset << ", data size: " << data.size() 
+			<<  "...\n";
 
+		sendNewBytes(encodePiece(index, offset, data));
+
+		uploaded += data.size();
 	}
 
 
