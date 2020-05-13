@@ -132,6 +132,10 @@ namespace Bittorrent
 		bool decodeHave(int& index);
 		bool decodeBitfield(int& pieces, 
 			std::vector<bool>& recIsPieceDownloaded);
+		bool decodeDataRequest(int& index, int& offset, int& dataSize);
+		bool decodeCancel(int& index, int& offset, int& dataSize);
+		bool decodePiece(int& index, int& offset, std::vector<byte>& data);
+
 
 		//encoding
 		std::vector<byte> encodeHandshake(std::vector<byte>& hash,

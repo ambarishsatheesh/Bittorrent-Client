@@ -504,6 +504,141 @@ namespace Bittorrent
 		return true;
 	}
 
+	bool Peer::decodeDataRequest(int& index, int& offset, int& dataSize)
+	{
+		//convert first 4 bytes to int
+		int lengthVal = 0;
+
+		for (size_t i = 0; i < 4; ++i)
+		{
+			lengthVal <<= 8;
+			lengthVal |= processBuffer.at(i);
+		}
+
+		if (processBuffer.size() != 17 || lengthVal != 13)
+		{
+			std::cout << "Invalid data request! Expected total length is "
+				<< "17 bytes." << "\n";
+			return false;
+		}
+
+		//get index val
+		index = 0;
+		for (size_t i = 5; i < 9; ++i)
+		{
+			index <<= 8;
+			index |= processBuffer.at(i);
+		}
+
+		//get byte offset val
+		offset = 0;
+		for (size_t i = 9; i < 13; ++i)
+		{
+			offset <<= 8;
+			offset |= processBuffer.at(i);
+		}
+
+		//get data length (number of bytes to send) val
+		dataSize = 0;
+		for (size_t i = 13; i < 17; ++i)
+		{
+			dataSize <<= 8;
+			dataSize |= processBuffer.at(i);
+		}
+
+		return true;
+	}
+
+	bool Peer::decodeCancel(int& index, int& offset, int& dataSize)
+	{
+		//convert first 4 bytes to int
+		int lengthVal = 0;
+
+		for (size_t i = 0; i < 4; ++i)
+		{
+			lengthVal <<= 8;
+			lengthVal |= processBuffer.at(i);
+		}
+
+		if (processBuffer.size() != 17 || lengthVal != 13)
+		{
+			std::cout << "Invalid cancel message! Expected total length is "
+				<< "17 bytes." << "\n";
+			return false;
+		}
+
+		//get index val
+		index = 0;
+		for (size_t i = 5; i < 9; ++i)
+		{
+			index <<= 8;
+			index |= processBuffer.at(i);
+		}
+
+		//get byte offset val
+		offset = 0;
+		for (size_t i = 9; i < 13; ++i)
+		{
+			offset <<= 8;
+			offset |= processBuffer.at(i);
+		}
+
+		//get data length (number of bytes to send) val
+		dataSize = 0;
+		for (size_t i = 13; i < 17; ++i)
+		{
+			dataSize <<= 8;
+			dataSize |= processBuffer.at(i);
+		}
+
+		return true;
+	}
+
+	bool Peer::decodePiece(int& index, int& offset, std::vector<byte>& data)
+	{
+		if (processBuffer.size() < 13)
+		{
+			std::cout << "Invalid piece message! Minimum length is 13 bytes."
+				<< "\n";
+			return false;
+		}
+
+		//get index val
+		index = 0;
+		for (size_t i = 5; i < 9; ++i)
+		{
+			index <<= 8;
+			index |= processBuffer.at(i);
+		}
+
+		//get byte offset val
+		offset = 0;
+		for (size_t i = 9; i < 13; ++i)
+		{
+			offset <<= 8;
+			offset |= processBuffer.at(i);
+		}
+
+		//convert first 4 bytes to int
+		int lengthVal = 0;
+
+		for (size_t i = 0; i < 4; ++i)
+		{
+			lengthVal <<= 8;
+			lengthVal |= processBuffer.at(i);
+		}
+
+		//ignore bytes before piece data
+		lengthVal -= 9;
+
+		//get piece data
+		data.resize(lengthVal);
+		std::copy(processBuffer.begin() + 13, processBuffer.end(),
+			data.begin());
+
+		return true;
+	}
+
 
 	std::vector<byte> Peer::encodeHandshake(std::vector<byte>& hash,
 		std::string& id)
