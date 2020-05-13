@@ -23,7 +23,8 @@ namespace Bittorrent
 		isBlockRequested.resize(peerTorrent->piecesData.pieceCount);
 		for (size_t i = 0; i < peerTorrent->piecesData.pieceCount; ++i)
 		{
-			isBlockRequested.at(i).resize(peerTorrent->piecesData.setBlockCount(i));
+			isBlockRequested.at(i).resize(
+				peerTorrent->piecesData.setBlockCount(i));
 		}
 
 		//begin connecting
@@ -52,8 +53,8 @@ namespace Bittorrent
 		isBlockRequested.resize(peerTorrent->piecesData.pieceCount);
 		for (size_t i = 0; i < peerTorrent->piecesData.pieceCount; ++i)
 		{
-			isBlockRequested.at(i).resize(peerTorrent->
-				piecesData.setBlockCount(i));
+			isBlockRequested.at(i).resize(
+				peerTorrent->piecesData.setBlockCount(i));
 		}
 
 		//get endpoint from accepted connection
@@ -458,14 +459,15 @@ namespace Bittorrent
 		return index;
 	}
 
-	bool Peer::decodeBitfield(int& pieces, std::vector<bool>& recIsPieceDownloaded)
+	bool Peer::decodeBitfield(int& pieces, 
+		std::vector<bool>& recIsPieceDownloaded)
 	{
 		recIsPieceDownloaded.resize(pieces);
 
 		//get length of data after header packet
 		//if number of pieces is not divisible by 8, the end of the bitfield is
 		//padded with 0s
-		int expectedLength = std::ceil(pieces / 8.0) + 1;
+		const int expectedLength = std::ceil(pieces / 8.0) + 1;
 
 		//convert first 4 bytes to int
 		int lengthVal = 0;
@@ -484,24 +486,20 @@ namespace Bittorrent
 			return false;
 		}
 
-		//convert bitfield value to int
-		int bitVal = 0;
-
-		for (size_t i = 5; i < processBuffer.size(); ++i)
+		//iterate through bitfield and set piece status based on bit value
+		size_t k = 0;
+		for (size_t i = 5; i < pieces; ++i)
 		{
-			bitVal <<= 8;
-			bitVal |= processBuffer.at(i);
+			//create set of bits representing each byte's value
+			boost::dynamic_bitset<> bitArray(8, 
+				static_cast<unsigned int>(processBuffer.at(i)));
+
+			//set bools based on bit values (every 8 bits, restart iterator at 0)
+			for (size_t j = 0; j < bitArray.size(); ++j, ++k)
+			{
+				recIsPieceDownloaded.at(k) = bitArray[bitArray.size() - j - 1];
+			}
 		}
-
-		//create set of bits representing value
-		boost::dynamic_bitset<> bitArray(pieces, bitVal);
-
-		//set values of array according to bitset
-		for (size_t i = 0; i < pieces; ++i)
-		{
-			recIsPieceDownloaded[i] = bitArray[bitArray.size() - 1 - i];
-		}
-
 
 		return true;
 	}
@@ -576,13 +574,62 @@ namespace Bittorrent
 		//type byte
 		newHave.at(4) = static_cast<byte>(messageType::have);
 
-		//index bytes (big endian)
-		newHave.at(0) = (index >> 24) & 0xFF;
-		newHave.at(1) = (index >> 16) & 0xFF;
-		newHave.at(2) = (index >> 8) & 0xFF;
-		newHave.at(3) = index & 0xFF;
+		//last 4 index bytes (big endian)
+		newHave.at(5) = (index >> 24) & 0xFF;
+		newHave.at(6) = (index >> 16) & 0xFF;
+		newHave.at(7) = (index >> 8) & 0xFF;
+		newHave.at(8) = index & 0xFF;
 
 		return newHave;
+	}
+
+	std::vector<byte> Peer::encodeBitfield(
+		std::vector<bool>& recIsPieceDownloaded)
+	{
+		const int numPieces = recIsPieceDownloaded.size();
+		const int numBytes = std::ceil(numPieces / 8.0);
+		const int numBits = numBytes * 8;
+		const int length = numBytes + 1;
+
+		std::vector<byte> newBitfield(length + 4);
+
+		//first 4 length bytes (big endian)
+		newBitfield.at(0) = (length >> 24) & 0xFF;
+		newBitfield.at(1) = (length >> 16) & 0xFF;
+		newBitfield.at(2) = (length >> 8) & 0xFF;
+		newBitfield.at(3) = length & 0xFF;
+
+		//type byte
+		newBitfield.at(4) = static_cast<byte>(messageType::bitfield);
+
+		//create bitset based on bools (+ extra 0s at end if numBits > numPieces)
+		boost::dynamic_bitset<> downloadedBitArr(numBits);
+		for (size_t i = 0; i < numBits; ++i)
+		{
+			downloadedBitArr[i] = recIsPieceDownloaded.at(numBits - 1 - i);
+		}
+
+		//iterate through bitset and convert binary to decimal every 8 bits
+		//store in temporary vector
+		std::vector<byte> tempBitfieldVec(numBytes);
+		std::string bitStr = "";
+		size_t k = 0;
+		for (size_t i = 0; i < numBits; i += 8)
+		{
+			for (size_t j = 0; j < 8; ++j, ++k)
+			{
+				bitStr += std::to_string(downloadedBitArr[numBits - k - 1]);
+			}
+			auto numVal = std::stoi(bitStr, nullptr, 2);
+			tempBitfieldVec.at(i / 8) = static_cast<byte>(numVal);
+			bitStr = "";
+		}
+
+		//copy vector to complete bitfield vector
+		std::copy(tempBitfieldVec.begin(), tempBitfieldVec.end(),
+			newBitfield.begin() + 5);
+
+		return newBitfield;
 	}
 
 

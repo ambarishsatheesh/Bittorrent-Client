@@ -130,7 +130,8 @@ namespace Bittorrent
 		bool decodeNotInterested();
 		bool decodeState(messageType type);
 		bool decodeHave(int& index);
-		bool decodeBitfield(int& pieces, std::vector<bool>& recIsPieceDownloaded);
+		bool decodeBitfield(int& pieces, 
+			std::vector<bool>& recIsPieceDownloaded);
 
 		//encoding
 		std::vector<byte> encodeHandshake(std::vector<byte>& hash,
@@ -142,6 +143,8 @@ namespace Bittorrent
 		std::vector<byte> encodeNotInterested();
 		std::vector<byte> encodeState(messageType type);
 		std::vector<byte> encodeHave(int& index);
+		std::vector<byte> encodeBitfield(
+			std::vector<bool>& recIsPieceDownloaded);
 	};
 }
 
