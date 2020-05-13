@@ -158,11 +158,11 @@ namespace Bittorrent
 		void sendUnchoke();
 		void sendInterested();
 		void sendNotInterested();
-		void sendHave();
-		void sendBitfield();
-		void sendRequest();
-		void sendPiece();
-		void sendCancel();
+		void sendHave(int index);
+		void sendBitfield(std::vector<bool> isPieceDownloaded);
+		void sendDataRequest(int index, int offset, int dataSize);
+		void sendCancel(int index, int offset, int dataSize);
+		void sendPiece(int index, int offset, std::vector<byte> data);
 	};
 }
 

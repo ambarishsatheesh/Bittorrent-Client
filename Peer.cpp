@@ -887,6 +887,7 @@ namespace Bittorrent
 
 		isChokeSent = true;
 	}
+
 	void Peer::sendUnchoke()
 	{
 		if (!isChokeSent)
@@ -899,6 +900,7 @@ namespace Bittorrent
 
 		isChokeSent = false;
 	}
+
 	void Peer::sendInterested()
 	{
 		if (isInterestSent)
@@ -911,30 +913,48 @@ namespace Bittorrent
 
 		isInterestSent = true;
 	}
+
 	void Peer::sendNotInterested()
 	{
+		if (!isInterestSent)
+		{
+			return;
+		}
 
+		std::cout << "Sending not interested message..." << "...\n";
+		sendNewBytes(encodeNotInterested());
+
+		isInterestSent = false;
 	}
-	void Peer::sendHave()
+
+	void Peer::sendHave(int index)
+	{
+		std::cout << "Sending not interested message..." << "...\n";
+		sendNewBytes(encodeHave(index));
+	}
+
+	void Peer::sendBitfield(std::vector<bool> isPieceDownloaded)
 	{
 
 	}
-	void Peer::sendBitfield()
+
+	void Peer::sendDataRequest(int index, int offset, int dataSize)
+	{
+		std::cout << "Sending data request message..." << "...\n";
+		sendNewBytes(encodeDataRequest(index, offset, dataSize));
+	}
+
+	void Peer::sendCancel(int index, int offset, int dataSize)
+	{
+		std::cout << "Sending cancel message..." << "...\n";
+		sendNewBytes(encodeCancel(index, offset, dataSize));
+	}
+
+	void Peer::sendPiece(int index, int offset, std::vector<byte> data)
 	{
 
 	}
-	void Peer::sendRequest()
-	{
 
-	}
-	void Peer::sendPiece()
-	{
-
-	}
-	void Peer::sendCancel()
-	{
-
-	}
 
 
 	void Peer::check_deadline()
