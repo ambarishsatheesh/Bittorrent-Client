@@ -798,6 +798,71 @@ namespace Bittorrent
 		return newDataRequest;
 	}
 
+	std::vector<byte> Peer::encodeCancel(int index, int offset, int dataSize)
+	{
+		std::vector<byte> newCancelRequest(17);
+
+		//length byte
+		newCancelRequest.at(3) = static_cast<byte>(13);
+
+		//type byte
+		newCancelRequest.at(4) = static_cast<byte>(messageType::cancel);
+
+		//index bytes (big endian)
+		newCancelRequest.at(5) = (index >> 24) & 0xFF;
+		newCancelRequest.at(6) = (index >> 16) & 0xFF;
+		newCancelRequest.at(7) = (index >> 8) & 0xFF;
+		newCancelRequest.at(8) = index & 0xFF;
+
+		//offset bytes (big endian)
+		newCancelRequest.at(9) = (offset >> 24) & 0xFF;
+		newCancelRequest.at(10) = (offset >> 16) & 0xFF;
+		newCancelRequest.at(11) = (offset >> 8) & 0xFF;
+		newCancelRequest.at(12) = offset & 0xFF;
+
+		//data size bytes (big endian)
+		newCancelRequest.at(13) = (dataSize >> 24) & 0xFF;
+		newCancelRequest.at(14) = (dataSize >> 16) & 0xFF;
+		newCancelRequest.at(15) = (dataSize >> 8) & 0xFF;
+		newCancelRequest.at(16) = dataSize & 0xFF;
+
+		return newCancelRequest;
+	}
+
+	std::vector<byte> Peer::encodePiece(int index, int offset, 
+		std::vector<byte> data)
+	{
+		//set appropriate message size (including index, offset and length bytes)
+		const auto dataSize = data.size() + 9;
+		std::vector<byte> newPiece(dataSize + 4);
+
+		//first 4 length bytes (big endian)
+		newPiece.at(0) = (dataSize >> 24) & 0xFF;
+		newPiece.at(1) = (dataSize >> 16) & 0xFF;
+		newPiece.at(2) = (dataSize >> 8) & 0xFF;
+		newPiece.at(3) = dataSize & 0xFF;
+
+		//type byte
+		newPiece.at(4) = static_cast<byte>(messageType::piece);
+
+		//index bytes (big endian)
+		newPiece.at(5) = (index >> 24) & 0xFF;
+		newPiece.at(6) = (index >> 16) & 0xFF;
+		newPiece.at(7) = (index >> 8) & 0xFF;
+		newPiece.at(8) = index & 0xFF;
+
+		//offset bytes (big endian)
+		newPiece.at(9) = (offset >> 24) & 0xFF;
+		newPiece.at(10) = (offset >> 16) & 0xFF;
+		newPiece.at(11) = (offset >> 8) & 0xFF;
+		newPiece.at(12) = offset & 0xFF;
+
+		//copy piece bytes to rest of message
+		std::copy(data.begin(), data.end(), newPiece.begin() + 13);
+
+		return newPiece;
+	}
+
 
 
 	void Peer::check_deadline()

@@ -151,6 +151,9 @@ namespace Bittorrent
 			std::vector<bool> recIsPieceDownloaded);
 		std::vector<byte> encodeDataRequest(int index, int offset, 
 			int dataSize);
+		std::vector<byte> encodeCancel(int index, int offset, int dataSize);
+		std::vector<byte> encodePiece(int index, int offset, 
+			std::vector<byte> data);
 	};
 }
 
