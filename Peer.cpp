@@ -456,7 +456,7 @@ namespace Bittorrent
 		std::vector<byte> message(68);
 		std::string protocolStr = "Bittorrent protocol";
 
-		message.at(0) = 19;
+		message.at(0) = static_cast<byte>(19);
 		auto last = std::copy(protocolStr.begin(), protocolStr.end(),
 			message.begin() + 1);
 		//bytes 21-28 are already 0 due to initialisation, can skip to byte 29
@@ -497,7 +497,7 @@ namespace Bittorrent
 	{
 		std::vector<byte> newMessage(5, 0);
 		//4 byte length
-		newMessage.at(3) = 1;
+		newMessage.at(3) = static_cast<byte>(1);
 		//1 byte type value
 		newMessage.at(4) = static_cast<byte>(type);
 		return newMessage;
@@ -505,7 +505,19 @@ namespace Bittorrent
 
 	std::vector<byte> Peer::encodeHave(int& index)
 	{
+		std::vector<byte> newHave(9, 0);
+		//first 4 bytes representing length
+		newHave.at(3) = static_cast<byte>(5);
+		//type byte
+		newHave.at(4) = static_cast<byte>(messageType::have);
 
+		//index bytes (big endian)
+		newHave.at(0) = (index >> 24) & 0xFF;
+		newHave.at(1) = (index >> 16) & 0xFF;
+		newHave.at(2) = (index >> 8) & 0xFF;
+		newHave.at(3) = index & 0xFF;
+
+		return newHave;
 	}
 
 
