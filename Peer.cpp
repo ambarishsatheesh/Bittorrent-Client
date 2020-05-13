@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/dynamic_bitset.hpp>
 
 namespace Bittorrent
 {
@@ -369,13 +370,15 @@ namespace Bittorrent
 	bool Peer::decodeKeepAlive()
 	{
 		//convert bytes to int
-		int value = 0;
+		int lengthVal = 0;
+
 		for (size_t i = 0; i < 4; ++i)
 		{
-			value <<= 8;
-			value |= processBuffer.at(i);
+			lengthVal <<= 8;
+			lengthVal |= processBuffer.at(i);
 		}
-		if (processBuffer.size() != 4 || value != 0)
+
+		if (processBuffer.size() != 4 || lengthVal != 0)
 		{
 			std::cout << "Invalid keepAlive!" << "\n";
 			return false;
@@ -408,13 +411,15 @@ namespace Bittorrent
 	bool Peer::decodeState(messageType type)
 	{
 		//convert bytes to int
-		int value = 0;
+		int lengthVal = 0;
+
 		for (size_t i = 0; i < 4; ++i)
 		{
-			value <<= 8;
-			value |= processBuffer.at(i);
+			lengthVal <<= 8;
+			lengthVal |= processBuffer.at(i);
 		}
-		if (processBuffer.size() != 5 || value != 1 ||
+
+		if (processBuffer.size() != 5 || lengthVal != 1 ||
 			processBuffer.at(4) != static_cast<byte>(type))
 		{
 			std::cout << "Invalid state type " << type << "\n";
@@ -427,18 +432,21 @@ namespace Bittorrent
 	bool Peer::decodeHave(int& index)
 	{
 		//convert bytes to int
-		int value = 0;
+		int lengthVal = 0;
+
 		for (size_t i = 0; i < 4; ++i)
 		{
-			value <<= 8;
-			value |= processBuffer.at(i);
+			lengthVal <<= 8;
+			lengthVal |= processBuffer.at(i);
 		}
-		if (processBuffer.size() != 9 || value != 5)
+
+		if (processBuffer.size() != 9 || lengthVal != 5)
 		{
 			std::cout << "Invalid \"have\" message! First four bytes must equal "
 				<< "0x05" << "\n";
 			return false;
 		}
+
 		//get index from last 4 bytes
 		index = 0;
 		for (size_t i = 5; i < 9; ++i)
@@ -450,6 +458,55 @@ namespace Bittorrent
 		return index;
 	}
 
+	bool Peer::decodeBitfield(int& pieces, std::vector<bool>& recIsPieceDownloaded)
+	{
+		recIsPieceDownloaded.resize(pieces);
+
+		//get length of data after header packet
+		//if number of pieces is not divisible by 8, the end of the bitfield is
+		//padded with 0s
+		int expectedLength = std::ceil(pieces / 8.0) + 1;
+
+		//convert first 4 bytes to int
+		int lengthVal = 0;
+
+		for (size_t i = 0; i < 4; ++i)
+		{
+			lengthVal <<= 8;
+			lengthVal |= processBuffer.at(i);
+		}
+
+		if (processBuffer.size() != expectedLength + 4 ||
+			lengthVal != expectedLength)
+		{
+			std::cout << "Invalid bitfield! Expected length is " << 
+				expectedLength << "\n";
+			return false;
+		}
+
+		//convert bitfield value to int
+		int bitVal = 0;
+
+		for (size_t i = 5; i < processBuffer.size(); ++i)
+		{
+			bitVal <<= 8;
+			bitVal |= processBuffer.at(i);
+		}
+
+		//create set of bits representing value
+		boost::dynamic_bitset<> bitArray(pieces, bitVal);
+
+		//set values of array according to bitset
+		for (size_t i = 0; i < pieces; ++i)
+		{
+			recIsPieceDownloaded[i] = bitArray[bitArray.size() - 1 - i];
+		}
+
+
+		return true;
+	}
+
+
 	std::vector<byte> Peer::encodeHandshake(std::vector<byte>& hash,
 		std::string& id)
 	{
@@ -457,11 +514,14 @@ namespace Bittorrent
 		std::string protocolStr = "Bittorrent protocol";
 
 		message.at(0) = static_cast<byte>(19);
+
 		auto last = std::copy(protocolStr.begin(), protocolStr.end(),
 			message.begin() + 1);
+
 		//bytes 21-28 are already 0 due to initialisation, can skip to byte 29
 		last = std::copy(peerTorrent->hashesData.infoHash.begin(),
 			peerTorrent->hashesData.infoHash.end(), message.begin() + 28);
+
 		last = std::copy(localID.begin(), localID.end(), last);
 
 		return message;
@@ -496,18 +556,23 @@ namespace Bittorrent
 	std::vector<byte> Peer::encodeState(messageType type)
 	{
 		std::vector<byte> newMessage(5, 0);
+
 		//4 byte length
 		newMessage.at(3) = static_cast<byte>(1);
+
 		//1 byte type value
 		newMessage.at(4) = static_cast<byte>(type);
+
 		return newMessage;
 	}
 
 	std::vector<byte> Peer::encodeHave(int& index)
 	{
 		std::vector<byte> newHave(9, 0);
+
 		//first 4 bytes representing length
 		newHave.at(3) = static_cast<byte>(5);
+
 		//type byte
 		newHave.at(4) = static_cast<byte>(messageType::have);
 
