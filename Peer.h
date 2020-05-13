@@ -60,7 +60,6 @@ namespace Bittorrent
 		bool IsInterestedReceived;
 		std::vector<std::vector<bool>> isBlockRequested;
 		
-
 		boost::posix_time::ptime lastActive;
 		boost::posix_time::ptime lastKeepAlive;
 
@@ -154,6 +153,16 @@ namespace Bittorrent
 
 		//sending
 		void sendHandShake();
+		void sendKeepAlive();
+		void sendChoke();
+		void sendUnchoke();
+		void sendInterested();
+		void sendNotInterested();
+		void sendHave();
+		void sendBitfield();
+		void sendRequest();
+		void sendPiece();
+		void sendCancel();
 	};
 }
 

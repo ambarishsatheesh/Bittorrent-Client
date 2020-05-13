@@ -853,13 +853,63 @@ namespace Bittorrent
 			return;
 		}
 
-		//add error to end 
 		std::cout << "Sending handshake..." << "...\n";
 
-		//create handshake buffer and send
+		//create buffer and send
 		sendNewBytes(encodeHandshake(torrent->hashesData.infoHash, localID));
 
 		isHandshakeSent = true;
+	}
+
+	void Peer::sendKeepAlive()
+	{
+		if (lastKeepAlive > boost::posix_time::second_clock::local_time())
+		{
+			return;
+		}
+
+		std::cout << "Sending keep alive..." << "...\n";
+
+		//create buffer and send
+		sendNewBytes(encodeKeepAlive());
+		lastKeepAlive = boost::posix_time::second_clock::local_time();
+	}
+
+	void Peer::sendChoke()
+	{
+
+	}
+	void Peer::sendUnchoke()
+	{
+
+	}
+	void Peer::sendInterested()
+	{
+
+	}
+	void Peer::sendNotInterested()
+	{
+
+	}
+	void Peer::sendHave()
+	{
+
+	}
+	void Peer::sendBitfield()
+	{
+
+	}
+	void Peer::sendRequest()
+	{
+
+	}
+	void Peer::sendPiece()
+	{
+
+	}
+	void Peer::sendCancel()
+	{
+
 	}
 
 
