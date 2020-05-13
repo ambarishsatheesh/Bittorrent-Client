@@ -9,7 +9,7 @@ namespace Bittorrent
 		boost::asio::io_context& io_context, tcp::resolver::results_type& results)
 		: localID{ localID }, peerID{ "" }, 
 		peerTorrent{ torrent->getPtr() }, key{ "" },
-		isPieceDownloaded(peerTorrent.get()->piecesData.pieceCount), 
+		isPieceDownloaded(peerTorrent->piecesData.pieceCount), 
 		isDisconnected{}, isHandshakeSent{}, isPositionSent{}, 
 		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{}, 
 		IsChokeReceived{ true }, IsInterestedReceived{ false },  
@@ -19,8 +19,8 @@ namespace Bittorrent
 		endpoint(), deadline{io_context}, heartbeatTimer{io_context}, 
 		sendBuffer(68), recBuffer(68)
 	{
-		isBlockRequested.resize(peerTorrent.get()->piecesData.pieceCount);
-		for (size_t i = 0; i < peerTorrent.get()->piecesData.pieceCount; ++i)
+		isBlockRequested.resize(peerTorrent->piecesData.pieceCount);
+		for (size_t i = 0; i < peerTorrent->piecesData.pieceCount; ++i)
 		{
 			isBlockRequested.at(i).resize(peerTorrent->piecesData.setBlockCount(i));
 		}
@@ -38,7 +38,7 @@ namespace Bittorrent
 		boost::asio::io_context& io_context, tcp::socket tcpClient)
 		: localID{ localID }, peerID{ "" }, 
 		peerTorrent{ torrent->getPtr() }, key{ "" },
-		isPieceDownloaded(peerTorrent.get()->piecesData.pieceCount), 
+		isPieceDownloaded(peerTorrent->piecesData.pieceCount), 
 		isDisconnected{}, isHandshakeSent{}, isPositionSent{}, 
 		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{}, 
 		IsChokeReceived{ true }, IsInterestedReceived{ false }, 
@@ -48,10 +48,10 @@ namespace Bittorrent
 		deadline{ io_context }, heartbeatTimer{ io_context }, sendBuffer(68),
 		recBuffer(68)
 	{
-		isBlockRequested.resize(peerTorrent.get()->piecesData.pieceCount);
-		for (size_t i = 0; i < peerTorrent.get()->piecesData.pieceCount; ++i)
+		isBlockRequested.resize(peerTorrent->piecesData.pieceCount);
+		for (size_t i = 0; i < peerTorrent->piecesData.pieceCount; ++i)
 		{
-			isBlockRequested.at(i).resize(peerTorrent.get()->
+			isBlockRequested.at(i).resize(peerTorrent->
 				piecesData.setBlockCount(i));
 		}
 
@@ -83,7 +83,7 @@ namespace Bittorrent
 	{
 		//custom comparator (!false verified && true downloaded)
 		const auto lambda = [this](bool i) {return i &&
-			!peerTorrent.get()->statusData.isPieceVerified.at(i); };
+			!peerTorrent->statusData.isPieceVerified.at(i); };
 
 		return std::count_if(isPieceDownloaded.cbegin(),
 			isPieceDownloaded.cend(), lambda);
@@ -97,7 +97,7 @@ namespace Bittorrent
 
 	bool Peer::isCompleted()
 	{
-		return piecesDownloadedCount() == peerTorrent.get()->piecesData.pieceCount;
+		return piecesDownloadedCount() == peerTorrent->piecesData.pieceCount;
 	}
 
 	//count how many total blocks are requested
