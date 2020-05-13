@@ -9,8 +9,8 @@ namespace Bittorrent
 	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
 		boost::asio::io_context& io_context, tcp::resolver::results_type& results)
 		: localID{ localID }, peerID{ "" }, 
-		peerTorrent{ torrent->getPtr() }, key{ "" },
-		isPieceDownloaded(peerTorrent->piecesData.pieceCount), 
+		torrent{ torrent->getPtr() }, key{ "" },
+		isPieceDownloaded(torrent->piecesData.pieceCount), 
 		isDisconnected{}, isHandshakeSent{}, isPositionSent{}, 
 		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{}, 
 		IsChokeReceived{ true }, IsInterestedReceived{ false },  
@@ -18,13 +18,13 @@ namespace Bittorrent
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 }, 
 		downloaded{ 0 }, socket(io_context), peerResults(results),
 		endpoint(), deadline{io_context}, heartbeatTimer{io_context}, 
-		sendBuffer(68), recBuffer(68)
+		recBuffer(68)
 	{
-		isBlockRequested.resize(peerTorrent->piecesData.pieceCount);
-		for (size_t i = 0; i < peerTorrent->piecesData.pieceCount; ++i)
+		isBlockRequested.resize(torrent->piecesData.pieceCount);
+		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
 		{
 			isBlockRequested.at(i).resize(
-				peerTorrent->piecesData.setBlockCount(i));
+				torrent->piecesData.setBlockCount(i));
 		}
 
 		//begin connecting
@@ -39,22 +39,21 @@ namespace Bittorrent
 	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
 		boost::asio::io_context& io_context, tcp::socket tcpClient)
 		: localID{ localID }, peerID{ "" }, 
-		peerTorrent{ torrent->getPtr() }, key{ "" },
-		isPieceDownloaded(peerTorrent->piecesData.pieceCount), 
+		torrent{ torrent->getPtr() }, key{ "" },
+		isPieceDownloaded(torrent->piecesData.pieceCount), 
 		isDisconnected{}, isHandshakeSent{}, isPositionSent{}, 
 		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{}, 
 		IsChokeReceived{ true }, IsInterestedReceived{ false }, 
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
 		downloaded{ 0 }, socket(std::move(tcpClient)), endpoint(), 
-		deadline{ io_context }, heartbeatTimer{ io_context }, sendBuffer(68),
-		recBuffer(68)
+		deadline{ io_context }, heartbeatTimer{ io_context }, recBuffer(68)
 	{
-		isBlockRequested.resize(peerTorrent->piecesData.pieceCount);
-		for (size_t i = 0; i < peerTorrent->piecesData.pieceCount; ++i)
+		isBlockRequested.resize(torrent->piecesData.pieceCount);
+		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
 		{
 			isBlockRequested.at(i).resize(
-				peerTorrent->piecesData.setBlockCount(i));
+				torrent->piecesData.setBlockCount(i));
 		}
 
 		//get endpoint from accepted connection
@@ -85,7 +84,7 @@ namespace Bittorrent
 	{
 		//custom comparator (!false verified && true downloaded)
 		const auto lambda = [this](bool i) {return i &&
-			!peerTorrent->statusData.isPieceVerified.at(i); };
+			!torrent->statusData.isPieceVerified.at(i); };
 
 		return std::count_if(isPieceDownloaded.cbegin(),
 			isPieceDownloaded.cend(), lambda);
@@ -99,7 +98,7 @@ namespace Bittorrent
 
 	bool Peer::isCompleted()
 	{
-		return piecesDownloadedCount() == peerTorrent->piecesData.pieceCount;
+		return piecesDownloadedCount() == torrent->piecesData.pieceCount;
 	}
 
 	//count how many total blocks are requested
@@ -265,7 +264,7 @@ namespace Bittorrent
 		return length;
 	}
 
-	void Peer::sendNewBytes()
+	void Peer::sendNewBytes(std::vector<byte> sendBuffer)
 	{
 		if (isDisconnected)
 		{
@@ -290,7 +289,6 @@ namespace Bittorrent
 		if (!ec)
 		{
 			std::cout << "Sent " << receivedBytes << " bytes"<< "\n";
-			sendBuffer.clear();
 		}
 		else
 		{
@@ -299,21 +297,6 @@ namespace Bittorrent
 			disconnect();
 		}
 
-	}
-
-	void Peer::sendHandShake()
-	{
-		if (isHandshakeSent)
-		{
-			return;
-		}
-
-		//add error to end 
-		std::cout << "Sending handshake..." << "...\n";
-
-		//sendhandshake code here
-
-		isHandshakeSent = true;
 	}
 
 	void Peer::disconnect()
@@ -651,8 +634,8 @@ namespace Bittorrent
 			message.begin() + 1);
 
 		//bytes 21-28 are already 0 due to initialisation, can skip to byte 29
-		last = std::copy(peerTorrent->hashesData.infoHash.begin(),
-			peerTorrent->hashesData.infoHash.end(), message.begin() + 28);
+		last = std::copy(torrent->hashesData.infoHash.begin(),
+			torrent->hashesData.infoHash.end(), message.begin() + 28);
 
 		last = std::copy(localID.begin(), localID.end(), last);
 
@@ -863,6 +846,21 @@ namespace Bittorrent
 		return newPiece;
 	}
 
+	void Peer::sendHandShake()
+	{
+		if (isHandshakeSent)
+		{
+			return;
+		}
+
+		//add error to end 
+		std::cout << "Sending handshake..." << "...\n";
+
+		//create handshake buffer and send
+		sendNewBytes(encodeHandshake(torrent->hashesData.infoHash, localID));
+
+		isHandshakeSent = true;
+	}
 
 
 	void Peer::check_deadline()

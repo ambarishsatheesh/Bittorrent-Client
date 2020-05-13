@@ -42,7 +42,7 @@ namespace Bittorrent
 		std::string localID;
 		std::string peerID;
 
-		std::shared_ptr<Torrent> peerTorrent;
+		std::shared_ptr<Torrent> torrent;
 
 		std::string key;
 
@@ -86,9 +86,7 @@ namespace Bittorrent
 		boost::asio::steady_timer deadline;
 		boost::asio::steady_timer heartbeatTimer;
 
-		//initialised to max block size (16384bytes)
-		//since message size is generally unknown
-		std::vector<byte> sendBuffer;
+		//TCP transmission buffers
 		std::vector<byte> processBuffer;
 		std::vector<byte> recBuffer;
 
@@ -107,12 +105,11 @@ namespace Bittorrent
 		void connectToNewPeer(tcp::resolver::results_type::iterator endpointItr);
 		void handleNewConnect(const boost::system::error_code& ec,
 			tcp::resolver::results_type::iterator endpointItr);
-		void sendHandShake();
 		void startNewRead();
 		void handleNewRead(const boost::system::error_code& ec,
 			std::size_t receivedBytes);
 		int getMessageLength();
-		void sendNewBytes();
+		void sendNewBytes(std::vector<byte> sendBuffer);
 		void handleNewSend(const boost::system::error_code& ec,
 			std::size_t receivedBytes);
 		void check_deadline();
@@ -154,6 +151,9 @@ namespace Bittorrent
 		std::vector<byte> encodeCancel(int index, int offset, int dataSize);
 		std::vector<byte> encodePiece(int index, int offset, 
 			std::vector<byte> data);
+
+		//sending
+		void sendHandShake();
 	};
 }
 
