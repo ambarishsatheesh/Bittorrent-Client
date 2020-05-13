@@ -120,11 +120,27 @@ namespace Bittorrent
 
 		//general processing
 		void handleMessage();
+
+		//decoding
 		bool decodeHandshake(std::vector<byte>& hash, std::string& id);
-		std::vector<byte> encodeHandshake(std::vector<byte>& hash, 
-			std::string& id);
 		bool decodeKeepAlive();
+		bool decodeChoke();
+		bool decodeUnchoke();
+		bool decodeInterested();
+		bool decodeNotInterested();
+		bool decodeState(messageType type);
+		bool decodeHave(int& index);
+
+		//encoding
+		std::vector<byte> encodeHandshake(std::vector<byte>& hash,
+			std::string& id);
 		std::vector<byte> encodeKeepAlive();
+		std::vector<byte> encodeChoke();
+		std::vector<byte> encodeUnchoke();
+		std::vector<byte> encodeInterested();
+		std::vector<byte> encodeNotInterested();
+		std::vector<byte> encodeState(messageType type);
+		std::vector<byte> encodeHave(int& index);
 	};
 }
 

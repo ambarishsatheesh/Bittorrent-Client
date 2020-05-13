@@ -366,23 +366,6 @@ namespace Bittorrent
 		return true;
 	}
 
-	std::vector<byte> Peer::encodeHandshake(std::vector<byte>& hash, 
-		std::string& id)
-	{
-		std::vector<byte> message(68);
-		std::string protocolStr = "Bittorrent protocol";
-
-		message.at(0) = 19;
-		auto last = std::copy(protocolStr.begin(), protocolStr.end(), 
-			message.begin()+1);
-		//bytes 21-28 are already 0 due to initialisation, can skip to byte 29
-		last = std::copy(peerTorrent->hashesData.infoHash.begin(), 
-			peerTorrent->hashesData.infoHash.end(), message.begin() + 28);
-		last = std::copy(localID.begin(), localID.end(), last);
-
-		return message;
-	}
-
 	bool Peer::decodeKeepAlive()
 	{
 		//convert bytes to int
@@ -400,10 +383,129 @@ namespace Bittorrent
 		return true;
 	}
 
+	bool Peer::decodeChoke()
+	{
+		return decodeState(messageType::choke);
+	}
+
+	bool Peer::decodeUnchoke()
+	{
+		return decodeState(messageType::unchoke);
+	}
+
+	bool Peer::decodeInterested()
+	{
+		return decodeState(messageType::interested);
+	}
+
+	bool Peer::decodeNotInterested()
+	{
+		return decodeState(messageType::notInterested);
+	}
+
+	//all state messages consist of 4 byte header with value 1, 
+	//and then a 1 byte type value
+	bool Peer::decodeState(messageType type)
+	{
+		//convert bytes to int
+		int value = 0;
+		for (size_t i = 0; i < 4; ++i)
+		{
+			value <<= 8;
+			value |= processBuffer.at(i);
+		}
+		if (processBuffer.size() != 5 || value != 1 ||
+			processBuffer.at(4) != static_cast<byte>(type))
+		{
+			std::cout << "Invalid state type " << type << "\n";
+			return false;
+		}
+
+		return true;
+	}
+
+	bool Peer::decodeHave(int& index)
+	{
+		//convert bytes to int
+		int value = 0;
+		for (size_t i = 0; i < 4; ++i)
+		{
+			value <<= 8;
+			value |= processBuffer.at(i);
+		}
+		if (processBuffer.size() != 9 || value != 5)
+		{
+			std::cout << "Invalid \"have\" message! First four bytes must equal "
+				<< "0x05" << "\n";
+			return false;
+		}
+		//get index from last 4 bytes
+		index = 0;
+		for (size_t i = 5; i < 9; ++i)
+		{
+			index <<= 8;
+			index |= processBuffer.at(i);
+		}
+
+		return index;
+	}
+
+	std::vector<byte> Peer::encodeHandshake(std::vector<byte>& hash,
+		std::string& id)
+	{
+		std::vector<byte> message(68);
+		std::string protocolStr = "Bittorrent protocol";
+
+		message.at(0) = 19;
+		auto last = std::copy(protocolStr.begin(), protocolStr.end(),
+			message.begin() + 1);
+		//bytes 21-28 are already 0 due to initialisation, can skip to byte 29
+		last = std::copy(peerTorrent->hashesData.infoHash.begin(),
+			peerTorrent->hashesData.infoHash.end(), message.begin() + 28);
+		last = std::copy(localID.begin(), localID.end(), last);
+
+		return message;
+	}
+
 	std::vector<byte> Peer::encodeKeepAlive()
 	{
 		std::vector<byte> newKeepAlive(4, 0);
 		return newKeepAlive;
+	}
+
+	std::vector<byte> Peer::encodeChoke()
+	{
+		return encodeState(messageType::choke);
+	}
+
+	std::vector<byte> Peer::encodeChoke()
+	{
+		return encodeState(messageType::unchoke);
+	}
+
+	std::vector<byte> Peer::encodeInterested()
+	{
+		return encodeState(messageType::interested);
+	}
+
+	std::vector<byte> Peer::encodeNotInterested()
+	{
+		return encodeState(messageType::notInterested);
+	}
+
+	std::vector<byte> Peer::encodeState(messageType type)
+	{
+		std::vector<byte> newMessage(5, 0);
+		//4 byte length
+		newMessage.at(3) = 1;
+		//1 byte type value
+		newMessage.at(4) = static_cast<byte>(type);
+		return newMessage;
+	}
+
+	std::vector<byte> Peer::encodeHave(int& index)
+	{
+
 	}
 
 
