@@ -853,7 +853,7 @@ namespace Bittorrent
 			return;
 		}
 
-		std::cout << "Sending handshake..." << "...\n";
+		std::cout << "Sending handshake message..." << "...\n";
 
 		//create buffer and send
 		sendNewBytes(encodeHandshake(torrent->hashesData.infoHash, localID));
@@ -868,7 +868,7 @@ namespace Bittorrent
 			return;
 		}
 
-		std::cout << "Sending keep alive..." << "...\n";
+		std::cout << "Sending keep alive message..." << "...\n";
 
 		//create buffer and send
 		sendNewBytes(encodeKeepAlive());
@@ -877,15 +877,39 @@ namespace Bittorrent
 
 	void Peer::sendChoke()
 	{
+		if (isChokeSent)
+		{
+			return;
+		}
 
+		std::cout << "Sending choke message..." << "...\n";
+		sendNewBytes(encodeChoke());
+
+		isChokeSent = true;
 	}
 	void Peer::sendUnchoke()
 	{
+		if (!isChokeSent)
+		{
+			return;
+		}
 
+		std::cout << "Sending unchoke message..." << "...\n";
+		sendNewBytes(encodeUnchoke());
+
+		isChokeSent = false;
 	}
 	void Peer::sendInterested()
 	{
+		if (isInterestSent)
+		{
+			return;
+		}
 
+		std::cout << "Sending interested message..." << "...\n";
+		sendNewBytes(encodeInterested());
+
+		isInterestSent = true;
 	}
 	void Peer::sendNotInterested()
 	{
