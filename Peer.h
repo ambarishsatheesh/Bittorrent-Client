@@ -37,8 +37,10 @@ namespace Bittorrent
 		boost::signals2::signal<void()> stateChanged;
 		boost::signals2::signal<void(
 			Peer& peer, dataRequest newDataRequest)> blockRequested;
-		boost::signals2::signal<void()> blockCancelled;
-		boost::signals2::signal<void()> blockReceived;
+		boost::signals2::signal<void(
+			Peer& peer, dataRequest newDataRequest)> blockCancelled;
+		boost::signals2::signal<void(
+			Peer& peer, dataPackage newPackage)> blockReceived;
 
 		boost::bimap<std::string, int> messageType;
 

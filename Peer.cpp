@@ -1184,6 +1184,36 @@ namespace Bittorrent
 		}
 	}
 
+	void Peer::handleCancel(int index, int offset, int dataSize)
+	{
+		std::cout << "Handling cancel request: " << "index: " << index
+			<< ", offset: " << offset << ", data size: " << dataSize << "\n";
+
+		dataRequest newDataRequest = { index, offset, dataSize };
+
+		//pass struct and this peer's data to slot
+		if (!blockCancelled.empty())
+		{
+			blockCancelled(*this, newDataRequest);
+		}
+	}
+
+	void Peer::handlePiece(int index, int offset, std::vector<byte> data)
+	{
+		std::cout << "Handling piece request: " << "index: " << index
+			<< ", offset: " << offset << ", data size: " << data.size() << "\n";
+
+
+		dataPackage newPackage = { index, offset/torrent->piecesData.blockSize,
+			data};
+
+		//pass struct and this peer's data to slot
+		if (!blockReceived.empty())
+		{
+			blockReceived(*this, newPackage);
+		}
+	}
+
 	void Peer::check_deadline()
 	{
 		if (isDisconnected)
