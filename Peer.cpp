@@ -1,5 +1,6 @@
 #include "Peer.h"
 #include "sha1.h"
+#include "Utility.h"
 
 #include <iostream>
 #include <boost/algorithm/string/join.hpp>
@@ -7,6 +8,8 @@
 
 namespace Bittorrent
 {
+	using namespace utility;
+
 	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
 		boost::asio::io_context& io_context, tcp::resolver::results_type& results)
 		: localID{ localID }, peerID{ "" }, 
@@ -480,13 +483,7 @@ namespace Bittorrent
 		}
 
 		//get hex representation of data
-		static std::string hex_tmp;
-		for (auto i : processBuffer) {
-			std::ostringstream oss;
-			oss << std::hex << std::setw(2) << std::setfill('0') << (unsigned)i;
-			hex_tmp += oss.str();
-		}
-		std::cout << "Unhandled received message: " << hex_tmp << "\n";
+		std::cout << "Unhandled received message: " << toHex(processBuffer) << "\n";
 
 		//if unhandled message, disconnect from peer
 		disconnect();
@@ -1168,6 +1165,67 @@ namespace Bittorrent
 		}
 
 		return messageType.left.at("unknown");
+	}
+
+	void Peer::handleHandshake(std::vector<byte> hash, std::string id)
+	{
+		std::cout << "Handling handshake message..." << "...\n";
+
+		//can't seem to use == overload to compare vector<byte>
+		if (!std::equal(hash.begin(), hash.end(), 
+			torrent->hashesData.infoHash.begin()))
+		{
+			std::cout << "Invalid handshake! Incorrect infohash. Expected " <<
+				"\"" << torrent->hashesData.hexStringInfoHash << "\", " <<
+				"received " << "\"" << toHex(hash) << "\" " 
+				<< "(hex representation)" << "\n";
+
+			disconnect();
+			return;
+		}
+
+		peerID = id;
+		isHandshakeReceived = true;
+
+		//send handshake
+		sendBitfield(torrent->statusData.isPieceVerified);
+	}
+
+	void Peer::handleKeepAlive()
+	{
+		//don't need to do anything since lastActive variable is updated on
+		//any message received
+		std::cout << "Handling keep alive message..." << "...\n";
+	}
+
+	void Peer::handleChoke()
+	{
+
+	}
+
+	void Peer::handleUnchoke()
+	{
+
+	}
+
+	void Peer::handleInterested()
+	{
+
+	}
+
+	void Peer::handleNotInterested()
+	{
+
+	}
+
+	void Peer::handleHave(int index)
+	{
+
+	}
+
+	void Peer::handleBitfield(std::vector<bool> isPieceDownloaded)
+	{
+
 	}
 
 	void Peer::handleDataRequest(int index, int offset, int dataSize)

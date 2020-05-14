@@ -6,6 +6,7 @@
 #include <cerrno>
 #include <random>
 #include <algorithm>
+#include <iomanip>
 
 #include <boost/uuid/detail/sha1.hpp>
 #include <boost/filesystem.hpp>
@@ -268,14 +269,15 @@ namespace Bittorrent
         }
 
         //get hex representation of data
-        inline toHex(std::vector<byte> data)
+        inline std::string toHex(std::vector<byte> data)
         {
-            static std::string hex_tmp;
-            for (auto i : processBuffer) {
+            static std::string hex_res;
+            for (auto i : data) {
                 std::ostringstream oss;
                 oss << std::hex << std::setw(2) << std::setfill('0') << (unsigned)i;
-                hex_tmp += oss.str();
+                hex_res += oss.str();
             }
+            return hex_res;
         }
 
     }
