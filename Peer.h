@@ -33,8 +33,8 @@ namespace Bittorrent
 			std::vector<byte> data;
 		};
 
-		boost::signals2::signal<void()> disconnected;
-		boost::signals2::signal<void()> stateChanged;
+		boost::signals2::signal<void(Peer& peer)> disconnected;
+		boost::signals2::signal<void(Peer& peer)> stateChanged;
 		boost::signals2::signal<void(
 			Peer& peer, dataRequest newDataRequest)> blockRequested;
 		boost::signals2::signal<void(
@@ -51,7 +51,7 @@ namespace Bittorrent
 
 		std::string key;
 
-		//piece info
+		//how many pieces the peer has downloaded
 		std::vector<bool> isPieceDownloaded;
 
 		//status info
@@ -176,7 +176,7 @@ namespace Bittorrent
 		void handleInterested();
 		void handleNotInterested();
 		void handleHave(int index);
-		void handleBitfield(std::vector<bool> isPieceDownloaded);
+		void handleBitfield(std::vector<bool> recIsPieceDownloaded);
 		void handleDataRequest(int index, int offset, int dataSize);
 		void handleCancel(int index, int offset, int dataSize);
 		void handlePiece(int index, int offset, std::vector<byte> data);

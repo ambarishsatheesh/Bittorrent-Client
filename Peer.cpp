@@ -113,7 +113,7 @@ namespace Bittorrent
 	}
 
 	//count how many pieces that aren't verified (i.e. are required) 
-	//are downloaded
+	//are available from Peer
 	int Peer::piecesRequiredAvailable()
 	{
 		//custom comparator (!false verified && true downloaded)
@@ -360,7 +360,7 @@ namespace Bittorrent
 			<< ", uploaded: " << uploaded << "\n";
 
 		//call slot
-		disconnected();
+		disconnected(*this);
 	}
 
 	void Peer::handleMessage()
@@ -483,7 +483,8 @@ namespace Bittorrent
 		}
 
 		//get hex representation of data
-		std::cout << "Unhandled received message: " << toHex(processBuffer) << "\n";
+		std::cout << "Received an unhandled message: " << toHex(processBuffer) 
+			<< "\n";
 
 		//if unhandled message, disconnect from peer
 		disconnect();
@@ -496,7 +497,7 @@ namespace Bittorrent
 
 		if (processBuffer.size() != 68 || processBuffer.at(0) != 19)
 		{
-			std::cout << "Invalid handshake! Must be 68 bytes long and the " <<
+			std::cout << "Invalid Handshake! Must be 68 bytes long and the " <<
 				"byte must equal 19." << "\n";
 			return false;
 		}
@@ -507,7 +508,7 @@ namespace Bittorrent
 
 		if (protocolStr != "Bittorrent protocol")
 		{
-			std::cout << "Invalid handshake! Protocol must equal " <<
+			std::cout << "Invalid Handshake! Protocol must equal " <<
 				"\"Bittorrent protocol\"." << "\n";
 			return false;
 		}
@@ -532,7 +533,7 @@ namespace Bittorrent
 
 		if (processBuffer.size() != 4 || lengthVal != 0)
 		{
-			std::cout << "Invalid keepAlive!" << "\n";
+			std::cout << "Invalid Keep Alive message!" << "\n";
 			return false;
 		}
 		return true;
@@ -595,7 +596,7 @@ namespace Bittorrent
 
 		if (processBuffer.size() != 9 || lengthVal != 5)
 		{
-			std::cout << "Invalid \"have\" message! First four bytes must equal "
+			std::cout << "Invalid Have message! First four bytes must equal "
 				<< "0x05" << "\n";
 			return false;
 		}
@@ -633,7 +634,7 @@ namespace Bittorrent
 		if (processBuffer.size() != expectedLength + 4 ||
 			lengthVal != expectedLength)
 		{
-			std::cout << "Invalid bitfield! Expected length is " << 
+			std::cout << "Invalid Bitfield! Expected length is " << 
 				expectedLength << "\n";
 			return false;
 		}
@@ -669,7 +670,7 @@ namespace Bittorrent
 
 		if (processBuffer.size() != 17 || lengthVal != 13)
 		{
-			std::cout << "Invalid data request! Expected total length is "
+			std::cout << "Invalid Data Request! Expected total length is "
 				<< "17 bytes." << "\n";
 			return false;
 		}
@@ -714,7 +715,7 @@ namespace Bittorrent
 
 		if (processBuffer.size() != 17 || lengthVal != 13)
 		{
-			std::cout << "Invalid cancel message! Expected total length is "
+			std::cout << "Invalid Cancel message! Expected total length is "
 				<< "17 bytes." << "\n";
 			return false;
 		}
@@ -750,7 +751,7 @@ namespace Bittorrent
 	{
 		if (processBuffer.size() < 13)
 		{
-			std::cout << "Invalid piece message! Minimum length is 13 bytes."
+			std::cout << "Invalid Piece message! Minimum length is 13 bytes."
 				<< "\n";
 			return false;
 		}
@@ -1024,7 +1025,7 @@ namespace Bittorrent
 			return;
 		}
 
-		std::cout << "Sending handshake message..." << "...\n";
+		std::cout << "Sending Handshake message..." << "...\n";
 
 		//create buffer and send
 		sendNewBytes(encodeHandshake(torrent->hashesData.infoHash, localID));
@@ -1039,7 +1040,7 @@ namespace Bittorrent
 			return;
 		}
 
-		std::cout << "Sending keep alive message..." << "...\n";
+		std::cout << "Sending Keep Alive message..." << "...\n";
 
 		//create buffer and send
 		sendNewBytes(encodeKeepAlive());
@@ -1053,7 +1054,7 @@ namespace Bittorrent
 			return;
 		}
 
-		std::cout << "Sending choke message..." << "...\n";
+		std::cout << "Sending Choke message..." << "...\n";
 		sendNewBytes(encodeChoke());
 
 		isChokeSent = true;
@@ -1066,7 +1067,7 @@ namespace Bittorrent
 			return;
 		}
 
-		std::cout << "Sending unchoke message..." << "...\n";
+		std::cout << "Sending Unchoke message..." << "...\n";
 		sendNewBytes(encodeUnchoke());
 
 		isChokeSent = false;
@@ -1079,7 +1080,7 @@ namespace Bittorrent
 			return;
 		}
 
-		std::cout << "Sending interested message..." << "...\n";
+		std::cout << "Sending Interested message..." << "...\n";
 		sendNewBytes(encodeInterested());
 
 		isInterestSent = true;
@@ -1092,7 +1093,7 @@ namespace Bittorrent
 			return;
 		}
 
-		std::cout << "Sending not interested message..." << "...\n";
+		std::cout << "Sending Not Interested message..." << "...\n";
 		sendNewBytes(encodeNotInterested());
 
 		isInterestSent = false;
@@ -1100,7 +1101,7 @@ namespace Bittorrent
 
 	void Peer::sendHave(int index)
 	{
-		std::cout << "Sending not interested message..." << "...\n";
+		std::cout << "Sending Have message..." << "...\n";
 		sendNewBytes(encodeHave(index));
 	}
 
@@ -1121,25 +1122,25 @@ namespace Bittorrent
 		}
 		std::string bitfieldStr = boost::algorithm::join(tempVec, "");
 
-		std::cout << "Sending bitfield message: " << bitfieldStr << "...\n";
+		std::cout << "Sending Bitfield message: " << bitfieldStr << "...\n";
 		sendNewBytes(encodeBitfield(isPieceDownloaded));
 	}
 
 	void Peer::sendDataRequest(int index, int offset, int dataSize)
 	{
-		std::cout << "Sending data request message..." << "...\n";
+		std::cout << "Sending Data request message..." << "...\n";
 		sendNewBytes(encodeDataRequest(index, offset, dataSize));
 	}
 
 	void Peer::sendCancel(int index, int offset, int dataSize)
 	{
-		std::cout << "Sending cancel message..." << "...\n";
+		std::cout << "Sending Cancel message..." << "...\n";
 		sendNewBytes(encodeCancel(index, offset, dataSize));
 	}
 
 	void Peer::sendPiece(int index, int offset, std::vector<byte> data)
 	{
-		std::cout << "Sending piece message... " << "index: " << index 
+		std::cout << "Sending Piece message... " << "index: " << index 
 			<< ", offset: " << offset << ", data size: " << data.size() 
 			<<  "...\n";
 
@@ -1169,7 +1170,7 @@ namespace Bittorrent
 
 	void Peer::handleHandshake(std::vector<byte> hash, std::string id)
 	{
-		std::cout << "Handling handshake message..." << "...\n";
+		std::cout << "Handling Handshake message..." << "...\n";
 
 		//can't seem to use == overload to compare vector<byte>
 		if (!std::equal(hash.begin(), hash.end(), 
@@ -1195,37 +1196,90 @@ namespace Bittorrent
 	{
 		//don't need to do anything since lastActive variable is updated on
 		//any message received
-		std::cout << "Handling keep alive message..." << "...\n";
+		std::cout << "Handling Keep Alive message..." << "...\n";
 	}
 
 	void Peer::handleChoke()
 	{
+		std::cout << "Handling Choke message..." << "...\n";
+		IsChokeReceived = true;
 
+		//call slot
+		if (!stateChanged.empty())
+		{
+			stateChanged(*this);
+		}
 	}
 
 	void Peer::handleUnchoke()
 	{
+		std::cout << "Handling Unchoke message..." << "...\n";
+		IsChokeReceived = false;
 
+		//call slot
+		if (!stateChanged.empty())
+		{
+			stateChanged(*this);
+		}
 	}
 
 	void Peer::handleInterested()
 	{
+		std::cout << "Handling Interested message..." << "...\n";
+		IsInterestedReceived = true;
 
+		//call slot
+		if (!stateChanged.empty())
+		{
+			stateChanged(*this);
+		}
 	}
 
 	void Peer::handleNotInterested()
 	{
+		std::cout << "Handling Not Interested message..." << "...\n";
+		IsInterestedReceived = false;
 
+		//call slot
+		if (!stateChanged.empty())
+		{
+			stateChanged(*this);
+		}
 	}
 
 	void Peer::handleHave(int index)
 	{
+		isPieceDownloaded.at(index) = true;
+		std::cout << "Handling Have message: " << "Peer has index: " << index
+			<< ", number of pieces downloaded: " << piecesDownloadedCount() 
+			<< ", pieces available: " << piecesDownloaded() << "\n";
 
+		//call slot
+		if (!stateChanged.empty())
+		{
+			stateChanged(*this);
+		}
 	}
 
-	void Peer::handleBitfield(std::vector<bool> isPieceDownloaded)
+	void Peer::handleBitfield(std::vector<bool> recIsPieceDownloaded)
 	{
+		//set true if we have either just been told that the peer has the 
+		//piece downloaded or already set to true
+		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
+		{
+			isPieceDownloaded.at(i) = isPieceDownloaded.at(i) ||
+				recIsPieceDownloaded.at(i);
+		}
 
+		std::cout << "Handling Bitfield message: " 
+			<< "Number of pieces downloaded: " << piecesDownloadedCount()
+			<< ", pieces available: " << piecesDownloaded() << "\n";
+
+		//call slot
+		if (!stateChanged.empty())
+		{
+			stateChanged(*this);
+		}
 	}
 
 	void Peer::handleDataRequest(int index, int offset, int dataSize)
