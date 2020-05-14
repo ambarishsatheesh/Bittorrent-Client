@@ -27,6 +27,21 @@ namespace Bittorrent
 				torrent->piecesData.setBlockCount(i));
 		}
 
+		//add message types to map
+		messageType.insert({ "unknown", -3 });
+		messageType.insert({ "handshake", -2 });
+		messageType.insert({ "keepAlive", -1 });
+		messageType.insert({ "choke", 0 });
+		messageType.insert({ "unchoke", 0 });
+		messageType.insert({ "interested", 2 });
+		messageType.insert({ "notInterested", 3 });
+		messageType.insert({ "have", 4 });
+		messageType.insert({ "bitfield", 5 });
+		messageType.insert({ "request", 6 });
+		messageType.insert({ "piece", 7 });
+		messageType.insert({ "cancel", 8 });
+		messageType.insert({ "port", 9 });
+
 		//begin connecting
 		connectToNewPeer(results.begin());
 
@@ -55,6 +70,21 @@ namespace Bittorrent
 			isBlockRequested.at(i).resize(
 				torrent->piecesData.setBlockCount(i));
 		}
+
+		//add message types to map
+		messageType.insert({ "unknown", -3 });
+		messageType.insert({ "handshake", -2 });
+		messageType.insert({ "keepAlive", -1 });
+		messageType.insert({ "choke", 0 });
+		messageType.insert({ "unchoke", 0 });
+		messageType.insert({ "interested", 2 });
+		messageType.insert({ "notInterested", 3 });
+		messageType.insert({ "have", 4 });
+		messageType.insert({ "bitfield", 5 });
+		messageType.insert({ "request", 6 });
+		messageType.insert({ "piece", 7 });
+		messageType.insert({ "cancel", 8 });
+		messageType.insert({ "port", 9 });
 
 		//get endpoint from accepted connection
 		endpoint = socket.remote_endpoint();
@@ -210,7 +240,6 @@ namespace Bittorrent
 				//clear and resize buffer to receive new header packet
 				recBuffer.clear();
 				recBuffer.resize(4);
-
 				startNewRead();
 			}
 			//if header, copy data, clear recBuffer and wait for entire message
@@ -220,11 +249,25 @@ namespace Bittorrent
 				processBuffer = recBuffer;
 				int messageLength = getMessageLength();
 
-				//clear and resize buffer to receive rest of the message
-				recBuffer.clear();
-				recBuffer.resize(messageLength);
+				//4 byte header packet with value 0 is a keep alive message
+				if (messageLength == 0)
+				{
+					//process keep alive message
+					handleMessage();
 
-				startNewRead();
+					//clear and resize buffer to receive new header packet
+					recBuffer.clear();
+					recBuffer.resize(4);
+
+					startNewRead();
+				}
+				//clear and resize buffer to receive rest of the message
+				else
+				{
+					recBuffer.clear();
+					recBuffer.resize(messageLength);
+					startNewRead();
+				}
 			}
 			//rest of the message
 			else
@@ -372,27 +415,27 @@ namespace Bittorrent
 
 	bool Peer::decodeChoke()
 	{
-		return decodeState(messageType::choke);
+		return decodeState(messageType.left.at("choke"));
 	}
 
 	bool Peer::decodeUnchoke()
 	{
-		return decodeState(messageType::unchoke);
+		return decodeState(messageType.left.at("unchoke"));
 	}
 
 	bool Peer::decodeInterested()
 	{
-		return decodeState(messageType::interested);
+		return decodeState(messageType.left.at("interested"));
 	}
 
 	bool Peer::decodeNotInterested()
 	{
-		return decodeState(messageType::notInterested);
+		return decodeState(messageType.left.at("notInterested"));
 	}
 
 	//all state messages consist of 4 byte header with value 1, 
 	//and then a 1 byte type value
-	bool Peer::decodeState(messageType type)
+	bool Peer::decodeState(int typeVal)
 	{
 		//convert bytes to int
 		int lengthVal = 0;
@@ -404,9 +447,10 @@ namespace Bittorrent
 		}
 
 		if (processBuffer.size() != 5 || lengthVal != 1 ||
-			processBuffer.at(4) != static_cast<byte>(type))
+			processBuffer.at(4) != static_cast<byte>(typeVal))
 		{
-			std::cout << "Invalid state type " << type << "\n";
+			std::cout << "Invalid state of type " << 
+				messageType.right.at(typeVal) << "\n";
 			return false;
 		}
 
@@ -650,25 +694,25 @@ namespace Bittorrent
 
 	std::vector<byte> Peer::encodeChoke()
 	{
-		return encodeState(messageType::choke);
+		return encodeState(messageType.left.at("choke"));
 	}
 
 	std::vector<byte> Peer::encodeUnchoke()
 	{
-		return encodeState(messageType::unchoke);
+		return encodeState(messageType.left.at("unchoke"));
 	}
 
 	std::vector<byte> Peer::encodeInterested()
 	{
-		return encodeState(messageType::interested);
+		return encodeState(messageType.left.at("interested"));
 	}
 
 	std::vector<byte> Peer::encodeNotInterested()
 	{
-		return encodeState(messageType::notInterested);
+		return encodeState(messageType.left.at("notInterested"));
 	}
 
-	std::vector<byte> Peer::encodeState(messageType type)
+	std::vector<byte> Peer::encodeState(int typeVal)
 	{
 		std::vector<byte> newMessage(5, 0);
 
@@ -676,7 +720,7 @@ namespace Bittorrent
 		newMessage.at(3) = static_cast<byte>(1);
 
 		//1 byte type value
-		newMessage.at(4) = static_cast<byte>(type);
+		newMessage.at(4) = static_cast<byte>(typeVal);
 
 		return newMessage;
 	}
@@ -689,7 +733,7 @@ namespace Bittorrent
 		newHave.at(3) = static_cast<byte>(5);
 
 		//type byte
-		newHave.at(4) = static_cast<byte>(messageType::have);
+		newHave.at(4) = static_cast<byte>(messageType.left.at("have"));
 
 		//last 4 index bytes (big endian)
 		newHave.at(5) = (index >> 24) & 0xFF;
@@ -717,7 +761,7 @@ namespace Bittorrent
 		newBitfield.at(3) = length & 0xFF;
 
 		//type byte
-		newBitfield.at(4) = static_cast<byte>(messageType::bitfield);
+		newBitfield.at(4) = static_cast<byte>(messageType.left.at("bitfield"));
 
 		//create bitset based on bools (+ extra 0s at end if numBits > numPieces)
 		boost::dynamic_bitset<> downloadedBitArr(numBits);
@@ -758,7 +802,8 @@ namespace Bittorrent
 		newDataRequest.at(3) = static_cast<byte>(13);
 
 		//type byte
-		newDataRequest.at(4) = static_cast<byte>(messageType::request);
+		newDataRequest.at(4) = static_cast<byte>(
+			messageType.left.at("request"));
 
 		//index bytes (big endian)
 		newDataRequest.at(5) = (index >> 24) & 0xFF;
@@ -789,7 +834,8 @@ namespace Bittorrent
 		newCancelRequest.at(3) = static_cast<byte>(13);
 
 		//type byte
-		newCancelRequest.at(4) = static_cast<byte>(messageType::cancel);
+		newCancelRequest.at(4) = static_cast<byte>(
+			messageType.left.at("cancel"));
 
 		//index bytes (big endian)
 		newCancelRequest.at(5) = (index >> 24) & 0xFF;
@@ -826,7 +872,7 @@ namespace Bittorrent
 		newPiece.at(3) = dataSize & 0xFF;
 
 		//type byte
-		newPiece.at(4) = static_cast<byte>(messageType::piece);
+		newPiece.at(4) = static_cast<byte>(messageType.left.at("piece"));
 
 		//index bytes (big endian)
 		newPiece.at(5) = (index >> 24) & 0xFF;
@@ -977,6 +1023,24 @@ namespace Bittorrent
 		uploaded += data.size();
 	}
 
+	int Peer::getMessageType(std::vector<byte> data)
+	{
+		if (!isHandshakeReceived)
+		{
+			return messageType.left.at("handshake");
+		}
+
+		//keep alive message is handled by handleNewRead()
+
+		//check if message type exists in map
+		if (data.size() > 4 && messageType.right.find(
+			static_cast<int>(data.at(4))) != messageType.right.end())
+		{
+			return static_cast<int>(data.at(4));
+		}
+
+		return messageType.left.at("unknown");
+	}
 
 
 	void Peer::check_deadline()

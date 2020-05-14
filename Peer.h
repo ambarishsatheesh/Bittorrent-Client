@@ -1,9 +1,11 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <boost/asio.hpp>
 #include <boost/signals2.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/bimap.hpp>
 
 #include "Torrent.h"
 #include "ValueTypes.h"
@@ -22,22 +24,7 @@ namespace Bittorrent
 		boost::signals2::signal<void()> blockCancelled;
 		boost::signals2::signal<void()> blockReceived;
 
-		enum messageType
-		{
-			unknown = -3,
-			handshake = -2,
-			keepAlive = -1,
-			choke = 0,
-			unchoke = 1,
-			interested = 2,
-			notInterested = 3,
-			have = 4,
-			bitfield = 5,
-			request = 6,
-			piece = 7,
-			cancel = 8,
-			port = 9,
-		};
+		boost::bimap<std::string, int> messageType;
 
 		std::string localID;
 		std::string peerID;
@@ -124,7 +111,7 @@ namespace Bittorrent
 		bool decodeUnchoke();
 		bool decodeInterested();
 		bool decodeNotInterested();
-		bool decodeState(messageType type);
+		bool decodeState(int typeVal);
 		bool decodeHave(int& index);
 		bool decodeBitfield(int& pieces, 
 			std::vector<bool>& recIsPieceDownloaded);
@@ -141,7 +128,7 @@ namespace Bittorrent
 		std::vector<byte> encodeUnchoke();
 		std::vector<byte> encodeInterested();
 		std::vector<byte> encodeNotInterested();
-		std::vector<byte> encodeState(messageType type);
+		std::vector<byte> encodeState(int typeVal);
 		std::vector<byte> encodeHave(int index);
 		std::vector<byte> encodeBitfield(
 			std::vector<bool> recIsPieceDownloaded);
@@ -163,6 +150,9 @@ namespace Bittorrent
 		void sendDataRequest(int index, int offset, int dataSize);
 		void sendCancel(int index, int offset, int dataSize);
 		void sendPiece(int index, int offset, std::vector<byte> data);
+
+		//receiving
+		int getMessageType(std::vector<byte> data);
 	};
 }
 
