@@ -18,9 +18,25 @@ namespace Bittorrent
 		: public std::enable_shared_from_this<Peer>
 	{
 	public:
+		struct dataRequest
+		{
+			int piece;
+			int offset;
+			int dataSize;
+			bool isCancelled;
+		};
+
+		struct dataPackage
+		{
+			int piece;
+			int block;
+			std::vector<byte> data;
+		};
+
 		boost::signals2::signal<void()> disconnected;
 		boost::signals2::signal<void()> stateChanged;
-		boost::signals2::signal<void()> blockRequested;
+		boost::signals2::signal<void(
+			Peer& peer, dataRequest newDataRequest)> blockRequested;
 		boost::signals2::signal<void()> blockCancelled;
 		boost::signals2::signal<void()> blockReceived;
 
@@ -101,9 +117,6 @@ namespace Bittorrent
 		void check_deadline();
 		void disconnect();
 
-		//general processing
-		void handleMessage();
-
 		//decoding
 		bool decodeHandshake(std::vector<byte>& hash, std::string& id);
 		bool decodeKeepAlive();
@@ -152,7 +165,21 @@ namespace Bittorrent
 		void sendPiece(int index, int offset, std::vector<byte> data);
 
 		//receiving
+		void handleMessage();
 		int getMessageType(std::vector<byte> data);
+		void handleHandshake(std::vector<byte> hash, std::string id);
+		void handleKeepAlive();
+		void handleChoke();
+		void handleUnchoke();
+		void handleInterested();
+		void handleNotInterested();
+		void handleHave(int index);
+		void handleBitfield(std::vector<bool> isPieceDownloaded);
+		void handleDataRequest(int index, int offset, int dataSize);
+		void handleCancel(int index, int offset, int dataSize);
+		void handlePiece(int index, int offset, std::vector<byte> data);
+		//no DHT port stuff for now
+		//void handlePort(int port);
 	};
 }
 

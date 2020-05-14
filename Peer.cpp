@@ -1170,6 +1170,19 @@ namespace Bittorrent
 		return messageType.left.at("unknown");
 	}
 
+	void Peer::handleDataRequest(int index, int offset, int dataSize)
+	{
+		std::cout << "Handling data request: " << "index: " << index
+			<< ", offset: " << offset << ", data size: " << dataSize << "\n";
+
+		dataRequest newDataRequest = { index, offset, dataSize };
+
+		//pass struct and this peer's data to slot
+		if (!blockRequested.empty())
+		{
+			blockRequested(*this, newDataRequest);
+		}
+	}
 
 	void Peer::check_deadline()
 	{
