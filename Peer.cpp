@@ -49,6 +49,7 @@ namespace Bittorrent
 		// Start the deadline actor. The connect and input actors will
 		// update the deadline prior to each asynchronous operation.
 		deadline.async_wait(boost::bind(&Peer::check_deadline, this));
+
 	}
 
 	//construct peer from accepted connection started by another peer
@@ -204,7 +205,7 @@ namespace Bittorrent
 			std::cout << "Connected to " << endpointItr->endpoint() << "\n";
 
 			startNewRead();
-			sendHandShake();
+			sendHandshake();
 		}
 
 	}
@@ -1020,7 +1021,7 @@ namespace Bittorrent
 		return newPiece;
 	}
 
-	void Peer::sendHandShake()
+	void Peer::sendHandshake()
 	{
 		if (isHandshakeSent)
 		{
@@ -1168,6 +1169,21 @@ namespace Bittorrent
 		}
 
 		return messageType.left.at("unknown");
+	}
+
+	void Peer::handleDataRequest(int index, int offset, int dataSize)
+	{
+		std::cout << "Handling data request: " << "index: " << index
+			<< ", offset: " << offset << ", data size: " << dataSize << "\n";
+
+		dataRequest newDataRequest = { index, offset, dataSize };
+
+		//pass struct and this peer's data to slot
+		if (!blockRequested.empty())
+		{
+			blockRequested(*this, newDataRequest);
+		}
+
 	}
 
 
