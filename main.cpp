@@ -105,7 +105,6 @@ int main(int argc, char* argv[])
 	udpTestTorrent.generalData.trackerList[4].update(trackerObj::trackerEvent::started,
 		testClientID, 6681, udpTestTorrent.hashesData.urlEncodedInfoHash, udpTestTorrent.hashesData.infoHash, 2500, 1200, 0);
 
-
 	/*Torrent testTorrent = toTorrentObj(fullFilePath, torrent);
 	testTorrent.generalData.trackerList[0].update(trackerObj::trackerEvent::started, 
 		19028907, 6969, testTorrent.hashesData.urlEncodedInfoHash, testTorrent.hashesData.infoHash, 0, 0, 0,1);*/
