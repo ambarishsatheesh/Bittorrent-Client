@@ -12,6 +12,7 @@ namespace Bittorrent
 	class Client
 	{
 	public:
+		int port;
 		std::shared_ptr<Torrent> torrent;
 		std::string localID;
 		
