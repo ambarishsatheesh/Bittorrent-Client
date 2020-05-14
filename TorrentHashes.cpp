@@ -26,8 +26,8 @@ namespace Bittorrent
 		infoHash = sha1(dataArr, encodedInfo.size());
 
 		//convert infohash to hex string
-		const byte* infoHashArr = &infoHash.at(0);
-		hexStringInfoHash = sha1.toHexHash(infoHashArr, infoHash.size());
+		//const byte* infoHashArr = &infoHash.at(0);
+		hexStringInfoHash = sha1.toHexHash(dataArr, infoHash.size());
 
 		//URL encode infohash
 		std::string infoHashString(infoHash.begin(), infoHash.end());
