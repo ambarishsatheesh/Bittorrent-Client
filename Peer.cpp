@@ -253,14 +253,14 @@ namespace Bittorrent
 				//4 byte header packet with value 0 is a keep alive message
 				if (messageLength == 0)
 				{
-					//process keep alive message
-					handleMessage();
-
 					//clear and resize buffer to receive new header packet
 					recBuffer.clear();
 					recBuffer.resize(4);
 
 					startNewRead();
+
+					//process keep alive message
+					handleMessage();
 				}
 				//clear and resize buffer to receive rest of the message
 				else
