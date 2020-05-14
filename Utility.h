@@ -37,7 +37,8 @@ namespace Bittorrent
                 }
                 else
                 {
-                    throw std::invalid_argument("Invalid file path! No slashes!");
+                    std::cout << "\n" << "Invalid file path! No slashes!" 
+                        << "\n" << "\n";
                 }
             }
         }
