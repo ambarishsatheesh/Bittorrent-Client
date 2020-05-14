@@ -13,7 +13,7 @@ namespace Bittorrent
 	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
 		boost::asio::io_context& io_context, tcp::resolver::results_type& results)
 		: localID{ localID }, peerID{ "" }, 
-		torrent{ torrent->getPtr() }, key{ "" },
+		torrent{ torrent->getPtr() }, endpointKey(),
 		isPieceDownloaded(torrent->piecesData.pieceCount), 
 		isDisconnected{}, isHandshakeSent{}, isPositionSent{}, 
 		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{}, 
@@ -21,8 +21,7 @@ namespace Bittorrent
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 }, 
 		downloaded{ 0 }, socket(io_context), peerResults(results),
-		endpoint(), deadline{io_context}, heartbeatTimer{io_context}, 
-		recBuffer(68)
+		deadline{io_context}, heartbeatTimer{io_context}, recBuffer(68)
 	{
 		isBlockRequested.resize(torrent->piecesData.pieceCount);
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
@@ -58,14 +57,14 @@ namespace Bittorrent
 	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
 		boost::asio::io_context& io_context, tcp::socket tcpClient)
 		: localID{ localID }, peerID{ "" }, 
-		torrent{ torrent->getPtr() }, key{ "" },
+		torrent{ torrent->getPtr() }, endpointKey(),
 		isPieceDownloaded(torrent->piecesData.pieceCount), 
 		isDisconnected{}, isHandshakeSent{}, isPositionSent{}, 
 		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{}, 
 		IsChokeReceived{ true }, IsInterestedReceived{ false }, 
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
-		downloaded{ 0 }, socket(std::move(tcpClient)), endpoint(), 
+		downloaded{ 0 }, socket(std::move(tcpClient)),
 		deadline{ io_context }, heartbeatTimer{ io_context }, recBuffer(68)
 	{
 		isBlockRequested.resize(torrent->piecesData.pieceCount);
@@ -91,7 +90,7 @@ namespace Bittorrent
 		messageType.insert({ "port", 9 });
 
 		//get endpoint from accepted connection
-		endpoint = socket.remote_endpoint();
+		endpointKey = socket.remote_endpoint();
 	}
 
 	std::string Peer::piecesDownloaded()
@@ -205,6 +204,8 @@ namespace Bittorrent
 		else
 		{
 			std::cout << "Connected to " << endpointItr->endpoint() << "\n";
+
+			endpointKey = endpointItr->endpoint();
 
 			startNewRead();
 			sendHandShake();

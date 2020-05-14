@@ -49,7 +49,7 @@ namespace Bittorrent
 
 		std::shared_ptr<Torrent> torrent;
 
-		std::string key;
+		tcp::endpoint endpointKey;
 
 		//how many pieces the peer has downloaded
 		std::vector<bool> isPieceDownloaded;
@@ -86,7 +86,6 @@ namespace Bittorrent
 		//tcp data
 		tcp::socket socket;
 		tcp::resolver::results_type peerResults;
-		tcp::endpoint endpoint;
 		boost::asio::steady_timer deadline;
 		boost::asio::steady_timer heartbeatTimer;
 
