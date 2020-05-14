@@ -1,4 +1,5 @@
 #include "Peer.h"
+#include "sha1.h"
 
 #include <iostream>
 #include <boost/algorithm/string/join.hpp>
@@ -361,7 +362,134 @@ namespace Bittorrent
 
 	void Peer::handleMessage()
 	{
+		//update clock
+		lastActive == boost::posix_time::second_clock::local_time();
 
+		int deducedtype = getMessageType(processBuffer);
+
+		if (deducedtype == messageType.left.at("unknown"))
+		{
+			return;
+		}
+		else if (deducedtype == messageType.left.at("handshake"))
+		{
+			std::vector<byte> hash;
+			std::string id;
+			if (decodeHandshake(hash, id))
+			{
+				//handle handshake
+
+				return;
+			}
+		}
+		else if (deducedtype == messageType.left.at("keepAlive") 
+			&& decodeKeepAlive())
+		{
+			//handle keep alive
+
+			return;
+		}
+		else if (deducedtype == messageType.left.at("choke")
+			&& decodeChoke())
+		{
+			//handle choke
+
+			return;
+		}
+		else if (deducedtype == messageType.left.at("unchoke")
+			&& decodeUnchoke())
+		{
+			//handle unchoke
+
+			return;
+		}
+		else if (deducedtype == messageType.left.at("interested")
+			&& decodeInterested())
+		{
+			//handle interested
+
+			return;
+		}
+		else if (deducedtype == messageType.left.at("notInterested")
+			&& decodeNotInterested())
+		{
+			//handle notInterested
+
+			return;
+		}
+		else if (deducedtype == messageType.left.at("have"))
+		{
+			int index;
+			if (decodeHave(index))
+			{
+				//handle have
+
+				return;
+			}
+		}
+		else if (deducedtype == messageType.left.at("bitfield"))
+		{
+			std::vector<bool> recIsPieceDownloaded;
+			if (decodeBitfield(isPieceDownloaded.size(), recIsPieceDownloaded))
+			{
+				//handle bitfield
+
+				return;
+			}
+		}
+		else if (deducedtype == messageType.left.at("request"))
+		{
+			int index;
+			int offset;
+			int dataSize;
+			if (decodeDataRequest(index, offset, dataSize))
+			{
+				//handle data request
+
+				return;
+			}
+		}
+		else if (deducedtype == messageType.left.at("cancel"))
+		{
+			int index;
+			int offset;
+			int dataSize;
+			if (decodeCancel(index, offset, dataSize))
+			{
+				//handle cancel
+
+				return;
+			}
+		}
+		else if (deducedtype == messageType.left.at("piece"))
+		{
+			int index;
+			int offset;
+			std::vector<byte> data;
+			if (decodePiece(index, offset, data))
+			{
+				//handle piece
+
+				return;
+			}
+		}
+		//this is the listen port for peer's DHT node
+		else if (deducedtype == messageType.left.at("port"))
+		{
+			return;
+		}
+
+		//get hex representation of data
+		static std::string hex_tmp;
+		for (auto i : processBuffer) {
+			std::ostringstream oss;
+			oss << std::hex << std::setw(2) << std::setfill('0') << (unsigned)i;
+			hex_tmp += oss.str();
+		}
+		std::cout << "Unhandled received message: " << hex_tmp << "\n";
+
+		//if unhandled message, disconnect from peer
+		disconnect();
 	}
 
 	bool Peer::decodeHandshake(std::vector<byte>& hash, std::string& id)
@@ -486,7 +614,7 @@ namespace Bittorrent
 		return index;
 	}
 
-	bool Peer::decodeBitfield(int& pieces, 
+	bool Peer::decodeBitfield(int pieces, 
 		std::vector<bool>& recIsPieceDownloaded)
 	{
 		recIsPieceDownloaded.resize(pieces);
