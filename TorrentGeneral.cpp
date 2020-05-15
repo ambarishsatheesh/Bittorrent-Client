@@ -25,6 +25,8 @@ namespace Bittorrent
 		}
 		else
 		{
+			dict.emplace("announce", trackerList.at(0).trackerAddress);
+
 			valueList trackerValueList;
 			for (size_t i = 0; i < trackerList.size(); ++i)
 			{
