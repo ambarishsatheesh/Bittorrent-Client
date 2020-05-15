@@ -21,8 +21,8 @@ namespace Bittorrent
 			const valueDictionary& torrent);
 		value toBencodingObj(Torrent& torrent);
 		Torrent createNewTorrent(std::string fileName, const char* path,
-			bool isPrivate, const std::string& comment = "",
-			std::vector<trackerObj> trackerList = {});
+			std::string targetPath, bool isPrivate, const std::string& comment,
+			std::vector<std::string> trackerList);
 		std::vector<byte> read(Torrent& torrent, long long start, long long length);
 		void write(Torrent& torrent, long long start, std::vector<byte>& buffer);
 		std::vector<byte> readPiece(Torrent& torrent, int piece);
@@ -96,8 +96,8 @@ namespace Bittorrent
 		}
 
 		//create torrent with default empty tracker list and comment
-		Torrent createNewTorrent(std::string fileName, const char* path,
-			bool isPrivate, const std::string& comment,
+		Torrent createNewTorrent(std::string fileName, const char* path, 
+			std::string targetPath, bool isPrivate, const std::string& comment,
 			std::vector<std::string> trackerList)
 		{
 			Torrent createdTorrent(path);
@@ -223,9 +223,7 @@ namespace Bittorrent
 			//create object for encoding
 			value tempObj = toBencodingObj(createdTorrent);
 			//encode and save
-			//parameter needs to be adjustable
-			std::string strFilePath = "D:\\Documents\\Programming\\Bittorrent\\Bittorrent\\x64\\Release\\testencoding.torrent";
-			saveToFile(strFilePath, encode(tempObj));
+			saveToFile(targetPath, encode(tempObj));
 
 			return createdTorrent;
 		}
