@@ -65,8 +65,9 @@ namespace Bittorrent
 
 			//encode and create info section for use in new torrent
 			valueDictionary bencodingObjInfo;
-			bencodingObjInfo.emplace("name", newTorrent.generalData.fileName);
+			//if multi files, use input filename as name
 			bencodingObjInfo = newTorrent.filesToDictionary(bencodingObjInfo);
+			bencodingObjInfo.emplace("name", newTorrent.generalData.fileName);
 			bencodingObjInfo =
 				newTorrent.piecesData.piecesDataToDictionary(bencodingObjInfo);
 			newTorrent.hashesData.torrentToHashesData(bencodingObjInfo);
@@ -86,8 +87,9 @@ namespace Bittorrent
 			torrent.generalData.generalDataToDictionary(bencodingObj);
 
 			//create info section
-			bencodingObjInfo.emplace("name", torrent.generalData.fileName);
 			bencodingObjInfo = torrent.filesToDictionary(bencodingObjInfo);
+			//if multi files, use input filename as name
+			bencodingObjInfo.emplace("name", torrent.generalData.fileName);
 			bencodingObjInfo = torrent.piecesData.piecesDataToDictionary(bencodingObjInfo);
 			bencodingObj.emplace("info", bencodingObjInfo);
 
