@@ -349,14 +349,16 @@ int main()
 			
 			std::cout << "Comment added." << "\n" << "\n";
 		}
+
+		//copy tracker set set to vector
+		std::vector<std::string> trackerVec;
+		std::copy(trackerSet.begin(), trackerSet.end(), std::back_inserter(trackerVec));
+		const char* fullPathptr = sourceFilePath.c_str();
+		Torrent temp = createNewTorrent(name, fullPathptr, targetPath, isPrivate, comment, trackerVec);
 	}
 
 
-	//copy tracket set to vector
-	std::vector<std::string> trackerVec;
-	std::copy(trackerSet.begin(), trackerSet.end(), std::back_inserter(trackerVec));
-	const char* fullPathptr = sourceFilePath.c_str();
-	Torrent temp = createNewTorrent(name, fullPathptr, targetPath, isPrivate, comment, trackerVec);
+
 
 
 
