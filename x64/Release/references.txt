@@ -1,0 +1,15 @@
+bittorent protocol:
+https://wiki.theory.org/index.php/BitTorrentSpecification
+
+boost asio socket connection:
+https://subscription.packtpub.com/book/application_development/9781783986545/1/ch01lvl1sec15/connecting-a-socket
+
+boost beast HTTP request and parsing
+https://www.boost.org/doc/libs/1_66_0/libs/beast/doc/html/beast/quick_start.html#beast.quick_start.http_client
+https://stackoverflow.com/questions/50479407/boost-beast-http
+
+udp protocol:
+http://www.bittorrent.org/beps/bep_0015.html
+
+asio async_read (shared_ptr for transferring tcp socket connections):
+https://www.boost.org/doc/libs/1_73_0/doc/html/boost_asio/example/cpp11/echo/async_tcp_echo_server.cpp
