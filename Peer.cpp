@@ -21,7 +21,7 @@ namespace Bittorrent
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 }, 
 		downloaded{ 0 }, socket(io_context), peerResults(results),
-		deadline{io_context}, heartbeatTimer{io_context}, recBuffer(68)
+		deadline{io_context}, recBuffer(68)
 	{
 		isBlockRequested.resize(torrent->piecesData.pieceCount);
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
@@ -64,8 +64,8 @@ namespace Bittorrent
 		IsChokeReceived{ true }, IsInterestedReceived{ false }, 
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
-		downloaded{ 0 }, socket(std::move(tcpClient)),
-		deadline{ io_context }, heartbeatTimer{ io_context }, recBuffer(68)
+		downloaded{ 0 }, socket(std::move(tcpClient)), deadline{ io_context },
+		recBuffer(68)
 	{
 		isBlockRequested.resize(torrent->piecesData.pieceCount);
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
@@ -91,6 +91,8 @@ namespace Bittorrent
 
 		//get endpoint from accepted connection
 		endpointKey = socket.remote_endpoint();
+		isAccepted = true;
+		readFromCreatedPeer();
 	}
 
 	std::string Peer::piecesDownloaded()
@@ -145,6 +147,52 @@ namespace Bittorrent
 		}
 
 		return sum;
+	}
+
+	void Peer::readFromCreatedPeer()
+	{
+		//increase the shared_ptr reference count so when original shared_ptr
+		//in Client is destroyed, this Peer object is not destroyed until
+		//lambda function is called and its arguments are destructed
+		auto self(shared_from_this());
+		socket.async_read_some(boost::asio::buffer(recBuffer),
+			[this, self](boost::system::error_code ec, std::size_t receivedBytes)
+			{
+				if (!ec)
+				{
+					handleRead(ec, receivedBytes);
+				}
+				else
+				{
+					std::cout << "Error on receive: " << ec.message() << "\n";
+
+					disconnect();
+				}
+			});
+	}
+
+	void Peer::acc_sendNewBytes(std::vector<byte> sendBuffer)
+	{
+		if (isDisconnected)
+		{
+			return;
+		}
+
+		auto self(shared_from_this());
+		boost::asio::async_write(socket, boost::asio::buffer(sendBuffer),
+			[this, self](boost::system::error_code ec, std::size_t sentBytes)
+			{
+				if (!ec)
+				{
+					std::cout << "Sent " << sentBytes << " bytes" << "\n";
+				}
+				else
+				{
+					std::cout << "Error on send: " << ec.message() << "\n";
+
+					disconnect();
+				}
+			});
 	}
 
 	void Peer::connectToNewPeer(tcp::resolver::results_type::iterator endpointItr)
@@ -221,11 +269,11 @@ namespace Bittorrent
 		// start async receive and immediately call the handler func
 		boost::asio::async_read(socket,
 			boost::asio::buffer(recBuffer),
-			boost::bind(&Peer::handleNewRead, this,
+			boost::bind(&Peer::handleRead, this,
 				boost::placeholders::_1, boost::placeholders::_2));
 	}
 
-	void Peer::handleNewRead(const boost::system::error_code& ec, 
+	void Peer::handleRead(const boost::system::error_code& ec, 
 		std::size_t receivedBytes)
 	{
 		if (isDisconnected)
@@ -245,7 +293,15 @@ namespace Bittorrent
 				//clear and resize buffer to receive new header packet
 				recBuffer.clear();
 				recBuffer.resize(4);
-				startNewRead();
+
+				if (isAccepted)
+				{
+					readFromCreatedPeer();
+				}
+				else
+				{
+					startNewRead();
+				}	
 			}
 			//if header, copy data, clear recBuffer and wait for entire message
 			//use header data to find remaining message length
@@ -261,7 +317,14 @@ namespace Bittorrent
 					recBuffer.clear();
 					recBuffer.resize(4);
 
-					startNewRead();
+					if (isAccepted)
+					{
+						readFromCreatedPeer();
+					}
+					else
+					{
+						startNewRead();
+					}
 
 					//process keep alive message
 					handleMessage();
@@ -271,7 +334,15 @@ namespace Bittorrent
 				{
 					recBuffer.clear();
 					recBuffer.resize(messageLength);
-					startNewRead();
+
+					if (isAccepted)
+					{
+						readFromCreatedPeer();
+					}
+					else
+					{
+						startNewRead();
+					}
 				}
 			}
 			//rest of the message
@@ -288,7 +359,14 @@ namespace Bittorrent
 				recBuffer.clear();
 				recBuffer.resize(4);
 
-				startNewRead();
+				if (isAccepted)
+				{
+					readFromCreatedPeer();
+				}
+				else
+				{
+					startNewRead();
+				}
 			}
 		}
 		else
@@ -327,7 +405,7 @@ namespace Bittorrent
 	}
 
 	void Peer::handleNewSend(const boost::system::error_code& ec, 
-		std::size_t receivedBytes)
+		std::size_t sentBytes)
 	{
 		if (isDisconnected)
 		{
@@ -336,7 +414,7 @@ namespace Bittorrent
 
 		if (!ec)
 		{
-			std::cout << "Sent " << receivedBytes << " bytes"<< "\n";
+			std::cout << "Sent " << sentBytes << " bytes"<< "\n";
 		}
 		else
 		{
@@ -344,7 +422,6 @@ namespace Bittorrent
 
 			disconnect();
 		}
-
 	}
 
 	void Peer::disconnect()
@@ -355,7 +432,6 @@ namespace Bittorrent
 		boost::system::error_code ignored_ec;
 		socket.close(ignored_ec);
 		deadline.cancel();
-		heartbeatTimer.cancel();
 
 		std::cout << "\n" << "Disconnected from peer, downloaded: " << downloaded
 			<< ", uploaded: " << uploaded << "\n";
@@ -381,44 +457,38 @@ namespace Bittorrent
 			std::string id;
 			if (decodeHandshake(hash, id))
 			{
-				//handle handshake
-
+				handleHandshake(hash, id);
 				return;
 			}
 		}
 		else if (deducedtype == messageType.left.at("keepAlive") 
 			&& decodeKeepAlive())
 		{
-			//handle keep alive
-
+			handleKeepAlive();
 			return;
 		}
 		else if (deducedtype == messageType.left.at("choke")
 			&& decodeChoke())
 		{
-			//handle choke
-
+			handleChoke();
 			return;
 		}
 		else if (deducedtype == messageType.left.at("unchoke")
 			&& decodeUnchoke())
 		{
-			//handle unchoke
-
+			handleUnchoke();
 			return;
 		}
 		else if (deducedtype == messageType.left.at("interested")
 			&& decodeInterested())
 		{
-			//handle interested
-
+			handleInterested();
 			return;
 		}
 		else if (deducedtype == messageType.left.at("notInterested")
 			&& decodeNotInterested())
 		{
-			//handle notInterested
-
+			handleNotInterested();
 			return;
 		}
 		else if (deducedtype == messageType.left.at("have"))
@@ -426,8 +496,7 @@ namespace Bittorrent
 			int index;
 			if (decodeHave(index))
 			{
-				//handle have
-
+				handleHave(index);
 				return;
 			}
 		}
@@ -436,8 +505,7 @@ namespace Bittorrent
 			std::vector<bool> recIsPieceDownloaded;
 			if (decodeBitfield(isPieceDownloaded.size(), recIsPieceDownloaded))
 			{
-				//handle bitfield
-
+				handleBitfield(recIsPieceDownloaded);
 				return;
 			}
 		}
@@ -448,8 +516,7 @@ namespace Bittorrent
 			int dataSize;
 			if (decodeDataRequest(index, offset, dataSize))
 			{
-				//handle data request
-
+				handleDataRequest(index, offset, dataSize);
 				return;
 			}
 		}
@@ -460,8 +527,7 @@ namespace Bittorrent
 			int dataSize;
 			if (decodeCancel(index, offset, dataSize))
 			{
-				//handle cancel
-
+				handleCancel(index, offset, dataSize);
 				return;
 			}
 		}
@@ -472,8 +538,7 @@ namespace Bittorrent
 			std::vector<byte> data;
 			if (decodePiece(index, offset, data))
 			{
-				//handle piece
-
+				handlePiece(index, offset, data);
 				return;
 			}
 		}
@@ -1029,7 +1094,15 @@ namespace Bittorrent
 		std::cout << "Sending Handshake message..." << "...\n";
 
 		//create buffer and send
-		sendNewBytes(encodeHandshake(torrent->hashesData.infoHash, localID));
+		if (isAccepted)
+		{
+			acc_sendNewBytes(
+				(encodeHandshake(torrent->hashesData.infoHash, localID)));
+		}
+		else
+		{
+			sendNewBytes(encodeHandshake(torrent->hashesData.infoHash, localID));
+		}
 
 		isHandshakeSent = true;
 	}
@@ -1044,7 +1117,14 @@ namespace Bittorrent
 		std::cout << "Sending Keep Alive message..." << "...\n";
 
 		//create buffer and send
-		sendNewBytes(encodeKeepAlive());
+		if (isAccepted)
+		{
+			acc_sendNewBytes((encodeKeepAlive()));
+		}
+		else
+		{
+			sendNewBytes(encodeKeepAlive());
+		}
 		lastKeepAlive = boost::posix_time::second_clock::local_time();
 	}
 
@@ -1056,7 +1136,16 @@ namespace Bittorrent
 		}
 
 		std::cout << "Sending Choke message..." << "...\n";
-		sendNewBytes(encodeChoke());
+
+		//create buffer and send
+		if (isAccepted)
+		{
+			acc_sendNewBytes((encodeChoke()));
+		}
+		else
+		{
+			sendNewBytes(encodeChoke());
+		}
 
 		isChokeSent = true;
 	}
@@ -1069,7 +1158,16 @@ namespace Bittorrent
 		}
 
 		std::cout << "Sending Unchoke message..." << "...\n";
-		sendNewBytes(encodeUnchoke());
+
+		//create buffer and send
+		if (isAccepted)
+		{
+			acc_sendNewBytes((encodeUnchoke()));
+		}
+		else
+		{
+			sendNewBytes(encodeUnchoke());
+		}
 
 		isChokeSent = false;
 	}
@@ -1082,7 +1180,16 @@ namespace Bittorrent
 		}
 
 		std::cout << "Sending Interested message..." << "...\n";
-		sendNewBytes(encodeInterested());
+
+		//create buffer and send
+		if (isAccepted)
+		{
+			acc_sendNewBytes((encodeInterested()));
+		}
+		else
+		{
+			sendNewBytes(encodeInterested());
+		}
 
 		isInterestSent = true;
 	}
@@ -1095,7 +1202,16 @@ namespace Bittorrent
 		}
 
 		std::cout << "Sending Not Interested message..." << "...\n";
-		sendNewBytes(encodeNotInterested());
+
+		//create buffer and send
+		if (isAccepted)
+		{
+			acc_sendNewBytes((encodeNotInterested()));
+		}
+		else
+		{
+			sendNewBytes(encodeNotInterested());
+		}
 
 		isInterestSent = false;
 	}
@@ -1103,7 +1219,16 @@ namespace Bittorrent
 	void Peer::sendHave(int index)
 	{
 		std::cout << "Sending Have message..." << "...\n";
-		sendNewBytes(encodeHave(index));
+
+		//create buffer and send
+		if (isAccepted)
+		{
+			acc_sendNewBytes((encodeHave(index)));
+		}
+		else
+		{
+			sendNewBytes(encodeHave(index));
+		}
 	}
 
 	void Peer::sendBitfield(std::vector<bool> isPieceDownloaded)
@@ -1124,19 +1249,46 @@ namespace Bittorrent
 		std::string bitfieldStr = boost::algorithm::join(tempVec, "");
 
 		std::cout << "Sending Bitfield message: " << bitfieldStr << "...\n";
-		sendNewBytes(encodeBitfield(isPieceDownloaded));
+
+		//create buffer and send
+		if (isAccepted)
+		{
+			acc_sendNewBytes((encodeBitfield(isPieceDownloaded)));
+		}
+		else
+		{
+			sendNewBytes(encodeBitfield(isPieceDownloaded));
+		}
 	}
 
 	void Peer::sendDataRequest(int index, int offset, int dataSize)
 	{
 		std::cout << "Sending Data request message..." << "...\n";
-		sendNewBytes(encodeDataRequest(index, offset, dataSize));
+
+		//create buffer and send
+		if (isAccepted)
+		{
+			acc_sendNewBytes((encodeDataRequest(index, offset, dataSize)));
+		}
+		else
+		{
+			sendNewBytes(encodeDataRequest(index, offset, dataSize));
+		}
 	}
 
 	void Peer::sendCancel(int index, int offset, int dataSize)
 	{
 		std::cout << "Sending Cancel message..." << "...\n";
-		sendNewBytes(encodeCancel(index, offset, dataSize));
+
+		//create buffer and send
+		if (isAccepted)
+		{
+			acc_sendNewBytes((encodeCancel(index, offset, dataSize)));
+		}
+		else
+		{
+			sendNewBytes(encodeCancel(index, offset, dataSize));
+		}
 	}
 
 	void Peer::sendPiece(int index, int offset, std::vector<byte> data)
@@ -1145,7 +1297,15 @@ namespace Bittorrent
 			<< ", offset: " << offset << ", data size: " << data.size() 
 			<<  "...\n";
 
-		sendNewBytes(encodePiece(index, offset, data));
+		//create buffer and send
+		if (isAccepted)
+		{
+			acc_sendNewBytes((encodePiece(index, offset, data)));
+		}
+		else
+		{
+			sendNewBytes(encodePiece(index, offset, data));
+		}
 
 		uploaded += data.size();
 	}
@@ -1157,7 +1317,7 @@ namespace Bittorrent
 			return messageType.left.at("handshake");
 		}
 
-		//keep alive message is handled by handleNewRead()
+		//keep alive message is handled by handleRead()
 
 		//check if message type exists in map
 		if (data.size() > 4 && messageType.right.find(

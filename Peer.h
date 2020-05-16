@@ -87,7 +87,6 @@ namespace Bittorrent
 		tcp::socket socket;
 		tcp::resolver::results_type peerResults;
 		boost::asio::steady_timer deadline;
-		boost::asio::steady_timer heartbeatTimer;
 
 		//TCP transmission buffers
 		std::vector<byte> processBuffer;
@@ -102,14 +101,16 @@ namespace Bittorrent
 		int blocksRequested();
 
 		//established connection functions - maybe separate class?
-		void connectToCreatedPeer();
+		bool isAccepted;	//flag to use async funcs with shared_ptr
+		void readFromCreatedPeer();
+		void acc_sendNewBytes(std::vector<byte> sendBuffer);
 
 		//new connection methods
 		void connectToNewPeer(tcp::resolver::results_type::iterator endpointItr);
 		void handleNewConnect(const boost::system::error_code& ec,
 			tcp::resolver::results_type::iterator endpointItr);
 		void startNewRead();
-		void handleNewRead(const boost::system::error_code& ec,
+		void handleRead(const boost::system::error_code& ec,
 			std::size_t receivedBytes);
 		int getMessageLength();
 		void sendNewBytes(std::vector<byte> sendBuffer);
