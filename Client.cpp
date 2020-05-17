@@ -32,21 +32,19 @@ namespace Bittorrent
 	{
         //TCP setup
         boost::asio::io_context io_context;
-        tcp::resolver resolver(io_context);
 
         //new peer instance using peer data from vector
         for (auto peer : peerList)
         {
-            //check if peer already in (thread-safe?) Peer list 
+            //check if peer already in (thread-safe?) Peer dict 
             //(client class member, not this peerList function parameter)
             //if (!tryAddtoDict)
             //{
-                // Look up the domain name
-                tcp::resolver::results_type results = resolver.resolve(
-                    peer.ipAddress, peer.port);
-
                 //create new peer instance
-                Peer peer(torrent, localID, io_context, results);
+                auto peerConn = 
+                    std::make_shared<Peer>(torrent, localID, io_context);
+
+                peerConn->startNew(peer.ipAddress, peer.port);
 
                 //can be shared among threads if needed - not a good idea until
                 //everything is thread safe
