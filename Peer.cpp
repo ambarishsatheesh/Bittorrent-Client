@@ -299,7 +299,7 @@ namespace Bittorrent
 					readFromCreatedPeer();
 				}
 				else
-				{
+				{	
 					startNewRead();
 				}	
 			}
@@ -1349,8 +1349,17 @@ namespace Bittorrent
 		peerID = id;
 		isHandshakeReceived = true;
 
-		//send handshake
-		sendBitfield(torrent->statusData.isPieceVerified);
+		//if the peer opened the connection and sent a handshake, we send a 
+		//reply handshake. Otherwise, we sent the initial handshake and so we 
+		//send the bitfield
+		if (isAccepted)
+		{
+			sendHandShake();
+		}
+		else
+		{
+			sendBitfield(torrent->statusData.isPieceVerified);
+		}
 	}
 
 	void Peer::handleKeepAlive()

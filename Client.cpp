@@ -64,6 +64,7 @@ namespace Bittorrent
 
     void Client::doAccept()
     {
+        //which torrent??? need to specify in creation of Client class
         acceptor.async_accept(
             [this](boost::system::error_code ec, tcp::socket socket)
             {
