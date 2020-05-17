@@ -81,6 +81,7 @@ namespace Bittorrent
 		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
 			boost::asio::io_context& io_context, tcp::socket tcpClient);
 
+		//new connection called from client
 		void startNew(const std::string& host, const std::string& port);
 
 	private:
