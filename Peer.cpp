@@ -10,18 +10,17 @@ namespace Bittorrent
 {
 	using namespace utility;
 
-	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
-		boost::asio::io_context& io_context, tcp::resolver::results_type& results)
-		: localID{ localID }, peerID{ "" }, 
+	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID,
+		boost::asio::io_context& io_context)
+		: localID{ localID }, peerID{ "" },
 		torrent{ torrent->getPtr() }, endpointKey(),
-		isPieceDownloaded(torrent->piecesData.pieceCount), 
-		isDisconnected{}, isHandshakeSent{}, isPositionSent{}, 
-		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{}, 
-		IsChokeReceived{ true }, IsInterestedReceived{ false },  
+		isPieceDownloaded(torrent->piecesData.pieceCount),
+		isDisconnected{}, isHandshakeSent{}, isPositionSent{},
+		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{},
+		IsChokeReceived{ true }, IsInterestedReceived{ false },
 		lastActive{ boost::posix_time::second_clock::local_time() },
-		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 }, 
-		downloaded{ 0 }, socket(io_context), peerResults(results),
-		deadline{io_context}, recBuffer(68)
+		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
+		downloaded{ 0 }, context(io_context), socket(context), recBuffer(68)
 	{
 		isBlockRequested.resize(torrent->piecesData.pieceCount);
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
@@ -44,13 +43,6 @@ namespace Bittorrent
 		messageType.insert({ "piece", 7 });
 		messageType.insert({ "cancel", 8 });
 		messageType.insert({ "port", 9 });
-
-		//begin connecting
-		connectToNewPeer(results.begin());
-
-		// Start the deadline actor. The connect and input actors will
-		// update the deadline prior to each asynchronous operation.
-		deadline.async_wait(boost::bind(&Peer::check_deadline, this));
 	}
 
 	//construct peer from accepted connection started by another peer
@@ -64,8 +56,7 @@ namespace Bittorrent
 		IsChokeReceived{ true }, IsInterestedReceived{ false }, 
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
-		downloaded{ 0 }, socket(std::move(tcpClient)), deadline{ io_context },
-		recBuffer(68)
+		downloaded{ 0 }, context(io_context), socket(std::move(tcpClient)), recBuffer(68)
 	{
 		isBlockRequested.resize(torrent->piecesData.pieceCount);
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
@@ -149,6 +140,18 @@ namespace Bittorrent
 		return sum;
 	}
 
+	void Peer::startNew(const std::string& host, const std::string& port)
+	{
+		auto presolver = std::make_shared<tcp::resolver>(context);
+
+		auto self(shared_from_this());
+		presolver->async_resolve(tcp::resolver::query(host, port),
+			[self, presolver](auto&& ec, auto iter)
+			{
+			self->connectToNewPeer(ec, presolver, iter);
+			});
+	}
+
 	void Peer::readFromCreatedPeer()
 	{
 		//increase the shared_ptr reference count so when original shared_ptr
@@ -156,17 +159,17 @@ namespace Bittorrent
 		//lambda function is called and its arguments are destructed
 		auto self(shared_from_this());
 		socket.async_read_some(boost::asio::buffer(recBuffer),
-			[this, self](boost::system::error_code ec, std::size_t receivedBytes)
+			[self](boost::system::error_code ec, std::size_t receivedBytes)
 			{
 				if (!ec)
 				{
-					handleRead(ec, receivedBytes);
+					self->handleRead(ec, receivedBytes);
 				}
 				else
 				{
 					std::cout << "Error on receive: " << ec.message() << "\n";
 
-					disconnect();
+					self->disconnect();
 				}
 			});
 	}
@@ -180,7 +183,7 @@ namespace Bittorrent
 
 		auto self(shared_from_this());
 		boost::asio::async_write(socket, boost::asio::buffer(sendBuffer),
-			[this, self](boost::system::error_code ec, std::size_t sentBytes)
+			[self](boost::system::error_code ec, std::size_t sentBytes)
 			{
 				if (!ec)
 				{
@@ -190,63 +193,35 @@ namespace Bittorrent
 				{
 					std::cout << "Error on send: " << ec.message() << "\n";
 
-					disconnect();
+					self->disconnect();
 				}
 			});
 	}
 
-	void Peer::connectToNewPeer(tcp::resolver::results_type::iterator endpointItr)
+	void Peer::connectToNewPeer(boost::system::error_code const& ec, 
+		std::shared_ptr<tcp::resolver> presolver, tcp::resolver::iterator iter)
 	{
-		if (endpointItr != peerResults.end())
-		{
-			std::cout << "Trying to connect to: " << endpointItr->endpoint() 
-				<< "...\n";
-
-			// Set a deadline for the connect operation (10s)
-			deadline.expires_after(boost::asio::chrono::seconds(10));
-
-			// Start the asynchronous connect operation.
-			socket.async_connect(endpointItr->endpoint(),
-				boost::bind(&Peer::handleNewConnect, this,
-					boost::placeholders::_1, endpointItr));
+		if (ec) {
+			std::cerr << "error resolving: " << ec.message() << std::endl;
 		}
-		else
-		{
-			//No more endpoints to try. Shut down tcp client.
-			std::cout << "Peer connection attempt failed! " << 
-				"No more endpoints to try connecting to." << "\n";
-			disconnect();
+		else {
+			auto self(shared_from_this());
+			boost::asio::async_connect(socket, iter, 
+				[self, presolver]
+				(auto&& ec, auto iter)
+				{
+				self->handleNewConnect(ec, iter);
+				//dropping presolver here - we don't need it any more
+				});
 		}
 	}
 
 	void Peer::handleNewConnect(const boost::system::error_code& ec,
 		tcp::resolver::results_type::iterator endpointItr)
 	{
-		if (isDisconnected)
-		{
-			return;
-		}
-
-		//async_connect() automatically opens the socket
-		//Check if socket is closed, if it is, the timeout handler must have run
-		if (!socket.is_open())
-		{
-			std::cout << "Connect timed out" << "\n";
-
-			// Try the next available endpoint.
-			connectToNewPeer(++endpointItr);
-		}
-		// Check if connect operation failed before the deadline expired.
-		else if (ec)
+		if (ec)
 		{
 			std::cout << "Connect error: " << ec.message() << "\n";
-
-			// We need to close the socket used in the previous connection attempt
-			// before starting a new one.
-			socket.close();
-
-			// Try the next available endpoint.
-			connectToNewPeer(++endpointItr);
 		}
 		// else connection successful
 		else
@@ -263,14 +238,12 @@ namespace Bittorrent
 
 	void Peer::startNewRead()
 	{
-		// Set a deadline for the read operation.
-		deadline.expires_after(boost::asio::chrono::seconds(30));
-
-		// start async receive and immediately call the handler func
-		boost::asio::async_read(socket,
-			boost::asio::buffer(recBuffer),
-			boost::bind(&Peer::handleRead, this,
-				boost::placeholders::_1, boost::placeholders::_2));
+		auto self(shared_from_this());
+		boost::asio::async_read(socket, boost::asio::buffer(recBuffer),
+			[self](auto&& ec, auto size)
+			{
+				self->handleRead(ec, size);
+			});
 	}
 
 	void Peer::handleRead(const boost::system::error_code& ec, 
@@ -397,11 +370,17 @@ namespace Bittorrent
 			return;
 		}
 
+		//capture the payload so it continues to exist during async send
+		auto payload = std::make_shared<std::vector<byte>>(sendBuffer);
+
 		// start async send and immediately call the handler func
-		boost::asio::async_write(socket,
-			boost::asio::buffer(sendBuffer),
-			boost::bind(&Peer::handleNewSend, this,
-				boost::placeholders::_1, boost::placeholders::_2));
+		auto self = shared_from_this();
+		boost::asio::async_write(socket, boost::asio::buffer(*payload),
+			[self,payload]
+				(auto&& ec, auto size)
+			{
+				self->handleNewSend(ec, size);
+			});
 	}
 
 	void Peer::handleNewSend(const boost::system::error_code& ec, 
@@ -431,7 +410,6 @@ namespace Bittorrent
 		isDisconnected = true;
 		boost::system::error_code ignored_ec;
 		socket.close(ignored_ec);
-		deadline.cancel();
 
 		std::cout << "\n" << "Disconnected from peer, downloaded: " << downloaded
 			<< ", uploaded: " << uploaded << "\n";
@@ -1494,31 +1472,5 @@ namespace Bittorrent
 		{
 			blockReceived(*this, newPackage);
 		}
-	}
-
-	void Peer::check_deadline()
-	{
-		if (isDisconnected)
-		{
-			return;
-		}
-
-		// Check whether the deadline has passed. We compare the deadline against
-		// the current time since a new asynchronous operation may have moved the
-		// deadline before this actor had a chance to run.
-		if (deadline.expiry() <= boost::asio::steady_timer::clock_type::now())
-		{
-			// The deadline has passed. The socket is closed so that any outstanding
-			// asynchronous operations are cancelled.
-			socket.close();
-
-			// There is no longer an active deadline. The expiry is set to the
-			// maximum time point so that the actor takes no action until a new
-			// deadline is set.
-			deadline.expires_at(boost::asio::steady_timer::time_point::max());
-		}
-
-		// Put the actor back to sleep.
-		deadline.async_wait(boost::bind(&Peer::check_deadline, this));
 	}
 }

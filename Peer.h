@@ -75,18 +75,18 @@ namespace Bittorrent
 		Peer() = delete;
 		//client-opened connection constructors
 		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
-			boost::asio::io_context& io_context,
-			tcp::resolver::results_type& results);
+			boost::asio::io_context& io_context);
 		//peer-opened connection constructor
 		//need io_context here to initialise timers
 		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
 			boost::asio::io_context& io_context, tcp::socket tcpClient);
 
+		void startNew(const std::string& host, const std::string& port);
+
 	private:
 		//tcp data
+		boost::asio::io_context& context;
 		tcp::socket socket;
-		tcp::resolver::results_type peerResults;
-		boost::asio::steady_timer deadline;
 
 		//TCP transmission buffers
 		std::vector<byte> processBuffer;
@@ -106,7 +106,9 @@ namespace Bittorrent
 		void acc_sendNewBytes(std::vector<byte> sendBuffer);
 
 		//new connection methods
-		void connectToNewPeer(tcp::resolver::results_type::iterator endpointItr);
+		void connectToNewPeer(boost::system::error_code const& ec,
+			std::shared_ptr<tcp::resolver> presolver, 
+			tcp::resolver::iterator iter);
 		void handleNewConnect(const boost::system::error_code& ec,
 			tcp::resolver::results_type::iterator endpointItr);
 		void startNewRead();
@@ -116,7 +118,6 @@ namespace Bittorrent
 		void sendNewBytes(std::vector<byte> sendBuffer);
 		void handleNewSend(const boost::system::error_code& ec,
 			std::size_t receivedBytes);
-		void check_deadline();
 		void disconnect();
 
 		//decoding
