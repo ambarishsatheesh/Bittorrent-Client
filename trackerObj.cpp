@@ -84,6 +84,7 @@ namespace Bittorrent
 			}
 			else
 			{
+				//scrape
 				HTTPClient httpAnnounce(parsedUrl, 0);
 				//announce and update if seeders/leechers values change
 				if (httpAnnounce.complete != complete || 
@@ -92,7 +93,10 @@ namespace Bittorrent
 					std::cout << "\n" <<
 						"Tracker info changed. Switching to announce request."
 						<< "\n";
-					httpAnnounce.dataTransmission(parsedUrl, 1);
+					//reset tracker url target (scrape changes it)
+					httpAnnounce.target = parsedUrl.target;
+
+					httpAnnounce.dataTransmission(1);
 					complete = httpAnnounce.complete;
 					incomplete = httpAnnounce.incomplete;
 					//call signal to fire peerListUpdated event
