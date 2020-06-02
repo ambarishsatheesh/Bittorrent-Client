@@ -19,7 +19,6 @@ namespace Bittorrent
 	{
 		try
 		{
-			std::cout << peerHost << "\n";
 			LOG_F(INFO, "Resolving HTTP tracker (%s:%s)...", 
 				peerHost, peerPort);
 
@@ -339,8 +338,10 @@ namespace Bittorrent
 				{
 					std::string peerInfoString = boost::get<std::string>(
 						info.at("peers"));
+
 					std::vector<byte> peerInfo(peerInfoString.begin(),
 						peerInfoString.end());
+
 					//info is split into chunks of 6 bytes
 					for (size_t i = 0; i < peerInfo.size(); i += 6)
 					{
@@ -349,15 +350,18 @@ namespace Bittorrent
 							+ "." + std::to_string(peerInfo.at(i + 1)) + "." +
 							std::to_string(peerInfo.at(i + 2)) + "."
 							+ std::to_string(peerInfo.at(i + 3));
+
 						//the two bytes representing port are in big endian
 						//read in correct order directly using bit shifting
 						std::string peerPort = std::to_string(
 							(peerInfo.at(i + 4) << 8) |
 							(peerInfo.at(i + 5)));
+
 						//add to peers list
 						peer singlePeer;
 						singlePeer.ipAddress = ipAddress;
 						singlePeer.port = peerPort;
+
 						peerList.push_back(singlePeer);
 					}
 					LOG_F(INFO,
@@ -371,18 +375,25 @@ namespace Bittorrent
 				{
 					valueList peerInfoList = boost::get<valueList>(
 						info.at("peers"));
+
 					for (size_t i = 0; i < peerInfoList.size(); ++i)
 					{
+						//get and add to peers list
+						peer singlePeer;
+
 						valueDictionary peerInfoDict =
 							boost::get<valueDictionary>(peerInfoList.at(i));
-						const std::string ipAddress =
+
+						singlePeer.ipAddress =
 							boost::get<std::string>(peerInfoDict.at("ip"));
-						const int peerPort = static_cast<int>(
+
+						singlePeer.port = static_cast<int>(
 							boost::get<long long>(peerInfoDict.at("port")));
-						//add to peers list
-						peer singlePeer;
-						singlePeer.ipAddress = ipAddress;
-						singlePeer.port = peerPort;
+
+						const std::string peerID =
+							boost::get<std::string>(peerInfoDict.at("peer id"));
+						singlePeer.peerID.assign(peerID.begin(), peerID.end());
+
 						peerList.push_back(singlePeer);
 					}
 					LOG_F(INFO,
