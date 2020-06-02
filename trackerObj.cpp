@@ -1,6 +1,7 @@
 ﻿#include "trackerObj.h"
 #include "Decoder.h"
 #include "Utility.h"
+#include "loguru.h"
 
 
 namespace Bittorrent
@@ -61,8 +62,15 @@ namespace Bittorrent
 			return;
 		}
 
-		//parse url
+		//parse url and check if valid
 		trackerUrl parsedUrl(url);
+		parsedUrl.parse();
+		if (parsedUrl.isInvalidURL)
+		{
+			LOG_F(ERROR, "Tracker (%s) is invalid!",
+				trackerAddress.c_str());
+			return;
+		}
 
 		//temp vector for printing peers
 		std::vector<peer> tempPeerList;
@@ -90,9 +98,11 @@ namespace Bittorrent
 				if (httpAnnounce.complete != complete || 
 					httpAnnounce.incomplete != incomplete)
 				{
-					std::cout << "\n" <<
-						"Tracker info changed. Switching to announce request."
-						<< "\n";
+					LOG_F(INFO,
+						"Tracker (%s:%s) info changed since last scrape. "
+						"Switching to HTTP announce request.",
+						parsedUrl.hostname.c_str(), parsedUrl.port.c_str());
+
 					//reset tracker url target (scrape changes it)
 					httpAnnounce.target = parsedUrl.target;
 
@@ -133,9 +143,11 @@ namespace Bittorrent
 				//announce and update if seeders/leechers values change
 				if (udpGen.seeders != seeders || udpGen.leechers != leechers)
 				{
-					std::cout << "\n" << 
-						"Tracker info changed. Switching to announce request." 
-						<< "\n";
+					LOG_F(INFO,
+						"Tracker (%s:%s) info changed since last scrape. "
+						"Switching to UDP announce request.",
+						parsedUrl.hostname.c_str(), parsedUrl.port.c_str());
+
 					udpGen.dataTransmission(parsedUrl, 1);
 					seeders = udpGen.seeders;
 					leechers = udpGen.leechers;
@@ -153,7 +165,7 @@ namespace Bittorrent
 		}
 		else
 		{
-			throw std::invalid_argument("Invalid protocol for trackers!");
+			return;
 		}
 
 		//update request time
