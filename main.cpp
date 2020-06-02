@@ -379,9 +379,24 @@ int main(int argc, char* argv[])
 	//Torrent temp = createNewTorrent("test", fullFilePath, isPrivate, "test comment", trackers);
 
 	std::string buffer = loadFromFile(fullFilePath);
+	if (buffer.empty())
+	{
+		return 0;
+	}
 
 	Client client;
 
+	auto decodeTest = Decoder::decode(buffer);
+
+	if (decodeTest.type() == typeid(int) && boost::get<int>(decodeTest) == 0)
+	{
+		std::cout << "Fail!" << "\n";
+	}
+	else
+	{
+		//print true values here
+	}
+	
 	valueDictionary torrent = boost::get<valueDictionary>(Decoder::decode(buffer));
 
 	Torrent udpTestTorrent = toTorrentObj(fullFilePath, torrent);
@@ -402,12 +417,12 @@ int main(int argc, char* argv[])
 	//		client.localID, 6681, udpTestTorrent.hashesData.urlEncodedInfoHash, udpTestTorrent.hashesData.infoHash, 2500, 1200, 0);
 	//	});
 
-	/*auto thread3 = std::thread([&]() {
+	auto thread3 = std::thread([&]() {
 		loguru::set_thread_name("Tracker Update 3");
 		LOG_F(INFO, "Starting new thread...");
 		udpTestTorrent.generalData.trackerList.at(11).update(trackerObj::trackerEvent::started,
 			client.localID, 6681, udpTestTorrent.hashesData.urlEncodedInfoHash, udpTestTorrent.hashesData.infoHash, 2500, 1200, 0);
-		});*/
+		});
 
 	auto betweenTest = 5 + 10;
 	betweenTest += 10;
@@ -419,7 +434,7 @@ int main(int argc, char* argv[])
 
 	thread1.join();
 	//thread2.join();
-	//thread3.join();
+	thread3.join();
 
 
 	//value tempObj = toBencodingObj(testTorrent);
