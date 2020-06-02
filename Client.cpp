@@ -1,11 +1,15 @@
 #include "Client.h"
+#include "loguru.h"
 
 namespace Bittorrent
 {
 	Client::Client()
-        : port{ 0 }, localID{""}, acc_io_context(), 
+        : port{ 0 }, localID(), acc_io_context(), 
         acceptor(acc_io_context, tcp::endpoint(tcp::v4(), port))
 	{
+        LOG_SCOPE_F(INFO, "ClientID");
+        LOG_F(INFO, "Generating new Client ID...");
+
         //generate 20 byte client ID
         std::random_device dev;
         std::mt19937 rng(dev());
@@ -26,6 +30,10 @@ namespace Bittorrent
             localID.push_back((dist6(rng) >> 8) & 0xff);
         }
 
+        LOG_F(INFO, "Client ID generated!");
+
+        auto clientLog = toHex(localID);
+        LOG_F(INFO, "Client ID (hex): %s", clientLog.c_str());
 	}
 
 	void Client::handlePeerListUpdated(std::vector<peer> peerList)

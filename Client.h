@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 
 #include "Peer.h"
 #include "Torrent.h"
@@ -15,7 +14,7 @@ namespace Bittorrent
 		//port to use for listening on tcp
 		int port;
 		std::shared_ptr<Torrent> torrent;
-		std::string localID;
+		std::vector<byte> localID;
 
 		//context and acceptor for accepting peer connections
 		boost::asio::io_context acc_io_context;
