@@ -34,10 +34,12 @@ namespace Bittorrent
 	{
 		std::string ipAddress;
 		std::string port;
+		std::vector<byte> peerID;
 
 		//overload == operator to allow comparison
 		bool operator==(const peer& a) const {
-			return a.ipAddress == ipAddress && a.port == port;
+			return a.ipAddress == ipAddress && a.port == port && 
+				a.peerID == peerID;
 		}
 	};
 

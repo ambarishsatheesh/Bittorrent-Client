@@ -20,7 +20,7 @@ namespace Bittorrent
 		try
 		{
 			std::cout << peerHost << "\n";
-			LOG_F(INFO, "Resolving HTTP tracker - %s:%s...", 
+			LOG_F(INFO, "Resolving HTTP tracker (%s:%s)...", 
 				peerHost, peerPort);
 
 			//socket.close();
@@ -33,7 +33,7 @@ namespace Bittorrent
 			remoteEndpoint = boost::asio::connect(socket, results.begin(),
 				results.end())->endpoint();
 
-			LOG_F(INFO, "Resolved HTTP tracker endpoint! Endpoint: %s:%hu (%s:%s)",
+			LOG_F(INFO, "Resolved HTTP tracker endpoint! Endpoint: %s:%hu (%s:%s).",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
 				peerHost, peerPort);
 
@@ -42,7 +42,7 @@ namespace Bittorrent
 		catch(const boost::system::system_error& e)
 		{
 			LOG_F(ERROR, 
-				"Failed to resolve HTTP tracker %s:%s! Error msg: \"%s\"", 
+				"Failed to resolve HTTP tracker %s:%s! Error msg: \"%s\".", 
 				peerHost, peerPort, e.what());
 		}
 	}
@@ -52,7 +52,7 @@ namespace Bittorrent
 		socket.close();
 
 		LOG_F(INFO,
-			"Closed HTTP socket used for tracker update (%s:%s)",
+			"Closed HTTP socket used for tracker update (%s:%s).",
 			peerHost, peerPort);
 	}
 
@@ -71,7 +71,7 @@ namespace Bittorrent
 
 			LOG_F(INFO,
 				"Sent HTTP scrape request to tracker %s:%d; "
-				"Status: %s; Scrape URL: %s" ,
+				"Status: %s; Scrape URL: %s." ,
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
 				err.message().c_str(), target.c_str());
 
@@ -86,7 +86,7 @@ namespace Bittorrent
 
 			LOG_F(INFO,
 				"Received HTTP scrape response from tracker %s:%hu; "
-				"Status: %s; Bytes received: %d",
+				"Status: %s; Bytes received: %d.",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
 				err.message().c_str(), res.payload_size().get());
 
@@ -96,12 +96,12 @@ namespace Bittorrent
 			socket.close();
 
 			LOG_F(INFO,
-				"Closed HTTP connection with tracker %s:%hu; ",
+				"Closed HTTP connection with tracker %s:%hu.",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port());
 
 			if (ec && ec != boost::system::errc::not_connected)
 			{
-				LOG_F(ERROR, "Error shutting down socket: %s", 
+				LOG_F(ERROR, "Error shutting down socket: %s.", 
 					ec.message().c_str());
 			}
 
@@ -110,7 +110,7 @@ namespace Bittorrent
 		catch (const boost::system::system_error& e)
 		{
 			LOG_F(ERROR,
-				"HTTP scrape request failure (tracker %s:%hu): %s",
+				"HTTP scrape request failure (tracker %s:%hu): %s.",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(), 
 				e.what());
 		}
@@ -126,14 +126,12 @@ namespace Bittorrent
 			req.set(http::field::host, peerHost);
 			req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
 
-			std::cout << "Sending..." << "\n";
-
 			// Send the HTTP request to the remote host
 			boost::beast::http::write(socket, req);
 
 			LOG_F(INFO,
 				"Sent HTTP announce request to tracker %s:%d; "
-				"Status: %s; announce URL: %s",
+				"Status: %s; announce URL: %s.",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
 				err.message().c_str(), target.c_str());
 
@@ -148,7 +146,7 @@ namespace Bittorrent
 
 			LOG_F(INFO,
 				"Received HTTP announce response from tracker %s:%hu; "
-				"Status: %s; Bytes received: %d",
+				"Status: %s; Bytes received: %d.",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
 				err.message().c_str(), res.payload_size().get());
 
@@ -159,7 +157,7 @@ namespace Bittorrent
 			socket.close();
 
 			LOG_F(INFO,
-				"Closed HTTP connection with tracker %s:%hu; ",
+				"Closed HTTP connection with tracker %s:%hu.",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port());
 
 			if (ec && ec != boost::system::errc::not_connected)
@@ -173,7 +171,7 @@ namespace Bittorrent
 		catch (const boost::system::system_error& e)
 		{
 			LOG_F(ERROR,
-				"HTTP announce request failure (tracker %s:%hu): %s",
+				"HTTP announce request failure (tracker %s:%hu): %s.",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
 				e.what());
 		}
@@ -197,29 +195,46 @@ namespace Bittorrent
 
 		if (stoi(result) != 200)
 		{
-			std::cout << "\n" << "Error reaching tracker \"" + peerHost + "\": "
-				+ "status code " + result << std::endl;
+			LOG_F(ERROR,
+				"Scrape GET request error (tracker %s:%hu)! Status code: %s.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+				result.c_str());
+
 			return;
 		}
+
+		LOG_F(INFO,
+			"Successful scrape GET request to tracker %s:%hu! Status code: %s.",
+			remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+			result.c_str());
 
 		//get and store body
 		std::string body{ boost::asio::buffers_begin(response.body().data()),
 				   boost::asio::buffers_end(response.body().data()) };
 
-		std::cout << body << "\n";
+		LOG_F(INFO,
+			"Tracker (%s:%hu) scrape response body: %s.",
+			remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+			body.c_str());
 
 		valueDictionary info = boost::get<valueDictionary>(Decoder::decode(body));
 
 		if (info.empty())
 		{
-			std::cout << "Unable to decode tracker announce response!" <<
-				std::endl;
+			LOG_F(ERROR, "Unable to decode tracker announce response!");
 			return;
 		}
 
 		if (info.count("failure reason"))
 		{
-			std::cout << boost::get<std::string>(info.at("failure reason"));
+			auto failReason = boost::get<std::string>(info.at("failure reason"));
+
+			LOG_F(INFO,
+				"Tracker (%s:%hu) scrape response: "
+				"Failure Reason %s.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+				failReason.c_str());
+
 			return;
 		}
 		else
@@ -235,8 +250,9 @@ namespace Bittorrent
 			complete = static_cast<int>(boost::get<long long>(hash.at("complete")));
 			incomplete = static_cast<int>(boost::get<long long>(hash.at("complete")));
 
-			std::cout << "complete: " << complete << "\n";
-			std::cout << "incomplete: " << complete << "\n";
+			LOG_F(INFO, 
+				"Updated peer info using tracker (%s:%hu) scrape response!",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
 		}
 	}
 
@@ -257,23 +273,33 @@ namespace Bittorrent
 
 		if (stoi(result) != 200)
 		{
-			std::cout << "\n" << "Error reaching tracker \"" + peerHost + "\": "
-				+ "status code " + result << std::endl;
+			LOG_F(ERROR,
+				"Announce GET request error (tracker %s:%hu)! Status code: %s.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+				result.c_str());
+
 			return;
 		}
+
+		LOG_F(INFO,
+			"Successful announce GET request to tracker %s:%hu! Status code: %s.",
+			remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+			result.c_str());
 
 		//get and store body
 		std::string body{ boost::asio::buffers_begin(response.body().data()),
 				   boost::asio::buffers_end(response.body().data()) };
 
-		valueDictionary info = boost::get<valueDictionary>(Decoder::decode(body));
+		LOG_F(INFO,
+			"Tracker (%s:%hu) announce response body: %s.",
+			remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+			body.c_str());
 
-		std::cout << body << "\n";
+		valueDictionary info = boost::get<valueDictionary>(Decoder::decode(body));
 
 		if (info.empty())
 		{
-			std::cout << "Unable to decode tracker announce response!" <<
-				std::endl;
+			LOG_F(ERROR, "Unable to decode tracker announce response!");
 			return;
 		}
 
@@ -283,21 +309,26 @@ namespace Bittorrent
 
 		if (info.count("failure reason"))
 		{
-			std::cout << boost::get<std::string>(info.at("failure reason"));
-				return;
+			auto failReason = boost::get<std::string>(info.at("failure reason"));
+
+			LOG_F(INFO,
+				"Tracker (%s:%hu) announce response: "
+				"Failure Reason %s.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+				failReason.c_str());
+
+			return;
 		}
 		else
 		{
-			complete = static_cast<int>(boost::get<long long>(info.at("complete")));
-			incomplete = static_cast<int>(boost::get<long long>(info.at("incomplete")));
-
-			std::cout << "complete: " << complete << "\n";
-			std::cout << "incomplete: " << incomplete << "\n";
+			complete = static_cast<int>(
+				boost::get<long long>(info.at("complete")));
+			incomplete = static_cast<int>(
+				boost::get<long long>(info.at("incomplete")));
 
 			if (!info.count("peers"))
 			{
-				std::cout << "\n" << "No peers data found in tracker response!" 
-					<<std::endl;
+				LOG_F(ERROR, "No peers data found in tracker announce response!");
 				return;
 			}
 			else
@@ -329,8 +360,13 @@ namespace Bittorrent
 						singlePeer.port = peerPort;
 						peerList.push_back(singlePeer);
 					}
+					LOG_F(INFO,
+						"Updated peer info using tracker (%s:%hu) announce "
+						"response (compact)!",
+						remoteEndpoint.address().to_string(), 
+						remoteEndpoint.port());
 				}
-				//non compact uses a list of dictionaries
+				//non-compact uses a list of dictionaries
 				else
 				{
 					valueList peerInfoList = boost::get<valueList>(
@@ -342,13 +378,18 @@ namespace Bittorrent
 						const std::string ipAddress =
 							boost::get<std::string>(peerInfoDict.at("ip"));
 						const int peerPort = static_cast<int>(
-							boost::get<long long>(peerInfoDict.at("ip")));
+							boost::get<long long>(peerInfoDict.at("port")));
 						//add to peers list
 						peer singlePeer;
 						singlePeer.ipAddress = ipAddress;
 						singlePeer.port = peerPort;
 						peerList.push_back(singlePeer);
 					}
+					LOG_F(INFO,
+						"Updated peer info using tracker (%s:%hu) announce "
+						"response (non-compact)!",
+						remoteEndpoint.address().to_string(),
+						remoteEndpoint.port());
 				}
 			}
 		}

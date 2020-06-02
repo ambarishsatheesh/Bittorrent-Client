@@ -73,7 +73,7 @@ namespace Bittorrent
 			if (complete == std::numeric_limits<int>::min() && 
 				incomplete == std::numeric_limits<int>::min())
 			{
-				HTTPClient httpAnnounce(parsedUrl, 1);
+				HTTPClient httpAnnounce(parsedUrl, 0);
 				complete = httpAnnounce.complete;
 				incomplete = httpAnnounce.incomplete;
 				//call signal to fire peerListUpdated event
