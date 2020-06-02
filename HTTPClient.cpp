@@ -49,10 +49,11 @@ namespace Bittorrent
 
 	HTTPClient::~HTTPClient()
 	{
-		LOG_F(INFO, 
+		socket.close();
+
+		LOG_F(INFO,
 			"Closed HTTP socket used for tracker update (%s:%s)",
 			peerHost, peerPort);
-		socket.close();
 	}
 
 	void HTTPClient::scrapeRequest(boost::system::error_code& err)
@@ -65,16 +66,14 @@ namespace Bittorrent
 			req.set(http::field::host, peerHost);
 			req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
 
-			std::cout << "Sending..." << "\n";
-
 			// Send the HTTP request to the remote host
 			boost::beast::http::write(socket, req);
 
-			std::cout << "Sent HTTP scrape request to " << remoteEndpoint
-				<< ": " << target << " (" << err.message()
-				<< ") \n";
-
-			std::cout << "Receiving..." << "\n";
+			LOG_F(INFO,
+				"Sent HTTP GET request to tracker %s:%d; "
+				"Status: %s; Scrape URL: %s" ,
+				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+				err.message().c_str(), target.c_str());
 
 			// This buffer is used for reading and must be persisted
 			boost::beast::flat_buffer buffer;
@@ -85,27 +84,35 @@ namespace Bittorrent
 			// Receive the HTTP response
 			http::read(socket, buffer, res);
 
-			std::cout << "Received HTTP scrape response from " 
-				<< remoteEndpoint << ": " << res.payload_size() << " bytes" 
-				<< " (" << err.message() << ") \n";
+			LOG_F(INFO,
+				"Received HTTP scrape response from tracker %s:%hu; "
+				"Status: %s; Bytes received: %d",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+				err.message().c_str(), res.payload_size().get());
 
 			// Gracefully close the socket
 			boost::system::error_code ec;
 			socket.shutdown(tcp::socket::shutdown_both, ec);
 			socket.close();
 
-			// not_connected happens sometimes
-			// so don't bother reporting it.
+			LOG_F(INFO,
+				"Closed HTTP connection with tracker %s:%hu; ",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
+
 			if (ec && ec != boost::system::errc::not_connected)
-				throw boost::system::system_error{ ec };
+			{
+				LOG_F(ERROR, "Error shutting down socket: %s", 
+					ec.message().c_str());
+			}
 
 			handleScrapeResp(res);
 		}
 		catch (const boost::system::system_error& e)
 		{
 			LOG_F(ERROR,
-				"Failed to resolve HTTP tracker %s:%s! Error msg: \"%s\"",
-				peerHost, peerPort, e.what());
+				"HTTP Scrape request failure (tracker %s:%hu): %s",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port(), 
+				e.what());
 		}
 	}
 
