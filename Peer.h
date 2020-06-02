@@ -44,7 +44,7 @@ namespace Bittorrent
 
 		boost::bimap<std::string, int> messageType;
 
-		std::string localID;
+		std::vector<byte> localID;
 		std::string peerID;
 
 		std::shared_ptr<Torrent> torrent;
@@ -74,11 +74,11 @@ namespace Bittorrent
 		//delete default constructor
 		Peer() = delete;
 		//client-opened connection constructors
-		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
+		Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
 			boost::asio::io_context& io_context);
 		//peer-opened connection constructor
 		//need io_context here to initialise timers
-		Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
+		Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
 			boost::asio::io_context& io_context, tcp::socket tcpClient);
 
 		//new connection called from client
@@ -139,7 +139,7 @@ namespace Bittorrent
 
 		//encoding
 		std::vector<byte> encodeHandshake(std::vector<byte>& hash,
-			std::string& id);
+			std::vector<byte>& id);
 		std::vector<byte> encodeKeepAlive();
 		std::vector<byte> encodeChoke();
 		std::vector<byte> encodeUnchoke();

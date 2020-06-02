@@ -10,7 +10,7 @@ namespace Bittorrent
 {
 	using namespace utility;
 
-	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID,
+	Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
 		boost::asio::io_context& io_context)
 		: localID{ localID }, peerID{ "" },
 		torrent{ torrent->getPtr() }, endpointKey(),
@@ -46,7 +46,7 @@ namespace Bittorrent
 	}
 
 	//construct peer from accepted connection started by another peer
-	Peer::Peer(std::shared_ptr<Torrent> torrent, std::string& localID, 
+	Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
 		boost::asio::io_context& io_context, tcp::socket tcpClient)
 		: localID{ localID }, peerID{ "" }, 
 		torrent{ torrent->getPtr() }, endpointKey(),
@@ -837,7 +837,7 @@ namespace Bittorrent
 	}
 
 	std::vector<byte> Peer::encodeHandshake(std::vector<byte>& hash,
-		std::string& id)
+		std::vector<byte>& id)
 	{
 		std::vector<byte> message(68);
 		std::string protocolStr = "Bittorrent protocol";
