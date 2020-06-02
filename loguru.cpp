@@ -1186,11 +1186,11 @@ namespace loguru
 		if (g_preamble_uptime && pos < out_buff_size) {
 			pos += snprintf(out_buff + pos, out_buff_size - pos, "( uptime  ) ");
 		}
-		if (g_preamble_thread && pos < out_buff_size) {
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "[%-*s]", LOGURU_THREADNAME_WIDTH, " thread name/id");
-		}
 		if (g_preamble_file && pos < out_buff_size) {
 			pos += snprintf(out_buff + pos, out_buff_size - pos, "%*s:line  ", LOGURU_FILENAME_WIDTH, "file");
+		}
+		if (g_preamble_thread && pos < out_buff_size) {
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "[%-*s]", LOGURU_THREADNAME_WIDTH, " thread name/id");
 		}
 		if (g_preamble_verbose && pos < out_buff_size) {
 			pos += snprintf(out_buff + pos, out_buff_size - pos, "   v");
@@ -1243,15 +1243,15 @@ namespace loguru
 			pos += snprintf(out_buff + pos, out_buff_size - pos, "(%8.3fs) ",
 				uptime_sec);
 		}
-		if (g_preamble_thread && pos < out_buff_size) {
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "[%-*s]",
-				LOGURU_THREADNAME_WIDTH, thread_name);
-		}
 		if (g_preamble_file && pos < out_buff_size) {
 			char shortened_filename[LOGURU_FILENAME_WIDTH + 1];
 			snprintf(shortened_filename, LOGURU_FILENAME_WIDTH + 1, "%s", file);
 			pos += snprintf(out_buff + pos, out_buff_size - pos, "%*s:%-5u ",
 				LOGURU_FILENAME_WIDTH, shortened_filename, line);
+		}
+		if (g_preamble_thread && pos < out_buff_size) {
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "[%-*s]",
+				LOGURU_THREADNAME_WIDTH, thread_name);
 		}
 		if (g_preamble_verbose && pos < out_buff_size) {
 			pos += snprintf(out_buff + pos, out_buff_size - pos, "%4s",
