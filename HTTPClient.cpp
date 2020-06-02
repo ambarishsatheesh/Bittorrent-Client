@@ -1,6 +1,8 @@
 #include "HTTPClient.h"
 #include "Decoder.h"
 #include "Utility.h"
+#include "loguru.h"
+
 #include <iomanip>
 
 #include <boost/optional/optional_io.hpp>
@@ -17,20 +19,25 @@ namespace Bittorrent
 	{
 		try
 		{
+			LOG_F(INFO, "Resolving HTTP tracker - host: %s, port: %s...", 
+				peerHost, peerPort);
+
 			//socket.close();
 			socket.open(tcp::v4());
 
 			// Look up the domain name
-			auto const results = resolver.resolve(peerHost, peerPort);
+			auto const results = resolver.resolve("www.dhesuiofn.com", peerPort);
 
 			// Make the connection on the IP address we get from a lookup
 			remoteEndpoint = boost::asio::connect(socket, results.begin(),
 				results.end())->endpoint();
+
+			LOG_F(INFO, "Resolved endpoint! Endpoint host: %s", 
+				remoteEndpoint.address().to_string());
 		}
 		catch(const boost::system::system_error& e)
 		{
-			std::cout << "\n" << "Error occured! Error code = " << e.code()
-				<< ". Message: " << e.what();
+			LOG_F(ERROR, "Failed to resolve HTTP tracker! Error msg: \"%s\"", e.what());
 		}
 
 		dataTransmission(parsedUrl, isAnnounce);
