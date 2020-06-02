@@ -1,4 +1,7 @@
 #include "Tokenizer.h"
+#include "loguru.h"
+
+
 #include <assert.h>
 #include <boost/regex.hpp>
 #include <sstream>
@@ -10,7 +13,7 @@
 namespace Bittorrent
 {
 	void Tokenizer::tokenize(const std::string& encoded,
-		std::deque<std::string>& tokens)
+		std::deque<std::string>& tokens, bool& isFail)
 	{
 		boost::regex expr("([idel])|(\\d+):|(-?\\d+)");
 		//container to store regex matches on string objects
@@ -37,31 +40,30 @@ namespace Bittorrent
 					if (strStart + strSize > currentStr.size())
 					{
 						tokens.clear();
-						throw std::invalid_argument("String is incorrectly sized!");
+						isFail = true;
+						LOG_F(ERROR, "String is incorrectly sized!");
+						return;
 					}
 
 					auto curToken = currentStr.substr(strStart, strSize);
-
-					if (curToken == "-0")
-					{
-						throw std::invalid_argument("Decoding error: negative zero is not allowed in encoded data!");
-					}
 					tokens.push_back(curToken);
 					encodedPos += strStart + strSize;
 				}
 				//if not string
 				else
 				{
-					//convert to long long if number, else push string
-		/*			long long res;
-					if (boost::conversion::try_lexical_convert<long long>(regStore[0].str(), res))
+					//check for leading 0
+					std::string leadZeroCheck = regStore[0];
+					if (leadZeroCheck.size() > 1 && leadZeroCheck.at(0) == '0')
 					{
-						tokens.push_back(res);
+						tokens.clear();
+						isFail = true;
+						LOG_F(ERROR,
+							"Decoding error: leading zero is not allowed in "
+							"encoded data!");
+						return;
 					}
-					else
-					{
-						tokens.push_back(regStore[0].str());
-					}*/
+
 					tokens.push_back(regStore[0].str());
 					encodedPos += regStore[0].str().size();
 				}
@@ -69,7 +71,9 @@ namespace Bittorrent
 			else
 			{
 				tokens.clear();
-				throw std::invalid_argument("Invalid input format!");
+				isFail = true;
+				LOG_F(ERROR, "Invalid input format!");
+				return;
 			}
 		}
 	}

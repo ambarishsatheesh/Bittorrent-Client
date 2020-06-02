@@ -1,7 +1,11 @@
+#pragma once
+
 #include "ValueTypes.h"
+#include "Tokenizer.h"
+#include "loguru.h"
+
 #include <string>
 #include <deque>
-#include "Tokenizer.h"
 #include <boost/lexical_cast.hpp>
 #include <iostream>
 
@@ -10,30 +14,43 @@ namespace Bittorrent
 	namespace Decoder
 	{
 		static value decode(const std::string& encoded);
-		static value decodeInt(std::deque<std::string>& tokens);
+		static value decodeInt(std::deque<std::string>& tokens, bool& isFail);
 		static value decodeString(std::deque<std::string>& tokens);
-		static value decodeNext(std::deque<std::string>& tokens);
-		static value decodeList(std::deque<std::string>& tokens);
-		static value decodeDict(std::deque<std::string>& tokens);
+		static value decodeNext(std::deque<std::string>& tokens, bool& isFail);
+		static value decodeList(std::deque<std::string>& tokens, bool& isFail);
+		static value decodeDict(std::deque<std::string>& tokens, bool& isFail);
 
 		value decode(const std::string& encoded)
 		{
-			std::deque<std::string> tokens;
-			Tokenizer::tokenize(encoded, tokens);
+			if (encoded.empty())
+			{
+				
+			}
 
-			return decodeNext(tokens);
+			std::deque<std::string> tokens;
+			bool isFail = false;
+			Tokenizer::tokenize(encoded, tokens, isFail);
+
+			if (isFail)
+			{
+				return value(0);
+			}
+
+			return decodeNext(tokens, isFail);
 		}
 
-		value decodeNext(std::deque<std::string>& tokens)
+		value decodeNext(std::deque<std::string>& tokens, bool& isFail)
 		{
 			if (tokens.empty())
 			{
-				throw std::invalid_argument("Encoded data is too short");
+				LOG_F(ERROR, "Encoding error: Encoded data is too short");
+				isFail = true;
+				return value(0);
 			}
 
 			if (tokens.front() == "i")
 			{
-				return decodeInt(tokens);
+				return decodeInt(tokens, isFail);
 			}
 			else if (tokens.front() == "s")
 			{
@@ -41,27 +58,41 @@ namespace Bittorrent
 			}
 			else if (tokens.front() == "l")
 			{
-				return decodeList(tokens);
+				return decodeList(tokens, isFail);
 			}
 			else if (tokens.front() == "d")
 			{
-				return decodeDict(tokens);
+				return decodeDict(tokens, isFail);
 			}
 
 			return value(0);
 		}
 
-		value decodeInt(std::deque<std::string>& tokens)
+		value decodeInt(std::deque<std::string>& tokens, bool& isFail)
 		{
 
 			if (tokens.size() < 3)
-				throw std::invalid_argument("Encoded data is too short");
+			{
+				LOG_F(ERROR, "Encoding error: Encoded data is too short!");
+				isFail = true;
+				return value(0);
+			}
+
 
 			if (tokens.at(2) != "e")
-				throw std::invalid_argument("Incorrect encoding: does not end with 'e'");
+			{
+				LOG_F(ERROR, "Encoding error: Encoded integer does not end with 'e'!");
+				isFail = true;
+				return value(0);
+			}
+				
 
 			if (tokens.at(1) == "-0")
-				throw std::invalid_argument("Negative zero is not allowed");
+			{
+				LOG_F(ERROR, "Encoding error: Negative zero is not allowed!");
+				isFail = true;
+				return value(0);
+			}
 
 			try {
 				long long valueInt = boost::lexical_cast<long long>(tokens.at(1));
@@ -70,8 +101,12 @@ namespace Bittorrent
 				tokens.pop_front(); // eat the "e"
 				return value(valueInt);
 			}
-			catch (boost::bad_lexical_cast&) {
-				throw std::invalid_argument("Incorrect integer: " + tokens.at(1));
+			catch (boost::bad_lexical_cast&) 
+			{
+				LOG_F(ERROR, "Encoding error: Incorrect integer: %s", 
+					tokens.at(1).c_str());
+				isFail = true;
+				return value(0);
 			}
 		}
 
@@ -84,13 +119,17 @@ namespace Bittorrent
 		}
 
 
-		value decodeList(std::deque<std::string>& tokens)
+		value decodeList(std::deque<std::string>& tokens, bool& isFail)
 		{
 			valueList vec;
 			tokens.pop_front(); // eat the "l"
 			while (tokens.front() != "e")
 			{
-				vec.push_back(decodeNext(tokens));
+				vec.push_back(decodeNext(tokens, isFail));
+				if (isFail)
+				{
+					return vec;
+				}
 			}
 
 			tokens.pop_front(); // eat the "e"
@@ -99,12 +138,18 @@ namespace Bittorrent
 		}
 
 
-		value decodeDict(std::deque<std::string>& tokens)
+		value decodeDict(std::deque<std::string>& tokens, bool& isFail)
 		{
 			// Make a list
-			valueList vec = boost::get<valueList>(decodeList(tokens));
+			valueList vec = boost::get<valueList>(decodeList(tokens, isFail));
+
+			if (isFail)
+			{
+				return value(0);
+			}
 
 			valueDictionary dict;
+
 			for (size_t i = 0; i < vec.size(); i += 2)
 			{
 				dict.emplace(boost::get<std::string>(vec.at(i)), vec.at(i + 1));

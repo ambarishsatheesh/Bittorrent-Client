@@ -9,7 +9,7 @@ namespace Bittorrent
 	{
 	public:
 		static void tokenize(const std::string& encoded,
-			std::deque<std::string>& tokens);
+			std::deque<std::string>& tokens, bool& isFail);
 
 	private:
 		Tokenizer();
