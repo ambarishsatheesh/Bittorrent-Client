@@ -19,11 +19,14 @@ namespace Bittorrent
 		std::string hostname;
 		std::string port;
 		std::string target;
+		bool isInvalidURL;
 
 		//constructor
 		trackerUrl(std::string& url);
 		//no default constructor - requires parameter
 		trackerUrl() = delete;
+
+		void parse();
 	};
 }
 

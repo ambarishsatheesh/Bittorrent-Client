@@ -1,32 +1,22 @@
 #include "trackerUrl.h"
+#include "loguru.h"
 
 namespace Bittorrent
 {
 	trackerUrl::trackerUrl(std::string& url)
-		: protocol{ trackerUrl::protocolType::udp }, fullUrl{ "" }, 
-		hostname{ "" }, port{ "" }, target{""}
+		: protocol(), fullUrl{ url }, 
+		hostname{ "" }, port{ "" }, target{ "" }, isInvalidURL{}
 	{
-		fullUrl = url;
+	}
 
+	void trackerUrl::parse()
+	{
 		//get protocol
-		const size_t protocolColonIdx = url.find_first_of(":");
-		std::string protocolString = url.substr(0, protocolColonIdx);
-
-		if (protocolString == "http")
-		{
-			protocol = protocolType::http;
-		}
-		else if (protocolString == "udp")
-		{
-			protocol = protocolType::udp;
-		}
-		else
-		{
-			throw std::invalid_argument("Invalid protocol!");
-		}
+		const size_t protocolColonIdx = fullUrl.find_first_of(":");
+		std::string protocolString = fullUrl.substr(0, protocolColonIdx);
 
 		//get hostname
-		std::string urlNoProtocol = url.substr(protocolColonIdx + 3);
+		std::string urlNoProtocol = fullUrl.substr(protocolColonIdx + 3);
 		const size_t portColonIdx = urlNoProtocol.find_first_of(":");
 		hostname = urlNoProtocol.substr(0, portColonIdx);
 
@@ -38,7 +28,10 @@ namespace Bittorrent
 		}
 		else
 		{
-			std::cout << "\n" << "Tracker URL does not contain a port!" << "\n";
+			LOG_F(ERROR, "Tracker URL does not contain a port! (%s)",
+				fullUrl.c_str());
+			isInvalidURL = true;
+			return;
 		}
 
 		//get target if not empty
@@ -49,8 +42,27 @@ namespace Bittorrent
 		}
 		else
 		{
-			std::cout << "\n" << "Tracker URL does not contain a target!" 
-				<< "\n";
+			LOG_F(ERROR, "Tracker URL does not contain a target! (%s)",
+				fullUrl.c_str());
+			isInvalidURL = true;
+			return;
+		}
+
+		if (protocolString == "http")
+		{
+			protocol = protocolType::http;
+		}
+		else if (protocolString == "udp")
+		{
+			protocol = protocolType::udp;
+		}
+		else
+		{
+			LOG_F(ERROR, "Invalid protocol \"%s\" for tracker %s:%s!",
+				protocolString.c_str(),
+				hostname.c_str(), port.c_str());
+			isInvalidURL = true;
+			return;
 		}
 	}
 }
