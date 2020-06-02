@@ -34,6 +34,7 @@ namespace Bittorrent
 	{
 		std::string ipAddress;
 		std::string port;
+		//not used for anything yet
 		std::vector<byte> peerID;
 
 		//overload == operator to allow comparison
