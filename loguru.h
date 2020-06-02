@@ -56,7 +56,7 @@ Website: www.ilikebigbits.com
 
 #ifndef LOGURU_THREADNAME_WIDTH
 	// Width of the column containing the thread name
-#define LOGURU_THREADNAME_WIDTH 16
+#define LOGURU_THREADNAME_WIDTH 25
 #endif
 
 #ifndef LOGURU_SCOPE_TIME_PRECISION
