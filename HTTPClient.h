@@ -31,7 +31,7 @@ namespace Bittorrent
 		int incomplete;
 		std::vector<peer> peerList;
 
-		void dataTransmission(trackerUrl& parsedUrl, bool isAnnounce);
+		void dataTransmission(bool isAnnounce);
 
 		//constructor
 		HTTPClient(trackerUrl& parsedUrl, bool isAnnounce);
@@ -43,10 +43,8 @@ namespace Bittorrent
 		tcp::socket socket;
 		tcp::endpoint remoteEndpoint;
 
-		void scrapeRequest(trackerUrl& parsedUrl,
-			boost::system::error_code& err);
-		void announceRequest(trackerUrl& parsedUrl,
-			boost::system::error_code& err);
+		void scrapeRequest(boost::system::error_code& err);
+		void announceRequest(boost::system::error_code& err);
 
 		void handleScrapeResp(http::response<http::dynamic_body>& response);
 		void handleAnnounceResp(http::response<http::dynamic_body>& response);

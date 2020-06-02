@@ -37,7 +37,7 @@ namespace Bittorrent
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
 				peerHost, peerPort);
 
-			dataTransmission(parsedUrl, isAnnounce);
+			dataTransmission(isAnnounce);
 		}
 		catch(const boost::system::system_error& e)
 		{
@@ -55,8 +55,7 @@ namespace Bittorrent
 		socket.close();
 	}
 
-	void HTTPClient::scrapeRequest(trackerUrl& parsedUrl,
-		boost::system::error_code& err)
+	void HTTPClient::scrapeRequest(boost::system::error_code& err)
 	{
 		try
 		{
@@ -104,13 +103,13 @@ namespace Bittorrent
 		}
 		catch (const boost::system::system_error& e)
 		{
-			std::cout << "\n" << "Error occured! Error code = " << e.code()
-				<< ". Message: " << e.what();
+			LOG_F(ERROR,
+				"Failed to resolve HTTP tracker %s:%s! Error msg: \"%s\"",
+				peerHost, peerPort, e.what());
 		}
 	}
 
-	void HTTPClient::announceRequest(trackerUrl& parsedUrl,
-		boost::system::error_code& err)
+	void HTTPClient::announceRequest(boost::system::error_code& err)
 	{
 		try
 		{
@@ -158,8 +157,9 @@ namespace Bittorrent
 		}
 		catch (const boost::system::system_error& e)
 		{
-			std::cout << "\n" << "Error occured! Error code = " << e.code()
-				<< ". Message: " << e.what();
+			LOG_F(ERROR,
+				"Failed to resolve HTTP tracker %s:%s! Error msg: \"%s\"",
+				peerHost, peerPort, e.what());
 		}
 	}
 
@@ -338,33 +338,38 @@ namespace Bittorrent
 		}
 	}
 
-	void HTTPClient::dataTransmission(trackerUrl& parsedUrl, bool isAnnounce)
+	void HTTPClient::dataTransmission(bool isAnnounce)
 	{
 		boost::system::error_code err;
 
 		//use interval value to check if we have announced before
 		if (isAnnounce)
 		{
-			announceRequest(parsedUrl, err);
+			LOG_F(INFO, "Starting HTTP announce request...");
+
+			announceRequest(err);
 		}
-		else if (!isAnnounce && target.find("scrape") != std::string::npos)
+		else if (!isAnnounce)
 		{
-			scrapeRequest(parsedUrl, err);
-		}
-		else
-		{		
 			//if target doesn't contain "announce" immediately after the slash,
 			//it doesn't support scraping
-			auto slashPos = parsedUrl.target.find_last_of("\\/");
-			auto ancPos = parsedUrl.target.find("announce");
-			if (ancPos - slashPos != 1)
+			auto slashPos = target.find_last_of("\\/");
+			auto ancPos = target.find("announce");
+			if (ancPos == 1)
 			{
-				announceRequest(parsedUrl, err);
-			}
-			else if (ancPos == 1)
-			{
+				LOG_F(INFO, "Starting HTTP scrape request...");
+
 				target.replace(ancPos, 8, "scrape");
-				scrapeRequest(parsedUrl, err);
+				scrapeRequest(err);
+			}
+			else if (ancPos - slashPos != 1)
+			{
+				LOG_F(WARNING,
+					"Scraping is not supported for this tracker (%s:%hu)",
+					remoteEndpoint.address().to_string(), remoteEndpoint.port());
+				LOG_F(INFO, "Starting HTTP announce request...");
+
+				announceRequest(err);
 			}
 		}
 	}
