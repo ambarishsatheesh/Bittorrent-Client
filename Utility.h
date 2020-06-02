@@ -13,6 +13,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "ValueTypes.h"
+#include "loguru.h"
 
 namespace Bittorrent
 {
@@ -98,6 +99,14 @@ namespace Bittorrent
             {
                 std::string contents;
                 read.seekg(0, std::ios::end);
+
+                //handle empty file
+                if (read.tellg() == 0)
+                {
+                    LOG_F(ERROR, "Torrent file is empty!");
+                    return contents;
+                }
+
                 contents.resize(read.tellg());
                 read.seekg(0, std::ios::beg);
                 read.read(&contents.at(0), contents.size());
