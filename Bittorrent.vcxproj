@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="Client.cpp" />
     <ClCompile Include="HTTPClient.cpp" />
+    <ClCompile Include="loguru.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="encodeVisitor.cpp" />
     <ClCompile Include="Peer.cpp" />
@@ -41,6 +42,7 @@
     <ClInclude Include="encodeVisitor.h" />
     <ClInclude Include="fileObj.h" />
     <ClInclude Include="HTTPClient.h" />
+    <ClInclude Include="loguru.h" />
     <ClInclude Include="Peer.h" />
     <ClInclude Include="sha1.h" />
     <ClInclude Include="Tokenizer.h" />
