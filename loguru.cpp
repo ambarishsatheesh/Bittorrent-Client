@@ -28,7 +28,7 @@
 #ifndef LOGURU_HAS_BEEN_IMPLEMENTED
 #define LOGURU_HAS_BEEN_IMPLEMENTED
 
-#define LOGURU_PREAMBLE_WIDTH (53 + LOGURU_THREADNAME_WIDTH + LOGURU_FILENAME_WIDTH)
+#define LOGURU_PREAMBLE_WIDTH (100 + LOGURU_THREADNAME_WIDTH + LOGURU_FILENAME_WIDTH)
 
 #undef min
 #undef max
@@ -1178,22 +1178,22 @@ namespace loguru
 		out_buff[0] = '\0';
 		long pos = 0;
 		if (g_preamble_date && pos < out_buff_size) {
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "date       ");
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "Date       |");
 		}
 		if (g_preamble_time && pos < out_buff_size) {
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "time         ");
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "   Time      |");
 		}
 		if (g_preamble_uptime && pos < out_buff_size) {
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "( uptime  ) ");
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "  Uptime  |");
 		}
 		if (g_preamble_file && pos < out_buff_size) {
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "%*s:line  ", LOGURU_FILENAME_WIDTH, "file");
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "%*s:Line  |", LOGURU_FILENAME_WIDTH, "File");
 		}
 		if (g_preamble_thread && pos < out_buff_size) {
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "[%-*s]  ", LOGURU_THREADNAME_WIDTH, " thread name/id");
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "  [%-*s] |", LOGURU_THREADNAME_WIDTH, " Thread name/ID");
 		}
 		if (g_preamble_verbose && pos < out_buff_size) {
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "   v");
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "Level");
 		}
 		if (g_preamble_pipe && pos < out_buff_size) {
 			pos += snprintf(out_buff + pos, out_buff_size - pos, "| ");
@@ -1232,29 +1232,29 @@ namespace loguru
 		long pos = 0;
 
 		if (g_preamble_date && pos < out_buff_size) {
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "%04d-%02d-%02d ",
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "%04d-%02d-%02d |",
 				1900 + time_info.tm_year, 1 + time_info.tm_mon, time_info.tm_mday);
 		}
 		if (g_preamble_time && pos < out_buff_size) {
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "%02d:%02d:%02d.%03lld ",
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "%02d:%02d:%02d.%03lld |",
 				time_info.tm_hour, time_info.tm_min, time_info.tm_sec, ms_since_epoch % 1000);
 		}
 		if (g_preamble_uptime && pos < out_buff_size) {
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "(%8.3fs) ",
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "%8.3fs |",
 				uptime_sec);
 		}
 		if (g_preamble_file && pos < out_buff_size) {
 			char shortened_filename[LOGURU_FILENAME_WIDTH + 1];
 			snprintf(shortened_filename, LOGURU_FILENAME_WIDTH + 1, "%s", file);
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "%*s:%-5u ",
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "%*s:%-5u |",
 				LOGURU_FILENAME_WIDTH, shortened_filename, line);
 		}
 		if (g_preamble_thread && pos < out_buff_size) {
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "[%-*s]  ",
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "  [%-*s] |",
 				LOGURU_THREADNAME_WIDTH, thread_name);
 		}
 		if (g_preamble_verbose && pos < out_buff_size) {
-			pos += snprintf(out_buff + pos, out_buff_size - pos, "%4s",
+			pos += snprintf(out_buff + pos, out_buff_size - pos, "%4s ",
 				level_buff);
 		}
 		if (g_preamble_pipe && pos < out_buff_size) {

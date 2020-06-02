@@ -51,12 +51,12 @@ Website: www.ilikebigbits.com
 
 #ifndef LOGURU_FILENAME_WIDTH
 	// Width of the column containing the file name
-#define LOGURU_FILENAME_WIDTH 23
+#define LOGURU_FILENAME_WIDTH 18
 #endif
 
 #ifndef LOGURU_THREADNAME_WIDTH
 	// Width of the column containing the thread name
-#define LOGURU_THREADNAME_WIDTH 25
+#define LOGURU_THREADNAME_WIDTH 20
 #endif
 
 #ifndef LOGURU_SCOPE_TIME_PRECISION
