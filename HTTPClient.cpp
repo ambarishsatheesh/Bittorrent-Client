@@ -19,32 +19,39 @@ namespace Bittorrent
 	{
 		try
 		{
-			LOG_F(INFO, "Resolving HTTP tracker - host: %s, port: %s...", 
+			std::cout << peerHost << "\n";
+			LOG_F(INFO, "Resolving HTTP tracker - %s:%s...", 
 				peerHost, peerPort);
 
 			//socket.close();
 			socket.open(tcp::v4());
 
 			// Look up the domain name
-			auto const results = resolver.resolve("www.dhesuiofn.com", peerPort);
+			auto const results = resolver.resolve(peerHost, peerPort);
 
 			// Make the connection on the IP address we get from a lookup
 			remoteEndpoint = boost::asio::connect(socket, results.begin(),
 				results.end())->endpoint();
 
-			LOG_F(INFO, "Resolved endpoint! Endpoint host: %s", 
-				remoteEndpoint.address().to_string());
+			LOG_F(INFO, "Resolved HTTP tracker endpoint! Endpoint: %s:%hu (%s:%s)",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+				peerHost, peerPort);
+
+			dataTransmission(parsedUrl, isAnnounce);
 		}
 		catch(const boost::system::system_error& e)
 		{
-			LOG_F(ERROR, "Failed to resolve HTTP tracker! Error msg: \"%s\"", e.what());
+			LOG_F(ERROR, 
+				"Failed to resolve HTTP tracker %s:%s! Error msg: \"%s\"", 
+				peerHost, peerPort, e.what());
 		}
-
-		dataTransmission(parsedUrl, isAnnounce);
 	}
 
 	HTTPClient::~HTTPClient()
 	{
+		LOG_F(INFO, 
+			"Closed HTTP socket used for tracker update (%s:%s)",
+			peerHost, peerPort);
 		socket.close();
 	}
 
