@@ -19,47 +19,47 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Client.cpp" />
-    <ClCompile Include="encodeVisitor.cpp" />
-    <ClCompile Include="HTTPClient.cpp" />
-    <ClCompile Include="loguru.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="Peer.cpp" />
-    <ClCompile Include="sha1.cpp" />
+    <ClCompile Include="src\Client.cpp" />
+    <ClCompile Include="src\encodeVisitor.cpp" />
+    <ClCompile Include="src\HTTPClient.cpp" />
+    <ClCompile Include="src\loguru.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Peer.cpp" />
+    <ClCompile Include="src\sha1.cpp" />
+    <ClCompile Include="src\Torrent.cpp" />
+    <ClCompile Include="src\TorrentGeneral.cpp" />
+    <ClCompile Include="src\TorrentHashes.cpp" />
+    <ClCompile Include="src\TorrentPieces.cpp" />
+    <ClCompile Include="src\TorrentStatus.cpp" />
+    <ClCompile Include="src\trackerObj.cpp" />
+    <ClCompile Include="src\trackerUrl.cpp" />
+    <ClCompile Include="src\UDPClient.cpp" />
     <ClCompile Include="Tokenizer.cpp" />
-    <ClCompile Include="Torrent.cpp" />
-    <ClCompile Include="TorrentGeneral.cpp" />
-    <ClCompile Include="TorrentHashes.cpp" />
-    <ClCompile Include="TorrentPieces.cpp" />
-    <ClCompile Include="TorrentStatus.cpp" />
-    <ClCompile Include="trackerObj.cpp" />
-    <ClCompile Include="trackerUrl.cpp" />
-    <ClCompile Include="UDPClient.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Client.h" />
-    <ClInclude Include="Decoder.h" />
-    <ClInclude Include="encodeVisitor.h" />
-    <ClInclude Include="fileObj.h" />
-    <ClInclude Include="HTTPClient.h" />
-    <ClInclude Include="loguru.h" />
-    <ClInclude Include="Peer.h" />
-    <ClInclude Include="sha1.h" />
-    <ClInclude Include="Tokenizer.h" />
-    <ClInclude Include="Torrent.h" />
-    <ClInclude Include="TorrentGeneral.h" />
-    <ClInclude Include="TorrentHashes.h" />
-    <ClInclude Include="TorrentManipulation.h" />
-    <ClInclude Include="TorrentPieces.h" />
-    <ClInclude Include="TorrentStatus.h" />
-    <ClInclude Include="trackerObj.h" />
-    <ClInclude Include="trackerUrl.h" />
-    <ClInclude Include="UDPClient.h" />
-    <ClInclude Include="Utility.h" />
-    <ClInclude Include="ValueTypes.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="x64\Release\references.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Client.h" />
+    <ClInclude Include="include\Decoder.h" />
+    <ClInclude Include="include\encodeVisitor.h" />
+    <ClInclude Include="include\fileObj.h" />
+    <ClInclude Include="include\HTTPClient.h" />
+    <ClInclude Include="include\loguru.h" />
+    <ClInclude Include="include\Peer.h" />
+    <ClInclude Include="include\sha1.h" />
+    <ClInclude Include="include\Tokenizer.h" />
+    <ClInclude Include="include\Torrent.h" />
+    <ClInclude Include="include\TorrentGeneral.h" />
+    <ClInclude Include="include\TorrentHashes.h" />
+    <ClInclude Include="include\TorrentManipulation.h" />
+    <ClInclude Include="include\TorrentPieces.h" />
+    <ClInclude Include="include\TorrentStatus.h" />
+    <ClInclude Include="include\trackerObj.h" />
+    <ClInclude Include="include\trackerUrl.h" />
+    <ClInclude Include="include\UDPClient.h" />
+    <ClInclude Include="include\Utility.h" />
+    <ClInclude Include="include\ValueTypes.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
