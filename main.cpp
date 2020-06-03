@@ -45,7 +45,6 @@ int main(int argc, char* argv[])
 	loguru::init(argc, argv);
 	loguru::add_file("log.log", loguru::Append, loguru::Verbosity_MAX);
 
-
 	//std::cout << "Welcome to my test Bittorrent client!" << "\n" << "\n";
 
 	//std::cout << "1. Choose a torrent file and start downloading" << "\n";
