@@ -20,10 +20,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp" />
+    <ClCompile Include="encodeVisitor.cpp" />
     <ClCompile Include="HTTPClient.cpp" />
     <ClCompile Include="loguru.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="encodeVisitor.cpp" />
     <ClCompile Include="Peer.cpp" />
     <ClCompile Include="sha1.cpp" />
     <ClCompile Include="Tokenizer.cpp" />
@@ -167,7 +167,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\Documents\Programming\date;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Documents\Programming\Bittorrent\Bittorrent\include;D:\Documents\Programming\date;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_WIN32_WINNT=0x0501</PreprocessorDefinitions>
     </ClCompile>

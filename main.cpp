@@ -406,8 +406,10 @@ int main(int argc, char* argv[])
 	auto thread1 = std::thread([&]() {
 		loguru::set_thread_name("Tracker Update 1");
 		LOG_F(INFO, "Starting new thread...");
-		udpTestTorrent.generalData.trackerList.at(0).update(trackerObj::trackerEvent::started,
-			client.localID, 6681, udpTestTorrent.hashesData.urlEncodedInfoHash, udpTestTorrent.hashesData.infoHash, 2500, 1200, 0);
+		udpTestTorrent.generalData.trackerList.at(0).update(
+			trackerObj::trackerEvent::started,
+			client.localID, 6681, udpTestTorrent.hashesData.urlEncodedInfoHash, 
+			udpTestTorrent.hashesData.infoHash, 2500, 1200, 0);
 		});
 
 	//auto thread2 = std::thread([&]() {
@@ -420,8 +422,10 @@ int main(int argc, char* argv[])
 	auto thread3 = std::thread([&]() {
 		loguru::set_thread_name("Tracker Update 3");
 		LOG_F(INFO, "Starting new thread...");
-		udpTestTorrent.generalData.trackerList.at(11).update(trackerObj::trackerEvent::started,
-			client.localID, 6681, udpTestTorrent.hashesData.urlEncodedInfoHash, udpTestTorrent.hashesData.infoHash, 2500, 1200, 0);
+		udpTestTorrent.generalData.trackerList.at(11).update(
+			trackerObj::trackerEvent::started,
+			client.localID, 6681, udpTestTorrent.hashesData.urlEncodedInfoHash, 
+			udpTestTorrent.hashesData.infoHash, 2500, 1200, 0);
 		});
 
 	auto betweenTest = 5 + 10;

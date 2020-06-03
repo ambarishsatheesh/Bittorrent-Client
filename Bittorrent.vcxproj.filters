@@ -15,31 +15,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Tokenizer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Torrent.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TorrentStatus.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TorrentPieces.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TorrentHashes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TorrentGeneral.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="encodeVisitor.cpp">
+    <ClCompile Include="TorrentHashes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sha1.cpp">
+    <ClCompile Include="TorrentStatus.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="trackerObj.cpp">
@@ -48,39 +33,48 @@
     <ClCompile Include="trackerUrl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UDPClient.cpp">
+    <ClCompile Include="loguru.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="HTTPClient.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Peer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Client.cpp">
+    <ClCompile Include="UDPClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="loguru.cpp">
+    <ClCompile Include="TorrentPieces.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Tokenizer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sha1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HTTPClient.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="encodeVisitor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Client.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Decoder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ValueTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Tokenizer.h">
+    <ClInclude Include="trackerUrl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Torrent.h">
+    <ClInclude Include="UDPClient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Utility.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="fileObj.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="trackerObj.h">
@@ -92,37 +86,43 @@
     <ClInclude Include="TorrentPieces.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TorrentManipulation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="TorrentHashes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TorrentGeneral.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TorrentManipulation.h">
+    <ClInclude Include="Torrent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="encodeVisitor.h">
+    <ClInclude Include="Tokenizer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="sha1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="trackerUrl.h">
+    <ClInclude Include="Peer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UDPClient.h">
+    <ClInclude Include="loguru.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="HTTPClient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Peer.h">
+    <ClInclude Include="fileObj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="encodeVisitor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Decoder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Client.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="loguru.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
