@@ -363,8 +363,6 @@ int main(int argc, char* argv[])
 	//}
 
 
-
-
 	const char* fullFilePath = argv[1];
 
 	bool isPrivate = false;
