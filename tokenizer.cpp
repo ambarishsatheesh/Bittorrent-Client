@@ -16,8 +16,10 @@ namespace Bittorrent
 		std::deque<std::string>& tokens, bool& isFail)
 	{
 		boost::regex expr("([idel])|(\\d+):|(-?\\d+)");
+
 		//container to store regex matches on string objects
 		boost::smatch regStore;
+
 		//Instructs the matching engine to retain all available capture 
 		//information; information about repeated capturing groups is available
 		boost::match_flag_type matchFlag = boost::match_extra;
