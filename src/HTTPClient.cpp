@@ -69,7 +69,7 @@ namespace Bittorrent
 			boost::beast::http::write(socket, req);
 
 			LOG_F(INFO,
-				"Sent HTTP scrape request to tracker %s:%d; "
+				"Sent HTTP scrape request to tracker %s:%hu; "
 				"Status: %s; Scrape URL: %s." ,
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
 				err.message().c_str(), target.c_str());
