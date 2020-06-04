@@ -26,6 +26,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Peer.cpp" />
     <ClCompile Include="src\sha1.cpp" />
+    <ClCompile Include="src\tokenizer.cpp" />
     <ClCompile Include="src\Torrent.cpp" />
     <ClCompile Include="src\TorrentGeneral.cpp" />
     <ClCompile Include="src\TorrentHashes.cpp" />
@@ -34,7 +35,6 @@
     <ClCompile Include="src\trackerObj.cpp" />
     <ClCompile Include="src\trackerUrl.cpp" />
     <ClCompile Include="src\UDPClient.cpp" />
-    <ClCompile Include="Tokenizer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="x64\Release\references.txt" />
