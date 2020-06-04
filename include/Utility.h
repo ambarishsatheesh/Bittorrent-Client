@@ -281,7 +281,7 @@ namespace Bittorrent
         //get hex representation of data
         inline std::string toHex(std::vector<byte> data)
         {
-            static std::string hex_res;
+            std::string hex_res;
             for (auto i : data) {
                 std::ostringstream oss;
                 oss << std::hex << std::setw(2) << std::setfill('0') << (unsigned)i;
