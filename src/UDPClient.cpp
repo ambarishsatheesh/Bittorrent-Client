@@ -39,7 +39,7 @@ namespace Bittorrent
 			udp::resolver resolver{ io_context };
 
 			LOG_F(INFO, "Resolving UDP tracker (%s:%s)...",
-				peerHost, peerPort);
+				peerHost.c_str(), peerPort.c_str());
 
 			// Look up the domain name
 			const auto results = resolver.resolve(peerHost, peerPort);
@@ -55,7 +55,7 @@ namespace Bittorrent
 
 			LOG_F(INFO, "Resolved UDP tracker endpoint! Endpoint: %s:%hu (%s:%s).",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
-				peerHost, peerPort);
+				peerHost.c_str(), peerPort.c_str());
 
 			dataTransmission(parsedUrl, isAnnounce);
 		}
@@ -64,7 +64,7 @@ namespace Bittorrent
 			isFail = true;
 			LOG_F(ERROR,
 				"Failed to resolve UDP tracker %s:%s! Error msg: \"%s\".",
-				peerHost, peerPort, e.what());
+				peerHost.c_str(), peerPort.c_str(), e.what());
 		}
 	}
 
@@ -75,7 +75,7 @@ namespace Bittorrent
 
 		LOG_F(INFO,
 			"Closed UDP socket used for tracker update (%s:%s).",
-			peerHost, peerPort);
+			peerHost.c_str(), peerPort.c_str());
 	}
 
 	std::vector<byte> UDPClient::buildConnectReq()
