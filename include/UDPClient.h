@@ -16,6 +16,31 @@ namespace Bittorrent
 	class UDPClient
 	{
 	public:
+		boost::posix_time::ptime connIDReceivedTime;
+		boost::posix_time::ptime lastRequestTime;
+
+		//announce response data
+		boost::posix_time::seconds peerRequestInterval;
+		int leechers;
+		int seeders;
+		int completed;
+		std::vector<peer> peerList;
+
+		void dataTransmission(trackerUrl& parsedUrl, bool isAnnounce);
+
+		//default constructor & destructor
+		UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID, 
+			std::vector<byte>& infoHash, long long& uploaded, 
+			long long& downloaded, long long& remaining, int& intEvent, 
+			bool isAnnounce);
+		~UDPClient();
+
+	private:
+		//general variables
+		std::string peerHost;
+		std::string peerPort;
+		std::vector<byte> errorAction;
+
 		//sent variables
 		std::vector<byte> protocolID;
 		std::vector<byte> sentTransactionID;
@@ -23,8 +48,6 @@ namespace Bittorrent
 
 		//received variables
 		std::vector<byte> connectionID;
-		boost::posix_time::ptime connIDReceivedTime;
-		boost::posix_time::ptime lastRequestTime;
 
 		//scrape variables
 		std::vector<byte> scrapeAction;
@@ -41,32 +64,10 @@ namespace Bittorrent
 		int ancIntEvent;
 
 		//send/receive buffers
-		std::vector<byte> receivedConnBuffer;
-		std::vector<byte> receivedScrapeBuffer;
-		std::vector<byte> receivedAncBuffer;
+		std::vector<byte> recConnBuffer;
+		std::vector<byte> recScrapeBuffer;
+		std::vector<byte> recAncBuffer;
 
-		//announce response data
-		boost::posix_time::seconds peerRequestInterval;
-		int leechers;
-		int seeders;
-		int completed;
-		std::vector<peer> peerList;
-
-		//general variables
-		std::string peerHost;
-		std::string peerPort;
-		std::vector<byte> errorAction;
-
-		void dataTransmission(trackerUrl& parsedUrl, bool isAnnounce);
-
-		//default constructor & destructor
-		UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID, 
-			std::vector<byte>& infoHash, long long& uploaded, 
-			long long& downloaded, long long& remaining, int& intEvent, 
-			bool isAnnounce);
-		~UDPClient();
-
-	private:
 		boost::asio::io_context io_context;
 		//Need two sockets since the connect free function will close the 
 		//socket and bind to an unspecified port.
