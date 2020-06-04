@@ -54,8 +54,6 @@ namespace Bittorrent
 		std::vector<byte> byteInfoHash;
 
 		//announce (send) variables
-		//using byte instead of byte (uint8_t) because announce buffer 
-		//contains -1 for num_want value
 		std::vector<byte> ancAction;
 		std::vector<byte> ancClientID;
 		long long ancDownloaded;

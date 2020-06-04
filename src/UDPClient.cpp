@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <random>
 #include <limits>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #define UDP_PORT 6881
 
@@ -281,8 +282,6 @@ namespace Bittorrent
 
 			std::string logBuffer = toHex(connectReqBuffer);
 
-			std::cout << "LOG BUFFER: "<< logBuffer << "\n";
-
 			LOG_F(INFO, "Sent UDP connect request from %s:%hu to tracker %s:%hu; "
 				"Status: %s; Sent bytes: %d; Sent payload: %s.",
 				socket_transmission.local_endpoint().address().to_string(),
@@ -293,28 +292,29 @@ namespace Bittorrent
 			//no need to bind socket for receiving because sending UDP 
 			//automatically binds endpoint
 			//read response into buffer
-			const std::size_t connBytesRec =
+			const std::size_t recConnBytes =
 				socket_transmission.receive_from(
 					boost::asio::buffer(recConnBuffer,
 						recConnBuffer.size()), remoteEndpoint, 0, err);
 
-			LOG_F(INFO, "Received UDP connect response from tracker %s:%hu; "
-				"Status: %s; Received bytes: %d; Sent payload: %s.",
-				socket_transmission.local_endpoint().address().to_string(),
-				socket_transmission.local_endpoint().port(),
-				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
-				err.message().c_str(), connBytesRec, logBuffer.c_str());
+			logBuffer = toHex(recConnBuffer);
 
-			std::cout << "Received connect response from " << remoteEndpoint << 
-				": " << connBytesRec << " bytes" << " (" << err.message() 
-				<< ") \n";
+			LOG_F(INFO, "Received UDP connect response from tracker %s:%hu; "
+				"Status: %s; Received bytes: %d; Received payload: %s.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+				err.message().c_str(), recConnBytes, logBuffer.c_str());
 
 			//update relevant timekeeping
 			connIDReceivedTime = boost::posix_time::second_clock::local_time();
 			lastRequestTime = boost::posix_time::second_clock::local_time();
 
+			LOG_F(INFO, "Received connection ID at %s; "
+				"Updated last Request time.",
+				boost::posix_time::to_simple_string(
+					boost::posix_time::ptime(lastRequestTime)).c_str());
+
 			//handle connect response
-			handleConnectResp(connBytesRec);
+			handleConnectResp(recConnBytes);
 
 		}
 		catch (const boost::system::system_error& e)
@@ -348,13 +348,13 @@ namespace Bittorrent
 			//no need to bind socket for receiving because sending UDP 
 			//automatically binds endpoint
 			//read response into buffer
-			const std::size_t scrapeBytesRec =
+			const std::size_t recScrapeBytes =
 				socket_transmission.receive_from(
 					boost::asio::buffer(recScrapeBuffer,
 						recScrapeBuffer.size()), remoteEndpoint, 0, err);
 
 			std::cout << "Received scrape response from " << remoteEndpoint <<
-				": " << scrapeBytesRec << " bytes" << " (" << err.message()
+				": " << recScrapeBytes << " bytes" << " (" << err.message()
 				<< ") \n";
 
 			//update relevant timekeeping
@@ -362,7 +362,7 @@ namespace Bittorrent
 			lastRequestTime = boost::posix_time::second_clock::local_time();
 
 			//handle connect response
-			handleScrapeResp(scrapeBytesRec);
+			handleScrapeResp(recScrapeBytes);
 		}
 		catch (const boost::system::system_error& e)
 		{
@@ -394,18 +394,18 @@ namespace Bittorrent
 			//set max peers for this client to 50 - more than enough
 			//(6 bytes * 50 = 300) + 20 for other info = 320 bytes max
 			//size initialised in constructor
-			const std::size_t ancBytesRec =
+			const std::size_t recAncBytes =
 				socket_transmission.receive_from(boost::asio::buffer(
 					recAncBuffer), localEndpoint, 0, err);
 
 			std::cout << "Received connect response from " << remoteEndpoint << ": " <<
-				ancBytesRec << " bytes" << " (" << err.message() << ") \n";
+				recAncBytes << " bytes" << " (" << err.message() << ") \n";
 
 			//update relevant timekeeping
 			lastRequestTime = boost::posix_time::second_clock::local_time();
 
 			//handle announce response
-			handleAnnounceResp(ancBytesRec);
+			handleAnnounceResp(recAncBytes);
 		}
 		catch (const boost::system::system_error& e)
 		{
