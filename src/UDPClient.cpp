@@ -23,7 +23,7 @@ namespace Bittorrent
 		long long& remaining, int& intEvent, bool isAnnounce)
 		: connIDReceivedTime{}, lastRequestTime{}, peerRequestInterval{ 0 }, 
 		leechers{ 0 }, seeders{ 0 }, completed{ 0 }, 
-		peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port }, 
+		peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port }, isFail{ 0 },
 		byteInfoHash{ infoHash }, ancClientID{ clientID },
 		ancDownloaded{ downloaded }, ancUploaded{ uploaded },
 		ancRemaining{ remaining }, ancIntEvent{ intEvent }, 
@@ -61,6 +61,7 @@ namespace Bittorrent
 		}
 		catch (const boost::system::system_error& e)
 		{
+			isFail = true;
 			LOG_F(ERROR,
 				"Failed to resolve UDP tracker %s:%s! Error msg: \"%s\".",
 				peerHost, peerPort, e.what());
@@ -283,7 +284,7 @@ namespace Bittorrent
 			std::string logBuffer = toHex(connectReqBuffer);
 
 			LOG_F(INFO, "Sent UDP connect request from %s:%hu to tracker %s:%hu; "
-				"Status: %s; Sent bytes: %d; Sent payload: %s.",
+				"Status: %s; Sent bytes: %d; Sent payload (hex): %s.",
 				socket_transmission.local_endpoint().address().to_string(),
 				socket_transmission.local_endpoint().port(),
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
@@ -300,7 +301,7 @@ namespace Bittorrent
 			logBuffer = toHex(recConnBuffer);
 
 			LOG_F(INFO, "Received UDP connect response from tracker %s:%hu; "
-				"Status: %s; Received bytes: %d; Received payload: %s.",
+				"Status: %s; Received bytes: %d; Received payload (hex): %s.",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
 				err.message().c_str(), recConnBytes, logBuffer.c_str());
 
@@ -308,17 +309,18 @@ namespace Bittorrent
 			connIDReceivedTime = boost::posix_time::second_clock::local_time();
 			lastRequestTime = boost::posix_time::second_clock::local_time();
 
-			LOG_F(INFO, "Received connection ID at %s; "
-				"Updated last request time.",
+			LOG_F(INFO, "Received UDP connect response at %s; "
+				"Updated last request time. Tracker: %s%hu.",
 				boost::posix_time::to_simple_string(
-					boost::posix_time::ptime(connIDReceivedTime)).c_str());
+					boost::posix_time::ptime(connIDReceivedTime)).c_str(),
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
 
 			//handle connect response
 			handleConnectResp(recConnBytes);
-
 		}
 		catch (const boost::system::system_error& e)
 		{
+			isFail = true;
 			LOG_F(ERROR,
 				"UDP connect request failure (tracker %s:%hu): %s.",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
@@ -341,7 +343,7 @@ namespace Bittorrent
 			std::string logBuffer = toHex(scrapeReqBuffer);
 
 			LOG_F(INFO, "Sent UDP scrape request from %s:%hu to tracker %s:%hu; "
-				"Status: %s; Sent bytes: %d; Sent payload: %s.",
+				"Status: %s; Sent bytes: %d; Sent payload (hex): %s.",
 				socket_transmission.local_endpoint().address().to_string(),
 				socket_transmission.local_endpoint().port(),
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
@@ -355,10 +357,13 @@ namespace Bittorrent
 					boost::asio::buffer(recScrapeBuffer,
 						recScrapeBuffer.size()), remoteEndpoint, 0, err);
 
+			//remove redundant data at end
+			recScrapeBuffer.erase(recScrapeBuffer.begin() + recScrapeBytes,
+				recScrapeBuffer.end());
 			logBuffer = toHex(recScrapeBuffer);
 
 			LOG_F(INFO, "Received UDP scrape response from tracker %s:%hu; "
-				"Status: %s; Received bytes: %d; Received payload: %s.",
+				"Status: %s; Received bytes: %d; Received payload (hex): %s.",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
 				err.message().c_str(), recScrapeBytes, logBuffer.c_str());
 
@@ -366,16 +371,18 @@ namespace Bittorrent
 			connIDReceivedTime = boost::posix_time::second_clock::local_time();
 			lastRequestTime = boost::posix_time::second_clock::local_time();
 
-			LOG_F(INFO, "Received connection ID at %s; "
-				"Updated last request time.",
+			LOG_F(INFO, "Received UDP scrape response at %s; "
+				"Updated last request time. Tracker: %s%hu.",
 				boost::posix_time::to_simple_string(
-					boost::posix_time::ptime(connIDReceivedTime)).c_str());
+					boost::posix_time::ptime(connIDReceivedTime)).c_str(),
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
 
 			//handle connect response
 			handleScrapeResp(recScrapeBytes);
 		}
 		catch (const boost::system::system_error& e)
 		{
+			isFail = true;
 			LOG_F(ERROR,
 				"UDP scrape request failure (tracker %s:%hu): %s.",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
@@ -398,7 +405,7 @@ namespace Bittorrent
 			std::string logBuffer = toHex(announceReqBuffer);
 
 			LOG_F(INFO, "Sent UDP announce request from %s:%hu to tracker %s:%hu; "
-				"Status: %s; Sent bytes: %d; Sent payload: %s.",
+				"Status: %s; Sent bytes: %d; Sent payload (hex): %s.",
 				socket_transmission.local_endpoint().address().to_string(),
 				socket_transmission.local_endpoint().port(),
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
@@ -418,20 +425,26 @@ namespace Bittorrent
 			logBuffer = toHex(recAncBuffer);
 
 			LOG_F(INFO, "Received UDP announce response from tracker %s:%hu; "
-				"Status: %s; Received bytes: %d; Received payload: %s.",
+				"Status: %s; Received bytes: %d; Received payload (hex): %s.",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
 				err.message().c_str(), recAncBytes, logBuffer.c_str());
 
 			//update relevant timekeeping
 			lastRequestTime = boost::posix_time::second_clock::local_time();
 
-			LOG_F(INFO, "Updated last request time.");
+			LOG_F(INFO, "Received UDP announce response at %s; "
+				"Updated last request time. "
+				"Tracker: %s%hu.",
+				boost::posix_time::to_simple_string(
+					boost::posix_time::ptime(connIDReceivedTime)).c_str(),
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
 
 			//handle announce response
 			handleAnnounceResp(recAncBytes);
 		}
 		catch (const boost::system::system_error& e)
 		{
+			isFail = true;
 			LOG_F(ERROR,
 				"UDP announce request failure (tracker %s:%hu): %s.",
 				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
@@ -444,7 +457,12 @@ namespace Bittorrent
 		//validate size
 		if (connBytesRec < 16)
 		{
-			throw std::invalid_argument("Connect response packet is less than the expected 16 bytes!");
+			isFail = true;
+			LOG_F(ERROR,
+				"UDP Connect response packet is less than the expected 16 bytes! "
+			"Tracker: %s%hu.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
+			return;
 		}
 
 		//validate action
@@ -452,7 +470,12 @@ namespace Bittorrent
 			recConnBuffer.begin() + 4 };
 		if (receivedAction != connectAction)
 		{
-			throw std::invalid_argument("Response action is not \"connect\"!");
+			isFail = true;
+			LOG_F(ERROR,
+				"Received UDP connect response action is not \"connect\"! "
+				"Tracker: %s%hu.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
+			return;
 		}
 
 		//validate transaction id
@@ -460,12 +483,24 @@ namespace Bittorrent
 			recConnBuffer.begin() + 8 };
 		if (receivedTransactionID != sentTransactionID)
 		{
-			throw std::invalid_argument("Response transaction ID is not equal to sent transaction ID!");
+			isFail = true;
+			LOG_F(ERROR,
+				"UDP connect response transaction ID is not equal to sent "
+				"transaction ID! Tracker: %s%hu.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
+			return;
 		}
 
 		//store connection id
 		connectionID = { recConnBuffer.begin() + 8,
 			recConnBuffer.end() };
+
+		std::string ConnIDStr = toHex(connectionID);
+
+		LOG_F(INFO, "Handled UDP connect response from tracker %s:%hu; "
+			"Connection ID (hex): %s.",
+			remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+			ConnIDStr.c_str());
 	}
 
 	void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
@@ -473,7 +508,12 @@ namespace Bittorrent
 		//validate size
 		if (scrapeBytesRec < 8)
 		{
-			throw std::invalid_argument("Connect response packet is less than the expected 8 bytes!");
+			isFail = true;
+			LOG_F(ERROR,
+				"UDP connect response packet is less than the expected 8 bytes! " 
+				"Tracker: %s%hu.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
+			return;
 		}
 
 		//validate transaction id
@@ -481,7 +521,12 @@ namespace Bittorrent
 			recScrapeBuffer.begin() + 8 };
 		if (receivedTransactionID != receivedTransactionID)
 		{
-			throw std::invalid_argument("Response transaction ID is not equal to sent transaction ID!");
+			isFail = true;
+			LOG_F(ERROR,
+				"UDP scrape response transaction ID is not equal to sent "
+				"transaction ID! Tracker: %s%hu.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
+			return;
 		}
 
 		//validate action
@@ -510,6 +555,11 @@ namespace Bittorrent
 				leechers <<= 8;
 				leechers |= recScrapeBuffer.at(i);
 			}
+
+			LOG_F(INFO, "Handled UDP scrape response from tracker %s:%hu; "
+				"Updated peer data.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
+
 		}
 		else if (receivedAction == errorAction)
 		{
@@ -517,9 +567,11 @@ namespace Bittorrent
 			std::string scrapeErrorMsg(recScrapeBuffer.begin() + 8,
 				recScrapeBuffer.begin() + scrapeBytesRec);
 			
-			std::cout << "\n" << "Tracker scrape error: " 
-				<< scrapeErrorMsg << " (" << "Host: " << peerHost  << ", Port: "
-				<<  peerPort << ")" << "\n";
+			isFail = true;
+			LOG_F(ERROR,
+				"Tracker UDP scrape error (tracker %s:%hu): %s.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+				scrapeErrorMsg.c_str());
 		}
 	}
 
@@ -529,7 +581,12 @@ namespace Bittorrent
 		//validate size
 		if (AncBytesRec < 20)
 		{
-			throw std::invalid_argument("Connect response packet is less than the minimum size of 20 bytes!");
+			isFail = true;
+			LOG_F(ERROR,
+				"UDP announce response packet is less than the minimum size "
+				"of 20 bytes! Tracker: %s%hu.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
+			return;
 		}
 
 		//validate action
@@ -537,7 +594,12 @@ namespace Bittorrent
 			recAncBuffer.begin() + 4 };
 		if (receivedAction != ancAction)
 		{
-			throw std::invalid_argument("Response action is not \"announce\"!");
+			isFail = true;
+			LOG_F(ERROR,
+				"Received UDP announce response action is not \"announce\"! "
+				"Tracker: %s%hu.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
+			return;
 		}
 
 		//validate transaction id
@@ -545,7 +607,12 @@ namespace Bittorrent
 			recAncBuffer.begin() + 8 };
 		if (receivedTransactionID != sentTransactionID)
 		{
-			throw std::invalid_argument("Response transaction ID is not equal to sent transaction ID!");
+			isFail = true;
+			LOG_F(ERROR,
+				"UDP announce response transaction ID is not equal to sent "
+				"transaction ID! Tracker: %s%hu.",
+				remoteEndpoint.address().to_string(), remoteEndpoint.port());
+			return;
 		}
 
 		//convert interval bytes to integer and store as seconds
@@ -592,20 +659,24 @@ namespace Bittorrent
 			singlePeer.port = peerPort;
 			peerList.push_back(singlePeer);
 		}
+
+		LOG_F(INFO, "Handled UDP announce response from tracker %s:%hu; "
+			"Updated peer data.",
+			remoteEndpoint.address().to_string(), remoteEndpoint.port());
 	}
 
 	void UDPClient::dataTransmission(trackerUrl& parsedUrl, bool isAnnounce)
 	{
-
 		boost::system::error_code err;
 
 		connectRequest(err);
+
 		//use interval value to check if we have announced before
-		if (isAnnounce)
+		if (isAnnounce && !isFail)
 		{
 			announceRequest(err);
 		}
-		else
+		else if (!isFail)
 		{
 			scrapeRequest(err);
 		}

@@ -40,6 +40,7 @@ namespace Bittorrent
 		std::string peerHost;
 		std::string peerPort;
 		std::vector<byte> errorAction;
+		bool isFail;
 
 		//sent variables
 		std::vector<byte> protocolID;
