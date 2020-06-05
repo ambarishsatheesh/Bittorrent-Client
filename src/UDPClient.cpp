@@ -170,21 +170,6 @@ namespace Bittorrent
 			sentTransactionID.at(i) = ((rndInt >> (8 * (3 - i))) & 0xff);
 		}
 
-		////print for testing
-		//std::cout << "Transaction ID: ";
-		//for (size_t i = 0; i < 4; ++i)
-		//{
-		//	printf("%x ", (unsigned char)sentTransactionID[i]);
-		//}
-		//std::cout << "\n";
-
-		//std::cout << "Connection ID: ";
-		//for (size_t i = 0; i < 8; ++i)
-		//{
-		//	printf("%x ", (unsigned char)connectionID[i]);
-		//}
-		//std::cout << "\n";
-
 		//downloaded bytes
 		std::vector<byte> downloadedVec;
 		downloadedVec.resize(8);
@@ -257,14 +242,6 @@ namespace Bittorrent
 		last = std::copy(keyVec.begin(), keyVec.end(), last);
 		last = std::copy(numWantVec.begin(), numWantVec.end(), last);
 		last = std::copy(portVec.begin(), portVec.end(), last);
-
-		/*//print for testing
-		std::cout << "Announce request data: " << "\n";
-		for (size_t i = 0; i < 98; ++i)
-		{
-			printf("%x ", (unsigned char)announceVec[i]);
-		}
-		std::cout << "\n";*/
 
 		//convert to appropriate buffer for sending via UDP and return
 		return announceVec;

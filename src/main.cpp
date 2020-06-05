@@ -46,6 +46,7 @@ int main(int argc, char* argv[])
 	loguru::init(argc, argv);
 	loguru::add_file(orderByTimeLog, loguru::Append, loguru::Verbosity_MAX);
 
+
 	//std::cout << "Welcome to my test Bittorrent client!" << "\n" << "\n";
 
 	//std::cout << "1. Choose a torrent file and start downloading" << "\n";
@@ -365,6 +366,10 @@ int main(int argc, char* argv[])
 
 
 	const char* fullFilePath = argv[1];
+	
+	const char* testingload = "test.log";
+
+	loadFromFile(testingload);
 
 	bool isPrivate = false;
 
@@ -424,18 +429,9 @@ int main(int argc, char* argv[])
 			udpTestTorrent.hashesData.infoHash, 2500, 1200, 0);
 		});
 
-	auto betweenTest = 5 + 10;
-	betweenTest += 10;
-	betweenTest += 10;
-	betweenTest += 10;
-	betweenTest += 10;
-	LOG_F(INFO, "The answer is: %d", betweenTest);
-	
-
 	thread1.join();
 	thread2.join();
 	thread3.join();
-
 
 	std::ifstream file(orderByTimeLog);
 	std::string logLine;
