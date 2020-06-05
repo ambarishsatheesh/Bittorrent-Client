@@ -32,13 +32,14 @@ namespace Bittorrent
 		UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID, 
 			std::vector<byte>& infoHash, long long& uploaded, 
 			long long& downloaded, long long& remaining, int& intEvent, 
-			bool isAnnounce);
+			int& port, bool isAnnounce);
 		~UDPClient();
 
 	private:
 		//general variables
 		std::string peerHost;
 		std::string peerPort;
+		int localPort;
 		std::vector<byte> errorAction;
 		bool isFail;
 

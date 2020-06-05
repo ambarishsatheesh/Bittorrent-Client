@@ -8,8 +8,6 @@
 #include <limits>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#define UDP_PORT 6881
-
 // TODO: implement time out/retransmit
 // TODO: need to populate "remaining"
 // TODO: port as argument (randomise?)
@@ -20,16 +18,17 @@ namespace Bittorrent
 
 	UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID, 
 		std::vector<byte>& infoHash, long long& uploaded, long long& downloaded, 
-		long long& remaining, int& intEvent, bool isAnnounce)
+		long long& remaining, int& intEvent, int& port, bool isAnnounce)
 		: connIDReceivedTime{}, lastRequestTime{}, peerRequestInterval{ 0 }, 
 		leechers{ 0 }, seeders{ 0 }, completed{ 0 }, 
-		peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port }, isFail{ 0 },
+		peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port }, 
+		localPort{port}, isFail{ 0 },
 		byteInfoHash{ infoHash }, ancClientID{ clientID },
 		ancDownloaded{ downloaded }, ancUploaded{ uploaded },
 		ancRemaining{ remaining }, ancIntEvent{ intEvent }, 
 		recConnBuffer(16), recScrapeBuffer(200), recAncBuffer(320), 
 		io_context(), socket_connect(io_context, udp::endpoint(udp::v4(), 2)), 
-		socket_transmission(io_context, udp::endpoint(udp::v4(), 6681)),
+		socket_transmission(io_context, udp::endpoint(udp::v4(), port)),
 		remoteEndpoint(), localEndpoint()
 	{
 		try
@@ -236,7 +235,7 @@ namespace Bittorrent
 		//port
 		std::vector<byte> portVec;
 		portVec.resize(2);
-		int32_t intPort = 6681;
+		int32_t intPort = localPort;
 		for (int i = 0; i <= 1; ++i) {
 			portVec.at(i) = ((intPort >> (8 * (1 - i))) & 0xff);
 		}
@@ -682,128 +681,3 @@ namespace Bittorrent
 		}
 	}
 }
-
-
-
-////////////////////////////////////////////////////////////////////////
-//	Testing ssynchronous UDP server/client for tracker communication //
-//	In case I decide to switch from synchronous at some point		//
-/////////////////////////////////////////////////////////////////////
-//#include <ctime>
-//#include <iostream>
-//#include <string>
-//#include <boost/array.hpp>
-//#include <boost/bind/bind.hpp>
-//#include <boost/shared_ptr.hpp>
-//#include <boost/asio.hpp>
-//#include <boost/asio/connect.hpp>
-//#include <random>
-//
-//using byte = uint8_t;
-//using boost::asio::ip::udp;
-//
-//class udp_server
-//{
-//public:
-//    udp_server(boost::asio::io_context& io_context)
-//        : socket_connect(io_context, udp::endpoint(udp::v4(), 20)), 
-//        socket_transmission(io_context, udp::endpoint(udp::v4(), 6881)), 
-//        recv_buffer_(16)
-//    {
-//        udp::resolver resolver{ io_context };
-//
-//        // Look up the domain name
-//        //auto const results = resolver.resolve(peerHost, peerPort);
-//        const auto results = resolver.resolve("open.stealth.si", "80");
-//
-//        //iterate and get successful connection endpoint
-//        const auto remoteEndpointIter =
-//            boost::asio::connect(socket_connect, results.begin(), results.end());
-//        remote_endpoint_ = remoteEndpointIter->endpoint();
-//        start();
-//    }
-//
-//private:
-//    void start()
-//    {
-//        std::cout << "source port: " << socket_transmission.local_endpoint().port() << "\n";
-//        //build connect request buffer
-//        std::vector<byte> protocolID = { 0x0, 0x0, 0x04, 0x17, 0x27, 0x10, 0x19, 0x80 };
-//        std::vector<byte> connectAction = { 0x0, 0x0, 0x0, 0x0 };
-//
-//        //generate random int32 and pass into transactionID array 
-//        std::random_device dev;
-//        std::mt19937 rng(dev());
-//        const std::uniform_int_distribution<int32_t>
-//            dist6(0, std::numeric_limits<int32_t>::max());
-//        auto rndInt = dist6(rng);
-//
-//        //Big endian - but endianness doesn't matter since it's random anyway
-//        std::vector<byte> sentTransactionID;
-//        sentTransactionID.resize(4);
-//        for (int i = 0; i <= 3; ++i) {
-//            sentTransactionID.at(i) = ((rndInt >> (8 * (3 - i))) & 0xff);
-//        }
-//
-//        //copy to buffer
-//        std::vector<byte> connectVec;
-//        connectVec.insert(connectVec.begin(), std::begin(protocolID), std::end(protocolID));
-//        connectVec.insert(connectVec.begin() + 8, std::begin(connectAction), std::end(connectAction));
-//        connectVec.insert(connectVec.begin() + 12, std::begin(sentTransactionID), std::end(sentTransactionID));
-//
-//        std::cout << "Sending: " << "\n";
-//        for (size_t i = 0; i < 16; ++i)
-//        {
-//            printf("%x ", (unsigned char)connectVec[i]);
-//        }
-//        std::cout << "\n" << "\n";
-//
-//        socket_transmission.async_receive_from(
-//            boost::asio::buffer(recv_buffer_), remote_endpoint_1,
-//            boost::bind(&udp_server::handle_receive, this,
-//                boost::asio::placeholders::error,
-//                boost::asio::placeholders::bytes_transferred));
-//
-//        const auto sentConnBytes =
-//            socket_transmission.send_to(boost::asio::buffer(connectVec,
-//                connectVec.size()), remote_endpoint_);
-//    }
-//
-//    void handle_receive(const boost::system::error_code& /*error*/,
-//        std::size_t /*bytes_transferred*/)
-//    {
-//        std::cout << "Response: " << "\n";
-//        for (size_t i = 0; i < 16; ++i)
-//        {
-//            printf("%x ", (unsigned char)recv_buffer_[i]);
-//        }
-//        std::cout << "\n" << "\n";
-//    }
-//
-//    boost::system::error_code ec;
-//    boost::asio::io_context io_context;
-//
-//    //need two sockets since the connect free function will close the socket and bind to an unspecified port
-//    //easier to create a separate socket bound to the correct port
-//    udp::socket socket_connect;
-//    udp::socket socket_transmission;
-//    udp::endpoint remote_endpoint_;
-//    udp::endpoint remote_endpoint_1;
-//    std::vector<byte> recv_buffer_;
-//};
-//
-//int main()
-//{
-//    try
-//    {
-//        boost::asio::io_context io_context;
-//        udp_server server(io_context);
-//        io_context.run();
-//    }
-//    catch (std::exception& e)
-//    {
-//        std::cerr << e.what() << std::endl;
-//    }
-//
-//    return 0;
-//}

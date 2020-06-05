@@ -126,7 +126,7 @@ namespace Bittorrent
 				leechers == std::numeric_limits<int>::min())
 			{
 				UDPClient udpAnnounce(parsedUrl, clientID, infoHash, uploaded, 
-					downloaded, remaining, intEvent, 1);
+					downloaded, remaining, intEvent, port, 1);
 				seeders = udpAnnounce.seeders;
 				leechers = udpAnnounce.leechers;
 				peerRequestInterval = udpAnnounce.peerRequestInterval;
@@ -139,7 +139,7 @@ namespace Bittorrent
 			else
 			{
 				UDPClient udpGen(parsedUrl, clientID, infoHash, uploaded, 
-					downloaded, remaining, intEvent, 0);
+					downloaded, remaining, intEvent, port, 0);
 				//announce and update if seeders/leechers values change
 				if (udpGen.seeders != seeders || udpGen.leechers != leechers)
 				{
