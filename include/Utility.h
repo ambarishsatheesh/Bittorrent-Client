@@ -7,6 +7,7 @@
 #include <random>
 #include <algorithm>
 #include <iomanip>
+#include <unordered_map>
 
 #include <boost/uuid/detail/sha1.hpp>
 #include <boost/filesystem.hpp>
@@ -288,6 +289,33 @@ namespace Bittorrent
                 hex_res += oss.str();
             }
             return hex_res;
+        }
+
+        inline void saveLogOrderByThread(const char* inputLog, 
+            const char* outputLog)
+        {
+            std::ifstream file(inputLog);
+            std::string logLine;
+            std::string threadName;
+            std::unordered_multimap<std::string, std::string> logByThreadMap;
+
+            while (std::getline(file, logLine)) {
+                auto brack1 = logLine.find_first_of("[");
+                brack1++;
+                auto brack2 = logLine.find_last_of("]");
+                if (brack1 != std::string::npos && brack2 != std::string::npos
+                    && logLine.find("File:Line") == std::string::npos)
+                {
+                    threadName = logLine.substr(brack1, brack2 - (brack1));
+                    logByThreadMap.emplace(threadName, logLine);
+                }
+            }
+
+            std::ofstream outFile(outputLog, std::ofstream::out);
+            for (auto thread : logByThreadMap)
+            {
+                outFile << thread.second << "\n";
+            }
         }
 
     }
