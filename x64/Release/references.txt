@@ -16,3 +16,6 @@ https://www.boost.org/doc/libs/1_73_0/doc/html/boost_asio/example/cpp11/echo/asy
 
 async example
 https://stackoverflow.com/questions/43173034/async-connect-doesnt-call-handler-in-tcp-client-class
+
+loguru library
+https://github.com/emilk/loguru
