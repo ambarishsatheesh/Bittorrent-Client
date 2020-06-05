@@ -20,7 +20,7 @@ namespace Bittorrent
 		try
 		{
 			LOG_F(INFO, "Resolving HTTP tracker (%s:%s)...", 
-				peerHost, peerPort);
+                peerHost.c_str(), peerPort.c_str());
 
 			//socket.close();
 			socket.open(tcp::v4());
@@ -33,8 +33,8 @@ namespace Bittorrent
 				results.end())->endpoint();
 
 			LOG_F(INFO, "Resolved HTTP tracker endpoint! Endpoint: %s:%hu (%s:%s).",
-				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
-				peerHost, peerPort);
+                remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
+                peerHost.c_str(), peerPort.c_str());
 
 			dataTransmission(isAnnounce);
 		}
@@ -42,7 +42,7 @@ namespace Bittorrent
 		{
 			LOG_F(ERROR, 
 				"Failed to resolve HTTP tracker %s:%s! Error msg: \"%s\".", 
-				peerHost, peerPort, e.what());
+                peerHost.c_str(), peerPort.c_str(), e.what());
 		}
 	}
 
@@ -52,7 +52,7 @@ namespace Bittorrent
 
 		LOG_F(INFO,
 			"Closed HTTP socket used for tracker update (%s:%s).",
-			peerHost, peerPort);
+            peerHost.c_str(), peerPort.c_str());
 	}
 
 	void HTTPClient::scrapeRequest(boost::system::error_code& err)
@@ -71,7 +71,7 @@ namespace Bittorrent
 			LOG_F(INFO,
 				"Sent HTTP scrape request to tracker %s:%hu; "
 				"Status: %s; Scrape URL: %s." ,
-				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+                remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
 				err.message().c_str(), target.c_str());
 
 			// This buffer is used for reading and must be persisted
@@ -85,8 +85,8 @@ namespace Bittorrent
 
 			LOG_F(INFO,
 				"Received HTTP scrape response from tracker %s:%hu; "
-				"Status: %s; Bytes received: %d.",
-				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+                "Status: %s; Bytes received: %llu.",
+                remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
 				err.message().c_str(), res.payload_size().get());
 
 			// Gracefully close the socket
@@ -96,7 +96,7 @@ namespace Bittorrent
 
 			LOG_F(INFO,
 				"Closed HTTP connection with tracker %s:%hu.",
-				remoteEndpoint.address().to_string(), remoteEndpoint.port());
+                remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port());
 
 			if (ec && ec != boost::system::errc::not_connected)
 			{
@@ -110,7 +110,7 @@ namespace Bittorrent
 		{
 			LOG_F(ERROR,
 				"HTTP scrape request failure (tracker %s:%hu): %s.",
-				remoteEndpoint.address().to_string(), remoteEndpoint.port(), 
+                remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
 				e.what());
 		}
 	}
@@ -131,7 +131,7 @@ namespace Bittorrent
 			LOG_F(INFO,
 				"Sent HTTP announce request to tracker %s:%d; "
 				"Status: %s; announce URL: %s.",
-				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+                remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
 				err.message().c_str(), target.c_str());
 
 			// This buffer is used for reading and must be persisted
@@ -145,8 +145,9 @@ namespace Bittorrent
 
 			LOG_F(INFO,
 				"Received HTTP announce response from tracker %s:%hu; "
-				"Status: %s; Bytes received: %d.",
-				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+                "Status: %s; Bytes received: %llu.",
+                remoteEndpoint.address().to_string().c_str(),
+                  remoteEndpoint.port(),
 				err.message().c_str(), res.payload_size().get());
 
 
@@ -157,7 +158,8 @@ namespace Bittorrent
 
 			LOG_F(INFO,
 				"Closed HTTP connection with tracker %s:%hu.",
-				remoteEndpoint.address().to_string(), remoteEndpoint.port());
+                remoteEndpoint.address().to_string().c_str(),
+                  remoteEndpoint.port());
 
 			if (ec && ec != boost::system::errc::not_connected)
 			{
@@ -171,7 +173,8 @@ namespace Bittorrent
 		{
 			LOG_F(ERROR,
 				"HTTP announce request failure (tracker %s:%hu): %s.",
-				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+                remoteEndpoint.address().to_string().c_str(),
+                  remoteEndpoint.port(),
 				e.what());
 		}
 	}
@@ -196,7 +199,8 @@ namespace Bittorrent
 		{
 			LOG_F(ERROR,
 				"Scrape GET request error (tracker %s:%hu)! Status code: %s.",
-				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+                remoteEndpoint.address().to_string().c_str(),
+                  remoteEndpoint.port(),
 				result.c_str());
 
 			return;
@@ -204,7 +208,8 @@ namespace Bittorrent
 
 		LOG_F(INFO,
 			"Successful scrape GET request to tracker %s:%hu! Status code: %s.",
-			remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+            remoteEndpoint.address().to_string().c_str(),
+              remoteEndpoint.port(),
 			result.c_str());
 
 		//get and store body
@@ -213,7 +218,8 @@ namespace Bittorrent
 
 		LOG_F(INFO,
 			"Tracker (%s:%hu) scrape response body: %s.",
-			remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+            remoteEndpoint.address().to_string().c_str(),
+              remoteEndpoint.port(),
 			body.c_str());
 
 		valueDictionary info = boost::get<valueDictionary>(Decoder::decode(body));
@@ -231,7 +237,8 @@ namespace Bittorrent
 			LOG_F(INFO,
 				"Tracker (%s:%hu) scrape response: "
 				"Failure Reason %s.",
-				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+                remoteEndpoint.address().to_string().c_str(),
+                  remoteEndpoint.port(),
 				failReason.c_str());
 
 			return;
@@ -251,7 +258,8 @@ namespace Bittorrent
 
 			LOG_F(INFO, 
 				"Updated peer info using tracker (%s:%hu) scrape response!",
-				remoteEndpoint.address().to_string(), remoteEndpoint.port());
+                remoteEndpoint.address().to_string().c_str(),
+                  remoteEndpoint.port());
 		}
 	}
 
@@ -274,7 +282,8 @@ namespace Bittorrent
 		{
 			LOG_F(ERROR,
 				"Announce GET request error (tracker %s:%hu)! Status code: %s.",
-				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+                remoteEndpoint.address().to_string().c_str(),
+                  remoteEndpoint.port(),
 				result.c_str());
 
 			return;
@@ -282,7 +291,8 @@ namespace Bittorrent
 
 		LOG_F(INFO,
 			"Successful announce GET request to tracker %s:%hu! Status code: %s.",
-			remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+            remoteEndpoint.address().to_string().c_str(),
+              remoteEndpoint.port(),
 			result.c_str());
 
 		//get and store body
@@ -291,7 +301,8 @@ namespace Bittorrent
 
 		LOG_F(INFO,
 			"Tracker (%s:%hu) announce response body: %s.",
-			remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+            remoteEndpoint.address().to_string().c_str(),
+              remoteEndpoint.port(),
 			body.c_str());
 
 		valueDictionary info = boost::get<valueDictionary>(Decoder::decode(body));
@@ -313,7 +324,8 @@ namespace Bittorrent
 			LOG_F(INFO,
 				"Tracker (%s:%hu) announce response: "
 				"Failure Reason %s.",
-				remoteEndpoint.address().to_string(), remoteEndpoint.port(),
+                remoteEndpoint.address().to_string().c_str(),
+                  remoteEndpoint.port(),
 				failReason.c_str());
 
 			return;
@@ -367,7 +379,7 @@ namespace Bittorrent
 					LOG_F(INFO,
 						"Updated peer info using tracker (%s:%hu) announce "
 						"response (compact)!",
-						remoteEndpoint.address().to_string(), 
+                        remoteEndpoint.address().to_string().c_str(),
 						remoteEndpoint.port());
 				}
 				//non-compact uses a list of dictionaries
@@ -399,7 +411,7 @@ namespace Bittorrent
 					LOG_F(INFO,
 						"Updated peer info using tracker (%s:%hu) announce "
 						"response (non-compact)!",
-						remoteEndpoint.address().to_string(),
+                        remoteEndpoint.address().to_string().c_str(),
 						remoteEndpoint.port());
 				}
 			}
@@ -434,7 +446,8 @@ namespace Bittorrent
 			{
 				LOG_F(WARNING,
 					"Scraping is not supported for this tracker (%s:%hu)",
-					remoteEndpoint.address().to_string(), remoteEndpoint.port());
+                    remoteEndpoint.address().to_string().c_str(),
+                      remoteEndpoint.port());
 				LOG_F(INFO, "Starting HTTP announce request...");
 
 				announceRequest(err);

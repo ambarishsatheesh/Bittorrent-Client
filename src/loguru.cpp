@@ -665,7 +665,8 @@ namespace loguru
 
 	const char* home_dir()
 	{
-#ifdef _WIN32
+        //Originally #ifdef _WIN32 but _dupenv_s was throwing compilation errors with gcc
+#ifdef _MSC_VER
 		char* user_profile;
 		size_t len;
 		errno_t err = _dupenv_s(&user_profile, &len, "USERPROFILE");

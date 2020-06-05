@@ -1,5 +1,6 @@
 #include "Client.h"
 #include "loguru.h"
+#include <random>
 
 namespace Bittorrent
 {
@@ -13,7 +14,7 @@ namespace Bittorrent
         //generate 20 byte client ID
         std::random_device dev;
         std::mt19937 rng(dev());
-        const std::uniform_int_distribution<int32_t>
+        std::uniform_int_distribution<int32_t>
             dist6(0, std::numeric_limits<int32_t>::max());
 
         localID.push_back('-');

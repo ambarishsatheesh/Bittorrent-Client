@@ -9,7 +9,6 @@
 #include <iomanip>
 #include <unordered_map>
 
-#include <boost/uuid/detail/sha1.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 
