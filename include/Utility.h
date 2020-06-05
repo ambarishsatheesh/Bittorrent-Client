@@ -39,8 +39,8 @@ namespace Bittorrent
                 }
                 else
                 {
-                    std::cout << "\n" << "Invalid file path! No slashes!" 
-                        << "\n" << "\n";
+                    LOG_F(INFO, "Invalid file path: %s!", filePath);
+                    return "FAIL!";
                 }
             }
         }
@@ -56,7 +56,8 @@ namespace Bittorrent
             }
             else
             {
-                throw std::invalid_argument("Invalid file path! No slashes!");
+                LOG_F(INFO, "Invalid file path: %s!", filePath);
+                return "FAIL!";
             }
             //remove extension
             const auto periodIndex = strPath.rfind('.');
@@ -66,7 +67,8 @@ namespace Bittorrent
             }
             else
             {
-                throw std::invalid_argument("No file extension!");
+                LOG_F(INFO, "No file extension!: %s!", filePath);
+                return "FAIL!";
             }
             return strPath;
         }
@@ -82,13 +84,15 @@ namespace Bittorrent
             }
             else
             {
-                throw std::invalid_argument("Invalid file path! No slashes!");
+                LOG_F(INFO, "Invalid file path: %s!", filePath);
+                return "FAIL!";
             }
             //check extension
             const auto periodIndex = strPath.rfind('.');
             if (std::string::npos == periodIndex)
             {
-                throw std::invalid_argument("No file extension!");
+                LOG_F(INFO, "No file extension!: %s!", filePath);
+                return "FAIL!";
             }
             return strPath;
         }
@@ -114,7 +118,9 @@ namespace Bittorrent
                 read.close();
                 return(contents);
             }
-            throw(errno);
+
+            LOG_F(INFO, "Error loading from file \"%s\"!", filename);
+            return "FAIL!";
         }
 
 
