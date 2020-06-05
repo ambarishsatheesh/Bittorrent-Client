@@ -32,7 +32,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
-#include <set>
 
 
 using namespace Bittorrent;
@@ -42,8 +41,10 @@ using namespace Decoder;
 int main(int argc, char* argv[])
 {
 	//start logging to file
+	const char* orderByTimeLog = "timeLog.log";
+	const char* orderByThreadLog = "threadLog.log";
 	loguru::init(argc, argv);
-	loguru::add_file("log.log", loguru::Append, loguru::Verbosity_MAX);
+	loguru::add_file(orderByTimeLog, loguru::Append, loguru::Verbosity_MAX);
 
 	//std::cout << "Welcome to my test Bittorrent client!" << "\n" << "\n";
 
@@ -403,25 +404,25 @@ int main(int argc, char* argv[])
 		LOG_F(INFO, "Starting new thread...");
 		udpTestTorrent.generalData.trackerList.at(4).update(
 			trackerObj::trackerEvent::started,
-			client.localID, 6681, udpTestTorrent.hashesData.urlEncodedInfoHash, 
+			client.localID, 0, udpTestTorrent.hashesData.urlEncodedInfoHash, 
 			udpTestTorrent.hashesData.infoHash, 2500, 1200, 0);
 		});
 
-	//auto thread2 = std::thread([&]() {
-	//	loguru::set_thread_name("Tracker Update 2");
-	//	LOG_F(INFO, "Starting new thread...");
-	//	udpTestTorrent.generalData.trackerList.at(10).update(trackerObj::trackerEvent::started,
-	//		client.localID, 6681, udpTestTorrent.hashesData.urlEncodedInfoHash, udpTestTorrent.hashesData.infoHash, 2500, 1200, 0);
-	//	});
+	auto thread2 = std::thread([&]() {
+		loguru::set_thread_name("Tracker Update 2");
+		LOG_F(INFO, "Starting new thread...");
+		udpTestTorrent.generalData.trackerList.at(8).update(trackerObj::trackerEvent::started,
+			client.localID, 0, udpTestTorrent.hashesData.urlEncodedInfoHash, udpTestTorrent.hashesData.infoHash, 2500, 1200, 0);
+		});
 
-	/*auto thread3 = std::thread([&]() {
+	auto thread3 = std::thread([&]() {
 		loguru::set_thread_name("Tracker Update 3");
 		LOG_F(INFO, "Starting new thread...");
 		udpTestTorrent.generalData.trackerList.at(11).update(
 			trackerObj::trackerEvent::started,
-			client.localID, 6681, udpTestTorrent.hashesData.urlEncodedInfoHash, 
+			client.localID, 0, udpTestTorrent.hashesData.urlEncodedInfoHash, 
 			udpTestTorrent.hashesData.infoHash, 2500, 1200, 0);
-		});*/
+		});
 
 	auto betweenTest = 5 + 10;
 	betweenTest += 10;
@@ -432,8 +433,34 @@ int main(int argc, char* argv[])
 	
 
 	thread1.join();
-	//thread2.join();
-	//thread3.join();
+	thread2.join();
+	thread3.join();
+
+
+	std::ifstream file(orderByTimeLog);
+	std::string logLine;
+	std::string threadName;
+	std::unordered_multimap<std::string, std::string> logByThreadMap;
+
+	while (std::getline(file, logLine)) {
+		auto brack1 = logLine.find_first_of("[");
+		brack1++;
+		auto brack2 = logLine.find_last_of("]");
+		if (brack1 != std::string::npos && brack2 != std::string::npos
+			&& logLine.find("File:Line") == std::string::npos)
+		{
+			threadName = logLine.substr(brack1, brack2 - (brack1));
+			logByThreadMap.emplace(threadName, logLine);
+		}
+	}
+
+	std::ofstream outFile(orderByThreadLog, std::ofstream::out);
+	for (auto thread : logByThreadMap)
+	{
+		outFile << thread.second << "\n";
+	}
+
+	//saveLogOrderByThread(orderByTimeLog, orderByThreadLog);
 
 
 	//value tempObj = toBencodingObj(testTorrent);

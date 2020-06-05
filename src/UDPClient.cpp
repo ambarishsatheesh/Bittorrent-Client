@@ -16,6 +16,8 @@ namespace Bittorrent
 {
 	using namespace utility;
 
+	//port "0" in member initialisation list for socket_connect assigns any 
+	//free port
 	UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID, 
 		std::vector<byte>& infoHash, long long& uploaded, long long& downloaded, 
 		long long& remaining, int& intEvent, int& port, bool isAnnounce)
@@ -27,7 +29,7 @@ namespace Bittorrent
 		ancDownloaded{ downloaded }, ancUploaded{ uploaded },
 		ancRemaining{ remaining }, ancIntEvent{ intEvent }, 
 		recConnBuffer(16), recScrapeBuffer(200), recAncBuffer(320), 
-		io_context(), socket_connect(io_context, udp::endpoint(udp::v4(), 2)), 
+		io_context(), socket_connect(io_context, udp::endpoint(udp::v4(), 0)), 
 		socket_transmission(io_context, udp::endpoint(udp::v4(), port)),
 		remoteEndpoint(), localEndpoint()
 	{
@@ -37,8 +39,8 @@ namespace Bittorrent
 
 			udp::resolver resolver{ io_context };
 
-			LOG_F(INFO, "Resolving UDP tracker (%s:%s)...",
-				peerHost.c_str(), peerPort.c_str());
+			/*LOG_F(INFO, "Resolving UDP tracker (%s:%s)...",
+				peerHost.c_str(), peerPort.c_str());*/
 
 			// Look up the domain name
 			const auto results = resolver.resolve(peerHost, peerPort);
