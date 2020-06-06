@@ -27,6 +27,10 @@ bld/
 [Oo]bj/
 [Ll]og/
 build-BittorrentGUI-Desktop_Qt_5_15_0_MinGW_64_bit-Release/
+build-BittorrentGUI-Desktop_Qt_5_15_0_MinGW_64_bit-Debug/
+build-Test-Desktop_Qt_5_15_0_MinGW_64_bit-Debug/
+build-Test-Desktop_Qt_5_15_0_MinGW_64_bit-Release/
+D:\Documents\Programming\Bittorrent\Bittorrent\BittorrentGUI/Icons
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
