@@ -30,9 +30,9 @@
      <string>File</string>
     </property>
     <addaction name="separator"/>
-    <addaction name="actionAdd_Torrent_File"/>
     <addaction name="separator"/>
-    <addaction name="actionExit"/>
+    <addaction name="actionAdd_Torrent"/>
+    <addaction name="actionExit_Client"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
@@ -91,7 +91,7 @@
   </widget>
   <action name="actionResume">
    <property name="icon">
-    <iconset>
+    <iconset resource="Resources.qrc">
      <normaloff>:/imgs/Icons/icons8-play-48.png</normaloff>:/imgs/Icons/icons8-play-48.png</iconset>
    </property>
    <property name="text">
@@ -100,7 +100,7 @@
   </action>
   <action name="actionPause">
    <property name="icon">
-    <iconset>
+    <iconset resource="Resources.qrc">
      <normaloff>:/imgs/Icons/icons8-pause-48.png</normaloff>:/imgs/Icons/icons8-pause-48.png</iconset>
    </property>
    <property name="text">
@@ -109,7 +109,7 @@
   </action>
   <action name="actionResume_all">
    <property name="icon">
-    <iconset>
+    <iconset resource="Resources.qrc">
      <normaloff>:/imgs/Icons/icons8-play-48.png</normaloff>:/imgs/Icons/icons8-play-48.png</iconset>
    </property>
    <property name="text">
@@ -118,7 +118,7 @@
   </action>
   <action name="actionPause_all">
    <property name="icon">
-    <iconset>
+    <iconset resource="Resources.qrc">
      <normaloff>:/imgs/Icons/icons8-pause-48.png</normaloff>:/imgs/Icons/icons8-pause-48.png</iconset>
    </property>
    <property name="text">
@@ -127,7 +127,7 @@
   </action>
   <action name="actionDelete">
    <property name="icon">
-    <iconset>
+    <iconset resource="Resources.qrc">
      <normaloff>:/imgs/Icons/1/14.png</normaloff>:/imgs/Icons/1/14.png</iconset>
    </property>
    <property name="text">
@@ -136,7 +136,7 @@
   </action>
   <action name="actionTop_priority">
    <property name="icon">
-    <iconset>
+    <iconset resource="Resources.qrc">
      <normaloff>:/imgs/Icons/fast-forward-double-right-arrows - Copy.png</normaloff>:/imgs/Icons/fast-forward-double-right-arrows - Copy.png</iconset>
    </property>
    <property name="text">
@@ -145,7 +145,7 @@
   </action>
   <action name="actionIncrease_Priority">
    <property name="icon">
-    <iconset>
+    <iconset resource="Resources.qrc">
      <normaloff>:/imgs/Icons/icons8-play-48 - Copy (2).png</normaloff>:/imgs/Icons/icons8-play-48 - Copy (2).png</iconset>
    </property>
    <property name="text">
@@ -154,7 +154,7 @@
   </action>
   <action name="actionDecrease_Priority">
    <property name="icon">
-    <iconset>
+    <iconset resource="Resources.qrc">
      <normaloff>:/imgs/Icons/icons8-play-48 - Copy.png</normaloff>:/imgs/Icons/icons8-play-48 - Copy.png</iconset>
    </property>
    <property name="text">
@@ -163,34 +163,16 @@
   </action>
   <action name="actionMin_Priority">
    <property name="icon">
-    <iconset>
+    <iconset resource="Resources.qrc">
      <normaloff>:/imgs/Icons/fast-forward-double-right-arrows.png</normaloff>:/imgs/Icons/fast-forward-double-right-arrows.png</iconset>
    </property>
    <property name="text">
     <string>Min Priority</string>
    </property>
   </action>
-  <action name="actionAdd_Torrent_File">
-   <property name="icon">
-    <iconset>
-     <normaloff>:/imgs/Icons/add (1).png</normaloff>:/imgs/Icons/add (1).png</iconset>
-   </property>
-   <property name="text">
-    <string>Add Torrent File</string>
-   </property>
-  </action>
-  <action name="actionExit">
-   <property name="icon">
-    <iconset>
-     <normaloff>:/imgs/Icons/1/33.png</normaloff>:/imgs/Icons/1/33.png</iconset>
-   </property>
-   <property name="text">
-    <string>Exit</string>
-   </property>
-  </action>
   <action name="actionAbout_ioTorrent">
    <property name="icon">
-    <iconset>
+    <iconset resource="Resources.qrc">
      <normaloff>:/imgs/Icons/info.png</normaloff>:/imgs/Icons/info.png</iconset>
    </property>
    <property name="text">
@@ -199,7 +181,7 @@
   </action>
   <action name="actionOptions">
    <property name="icon">
-    <iconset>
+    <iconset resource="Resources.qrc">
      <normaloff>:/imgs/Icons/settings.png</normaloff>:/imgs/Icons/settings.png</iconset>
    </property>
    <property name="text">
@@ -208,14 +190,34 @@
   </action>
   <action name="actionTorrent_Creator">
    <property name="icon">
-    <iconset>
+    <iconset resource="Resources.qrc">
      <normaloff>:/imgs/Icons/notepad.png</normaloff>:/imgs/Icons/notepad.png</iconset>
    </property>
    <property name="text">
     <string>Torrent Creator</string>
    </property>
   </action>
+  <action name="actionAdd_Torrent">
+   <property name="icon">
+    <iconset resource="Resources.qrc">
+     <normaloff>:/imgs/Icons/add (1).png</normaloff>:/imgs/Icons/add (1).png</iconset>
+   </property>
+   <property name="text">
+    <string>Add Torrent</string>
+   </property>
+  </action>
+  <action name="actionExit_Client">
+   <property name="icon">
+    <iconset resource="Resources.qrc">
+     <normaloff>:/imgs/Icons/1/33.png</normaloff>:/imgs/Icons/1/33.png</iconset>
+   </property>
+   <property name="text">
+    <string>Exit Client</string>
+   </property>
+  </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="Resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

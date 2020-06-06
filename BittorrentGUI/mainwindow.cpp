@@ -1,11 +1,22 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "tableModel.h"
-#include "progressdelegate.h"
+#include "progressDelegate.h"
+#include "TorrentManipulation.h"
+#include "Decoder.h"
+#include "loguru.h"
 
 #include <QtWidgets>
 #include <QStandardItemModel>
+#include <QtConcurrent/QtConcurrent>
 #include <iostream>
+#include <thread>
+#include <sstream>
+
+
+using namespace Bittorrent;
+using namespace torrentManipulation;
+using namespace utility;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -480,9 +491,30 @@ void MainWindow::toggleColumnDisplay(bool checked)
     }
 }
 
-
-void MainWindow::on_actionAdd_Torrent_File_triggered()
+void MainWindow::loadTorrent(std::string fileName, std::string buffer)
 {
+    auto myid = std::this_thread::get_id();
+    std::stringstream ss;
+    ss << myid;
+    std::string mystring = ss.str();
+
+    LOG_F(INFO, "Current thread: %s", mystring.c_str());
+    LOG_F(INFO, "filename: %s", fileName.c_str());
+    if (buffer.empty())
+    {
+        LOG_F(ERROR, "Torrent is empty!");
+        return;
+    }
+    valueDictionary decodedTorrent =
+            boost::get<valueDictionary>(Decoder::decode(buffer));
+    Torrent loadedTorrent = toTorrentObj(fileName.c_str(), decodedTorrent);
+    LOG_F(INFO, "Torrent file name: %s", loadedTorrent.generalData.fileName.c_str());
+
+}
+
+void MainWindow::on_actionAdd_Torrent_triggered()
+{
+
     QString fileName = QFileDialog::getOpenFileName(
                 this, tr("Choose a torrent file"), "", tr("*.torrent"));
 
@@ -501,15 +533,22 @@ void MainWindow::on_actionAdd_Torrent_File_triggered()
             return;
         }
 
-        QTextStream in(&file);
-        QString text = in.readAll();
-        //ui->textEdit->setText(text);
+        LOG_F(INFO, "filename: %s", fileName.toStdString().c_str());
+        std::string buffer = loadFromFile(fileName.toStdString().c_str());
+        LOG_F(INFO, "buffer %s", buffer.c_str());
+
+        //run using thread pool
+        QFuture<void> future1 =
+                QtConcurrent::run(
+                    this, &MainWindow::loadTorrent,fileName.toStdString(), buffer);
         file.close();
     }
 }
 
-void MainWindow::on_actionExit_triggered()
+void MainWindow::on_actionExit_Client_triggered()
 {
+
+
     const QMessageBox::StandardButton res = QMessageBox::warning(
                 this, tr("Exit Client"),
                          "Are you sure you want to exit the client?",

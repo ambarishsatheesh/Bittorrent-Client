@@ -20,13 +20,16 @@ public:
   explicit MainWindow(QWidget *parent = 0);
   ~MainWindow();
 
+private slots:
+    void on_actionAdd_Torrent_triggered();
+
+    void on_actionExit_Client_triggered();
 
 private:
   Ui::MainWindow *ui;
   void customHeaderMenuRequested(const QPoint& pos);
-  void on_actionAdd_Torrent_File_triggered();
-  void on_actionExit_triggered();
   void toggleColumnDisplay(bool checked);
+  void loadTorrent(std::string fileName, std::string buffer);
 
 
   QMainWindow* m_rightSideWindow;

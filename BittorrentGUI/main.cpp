@@ -3,11 +3,11 @@
 #include <QApplication>
 
 #include "loguru.h"
-#include "Decoder.h"
-#include "encodeVisitor.h"
-#include "TorrentManipulation.h"
-#include "trackerUrl.h"
-#include "Client.h"
+//#include "Decoder.h"
+//#include "encodeVisitor.h"
+//#include "TorrentManipulation.h"
+//#include "trackerUrl.h"
+//#include "Client.h"
 
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/static_visitor.hpp>
@@ -19,17 +19,17 @@
 #include <stdexcept>
 #include <algorithm>
 
-using namespace Bittorrent;
-using namespace torrentManipulation;
-using namespace Decoder;
+//using namespace Bittorrent;
+//using namespace torrentManipulation;
+//using namespace Decoder;
 
 int main(int argc, char* argv[])
 {
-//    //start logging to file
-//    const char* orderByTimeLog = "timeLog.log";
-//    const char* orderByThreadLog = "threadLog.log";
-//    loguru::init(argc, argv);
-//    loguru::add_file(orderByTimeLog, loguru::Append, loguru::Verbosity_MAX);
+    //start logging to file
+    const char* orderByTimeLog = "timeLog.log";
+    //const char* orderByThreadLog = "threadLog.log";
+    loguru::init(argc, argv);
+    loguru::add_file(orderByTimeLog, loguru::Append, loguru::Verbosity_MAX);
 
 //    const char* fullFilePath = argv[1];
 
