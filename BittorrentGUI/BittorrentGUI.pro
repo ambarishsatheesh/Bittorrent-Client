@@ -32,7 +32,8 @@ SOURCES += \
     ../src/trackerObj.cpp \
     ../src/trackerUrl.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    tableModel.cpp
 
 HEADERS += \
     ../include/ \
@@ -56,7 +57,9 @@ HEADERS += \
     ../include/sha1.h \
     ../include/trackerObj.h \
     ../include/trackerUrl.h \
-    mainwindow.h
+    mainwindow.h \
+    progressDelegate.h \
+    tableModel.h
 
 FORMS += \
     mainwindow.ui
@@ -82,6 +85,9 @@ LIBS += -lwsock32
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    Resources.qrc
 
 
 
