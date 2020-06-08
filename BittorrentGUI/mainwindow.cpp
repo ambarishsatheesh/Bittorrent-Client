@@ -77,7 +77,7 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
 //    contactPhoneNums.append("333-444-5555");
 
     //auto model = new QStandardItemModel();
-    model = new TestModel(this);
+    model = new TestModel(ioClient, this);
     //model->populateData(contactNames,contactPhoneNums);
     //proxy model for table sorting
     QSortFilterProxyModel *proxyModel = new QSortFilterProxyModel(model); // create proxy
@@ -528,7 +528,7 @@ void MainWindow::toggleColumnDisplay(bool checked)
     }
 }
 
-void MainWindow::loadTorrent(std::string fileName, std::string buffer)
+void MainWindow::loadTorrent(std::string& fileName, std::string& buffer)
 {
     auto myid = std::this_thread::get_id();
     std::stringstream ss;
@@ -543,18 +543,7 @@ void MainWindow::loadTorrent(std::string fileName, std::string buffer)
         return;
     }
 
-    ioClient->workingTorrentList.addNewTorrent(fileName, buffer);
-
-//    auto newTorrentAddedOn =
-//            QDateTime::currentDateTime().toString("yyyy/MM/dd HH:mm");
-//    auto newTorrentName = QString::fromStdString(loadedTorrent.generalData.fileName);
-//    auto newTorrentSize = loadedTorrent.piecesData.totalSize;
-//    QModelIndex nIndex0 = model->index(0,0);
-//    QModelIndex nIndex1 = model->index(0,1);
-//    QModelIndex nIndex2 = model->index(0,2);
-//    model->setData(nIndex0, QVariant(newTorrentAddedOn), Qt::DisplayRole);
-//    model->setData(nIndex1, QVariant(newTorrentName), Qt::DisplayRole);
-//    model->setData(nIndex2, QVariant(newTorrentSize), Qt::DisplayRole);
+    model->addNewTorrent(fileName, buffer);
 }
 
 void MainWindow::on_actionAdd_Torrent_triggered()

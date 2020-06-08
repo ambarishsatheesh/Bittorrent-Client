@@ -37,7 +37,7 @@ private:
 
   void customHeaderMenuRequested(const QPoint& pos);
   void toggleColumnDisplay(bool checked);
-  void loadTorrent(std::string fileName, std::string buffer);
+  void loadTorrent(std::string& fileName, std::string& buffer);
 
 
   QMainWindow* m_rightSideWindow;
