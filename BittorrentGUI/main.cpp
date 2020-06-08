@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
     loguru::init(argc, argv);
     loguru::add_file(orderByTimeLog, loguru::Append, loguru::Verbosity_MAX);
 
-    Client client;
+    auto client = std::make_unique<Client>();
 
 //    const char* fullFilePath = argv[1];
 
@@ -106,7 +106,8 @@ int main(int argc, char* argv[])
 
 
     QApplication a(argc, argv);
-    MainWindow w;
+    MainWindow w(client.get());
     w.show();
+
     return a.exec();
 }

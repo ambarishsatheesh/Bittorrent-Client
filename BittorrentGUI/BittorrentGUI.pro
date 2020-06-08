@@ -32,6 +32,7 @@ SOURCES += \
     ../src/tokenizer.cpp \
     ../src/trackerObj.cpp \
     ../src/trackerUrl.cpp \
+    ../src/workingTorrentList.cpp \
     main.cpp \
     mainwindow.cpp \
     tableModel.cpp

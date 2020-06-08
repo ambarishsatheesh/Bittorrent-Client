@@ -7,18 +7,23 @@
 #include <QMenu>
 #include <QPointer>
 #include <QAction>
+
+#include "Client.h"
 #include "tableModel.h"
 
 namespace Ui {
 class MainWindow;
 }
 
+
+namespace Bittorrent {
+
 class MainWindow : public QMainWindow
 {
   Q_OBJECT
 
 public:
-  explicit MainWindow(QWidget *parent = 0);
+  explicit MainWindow(Client* client, QWidget *parent = 0);
   ~MainWindow();
 
 private slots:
@@ -28,6 +33,8 @@ private slots:
 
 private:
   Ui::MainWindow *ui;
+  Client* ioClient;
+
   void customHeaderMenuRequested(const QPoint& pos);
   void toggleColumnDisplay(bool checked);
   void loadTorrent(std::string fileName, std::string buffer);
@@ -61,6 +68,8 @@ private:
 
 
 };
+
+}
 
 
 #endif // MAINWINDOW_H

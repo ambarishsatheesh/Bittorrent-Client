@@ -14,5 +14,9 @@ namespace Bittorrent
     public:
         std::vector<std::shared_ptr<Torrent>> torrentList;
 
+        void addNewTorrent(std::string fileName, std::string buffer);
+
+        workingTorrentList();
+
     };
 }

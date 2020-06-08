@@ -2,7 +2,6 @@
 #include "ui_mainwindow.h"
 #include "tableModel.h"
 #include "progressDelegate.h"
-#include "TorrentManipulation.h"
 #include "Decoder.h"
 #include "loguru.h"
 
@@ -14,17 +13,19 @@
 #include <sstream>
 
 
-using namespace Bittorrent;
-using namespace torrentManipulation;
+namespace Bittorrent
+{
+
 using namespace utility;
 
-MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow), torrentTable(new QTableView),
+MainWindow::MainWindow(Client* client, QWidget *parent)
+    : QMainWindow(parent), ui(new Ui::MainWindow),
+    ioClient(client), torrentTable(new QTableView),
     numTorrentTableHeaderMenu{0}
 {
     //General Layout
     ui->setupUi(this);
+    this->setWindowTitle("ioTorrent");
 
     QSplitter *splitter1 = new QSplitter(this);
     splitter1->setOrientation(Qt::Horizontal);
@@ -541,21 +542,19 @@ void MainWindow::loadTorrent(std::string fileName, std::string buffer)
         LOG_F(ERROR, "Torrent is empty!");
         return;
     }
-    valueDictionary decodedTorrent =
-            boost::get<valueDictionary>(Decoder::decode(buffer));
-    Torrent loadedTorrent = toTorrentObj(fileName.c_str(), decodedTorrent);
-    LOG_F(INFO, "Torrent file name: %s", loadedTorrent.generalData.fileName.c_str());
 
-    auto newTorrentAddedOn =
-            QDateTime::currentDateTime().toString("yyyy/MM/dd HH:mm");
-    auto newTorrentName = QString::fromStdString(loadedTorrent.generalData.fileName);
-    auto newTorrentSize = loadedTorrent.piecesData.totalSize;
-    QModelIndex nIndex0 = model->index(0,0);
-    QModelIndex nIndex1 = model->index(0,1);
-    QModelIndex nIndex2 = model->index(0,2);
-    model->setData(nIndex0, QVariant(newTorrentAddedOn), Qt::DisplayRole);
-    model->setData(nIndex1, QVariant(newTorrentName), Qt::DisplayRole);
-    model->setData(nIndex2, QVariant(newTorrentSize), Qt::DisplayRole);
+    ioClient->workingTorrentList.addNewTorrent(fileName, buffer);
+
+//    auto newTorrentAddedOn =
+//            QDateTime::currentDateTime().toString("yyyy/MM/dd HH:mm");
+//    auto newTorrentName = QString::fromStdString(loadedTorrent.generalData.fileName);
+//    auto newTorrentSize = loadedTorrent.piecesData.totalSize;
+//    QModelIndex nIndex0 = model->index(0,0);
+//    QModelIndex nIndex1 = model->index(0,1);
+//    QModelIndex nIndex2 = model->index(0,2);
+//    model->setData(nIndex0, QVariant(newTorrentAddedOn), Qt::DisplayRole);
+//    model->setData(nIndex1, QVariant(newTorrentName), Qt::DisplayRole);
+//    model->setData(nIndex2, QVariant(newTorrentSize), Qt::DisplayRole);
 }
 
 void MainWindow::on_actionAdd_Torrent_triggered()
@@ -609,3 +608,6 @@ void MainWindow::on_actionExit_Client_triggered()
        //
     }
 }
+
+}
+
