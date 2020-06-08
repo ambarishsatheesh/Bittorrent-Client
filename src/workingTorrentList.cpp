@@ -17,7 +17,8 @@ namespace Bittorrent
     {
         valueDictionary decodedTorrent =
                 boost::get<valueDictionary>(Decoder::decode(buffer));
-        Torrent loadedTorrent = toTorrentObj(fileName.c_str(), decodedTorrent);
+        Torrent loadedTorrent = toTorrentObj(
+                    fileName.c_str(), decodedTorrent);
 
         auto loadedTorrent_ptr = std::make_shared<Torrent>(loadedTorrent);
         torrentList.push_back(loadedTorrent_ptr);
@@ -25,6 +26,10 @@ namespace Bittorrent
           LOG_F(INFO, "Added Torrent %s to client!", loadedTorrent.generalData.fileName.c_str());
     }
 
+    void workingTorrentList::removeTorrent(int rowNum)
+    {
+        torrentList.erase(torrentList.begin() + (rowNum-1));
+    }
 
 }
 
