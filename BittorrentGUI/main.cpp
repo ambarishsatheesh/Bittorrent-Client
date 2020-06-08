@@ -7,7 +7,8 @@
 //#include "encodeVisitor.h"
 //#include "TorrentManipulation.h"
 //#include "trackerUrl.h"
-//#include "Client.h"
+#include "Client.h"
+#include "tableModel.h"
 
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/static_visitor.hpp>
@@ -19,7 +20,8 @@
 #include <stdexcept>
 #include <algorithm>
 
-//using namespace Bittorrent;
+
+using namespace Bittorrent;
 //using namespace torrentManipulation;
 //using namespace Decoder;
 
@@ -30,6 +32,8 @@ int main(int argc, char* argv[])
     //const char* orderByThreadLog = "threadLog.log";
     loguru::init(argc, argv);
     loguru::add_file(orderByTimeLog, loguru::Append, loguru::Verbosity_MAX);
+
+    Client client;
 
 //    const char* fullFilePath = argv[1];
 

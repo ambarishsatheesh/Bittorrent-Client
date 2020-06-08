@@ -56,18 +56,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     setCentralWidget(splitter1);
 
-    // Each data row has 2 properties: string and int
-    struct MyData {
-        QString str;
-        int i;
-        int j;
-        int k;
-        int l;
-        int m;
-    };
-    QVector<MyData> data = { { "a", 1 , 25, 2, 5, 10}, { "b", 2 , 303,2, 5, 40},
-                             {"c", 3, 506, 2, 5, 70}, {"d", 4, 208, 2, 5, 100} };
-
     // Configure the table view
     auto torrentTable = new QTableView(this);
     torrentTable->horizontalHeader()->setSectionsMovable(true);
@@ -75,49 +63,94 @@ MainWindow::MainWindow(QWidget *parent) :
     torrentTable->setShowGrid(false);
     torrentTable->setAlternatingRowColors(true);
 
-    auto model = new QStandardItemModel();
+
+//    QList<QString> contactNames;
+//    QList<QString> contactPhoneNums;
+
+//    // Create some data that is tabular in nature:
+//    contactNames.append("Thomas");
+//    contactNames.append("Richard");
+//    contactNames.append("Harrison");
+//    contactPhoneNums.append("123-456-7890");
+//    contactPhoneNums.append("222-333-4444");
+//    contactPhoneNums.append("333-444-5555");
+
+    //auto model = new QStandardItemModel();
+    model = new TestModel(this);
+    //model->populateData(contactNames,contactPhoneNums);
     //proxy model for table sorting
     QSortFilterProxyModel *proxyModel = new QSortFilterProxyModel(model); // create proxy
     torrentTable->setSortingEnabled(true);
-    proxyModel->setDynamicSortFilter(true);
+    //proxyModel->setDynamicSortFilter(true);
 
     progressDelegate* delegate = new progressDelegate(torrentTable);
     torrentTable->setItemDelegateForColumn(5, delegate);
 
     proxyModel->setSourceModel(model);
-    torrentTable->setModel(proxyModel);
+    torrentTable->setModel(model);
     m_dockWidget1->setWidget(torrentTable);
+    m_dockWidget1->show();
 
-    // Configure column titles
-    model->setHorizontalHeaderItem(0, new QStandardItem("Priority"));
-    model->setHorizontalHeaderItem(1, new QStandardItem("Added On"));
-    model->setHorizontalHeaderItem(2, new QStandardItem("Name"));
-    model->setHorizontalHeaderItem(3, new QStandardItem("Size"));
-    model->setHorizontalHeaderItem(4, new QStandardItem("Status"));
-    model->setHorizontalHeaderItem(5, new QStandardItem("Progress"));
-    model->setHorizontalHeaderItem(6, new QStandardItem("Seeds"));
-    model->setHorizontalHeaderItem(7, new QStandardItem("Peers"));
-    model->setHorizontalHeaderItem(8, new QStandardItem("Download Speed"));
-    model->setHorizontalHeaderItem(9, new QStandardItem("Upload Speed"));
-    model->setHorizontalHeaderItem(10, new QStandardItem("ETA"));
-    model->setHorizontalHeaderItem(11, new QStandardItem("Ratio"));
-    model->setHorizontalHeaderItem(12, new QStandardItem("Tracker"));
-    model->setHorizontalHeaderItem(13, new QStandardItem("Time Active"));
-    model->setHorizontalHeaderItem(14, new QStandardItem("Downloaded"));
-    model->setHorizontalHeaderItem(15, new QStandardItem("Uploaded"));
 
-    // Add rows to the model
-    QList<QStandardItem*> rowData;
-    Q_FOREACH(const auto &item, data){
-        rowData.clear();
-        rowData << new QStandardItem(item.str);
-        rowData << new QStandardItem(QString("%1").arg(item.i));
-        rowData << new QStandardItem(QString("%1").arg(item.j));
-        rowData << new QStandardItem(QString("%1").arg(item.k));
-        rowData << new QStandardItem(QString("%1").arg(item.l));
-        rowData << new QStandardItem(QString("%1").arg(item.m));
-        model->appendRow(rowData);
-    }
+//    model->headerData(1);
+//    model->headerData(2);
+//    model->headerData(3);
+//    model->headerData(4);
+//    model->headerData(5);
+//    model->headerData(6);
+//    model->headerData(7);
+//    model->headerData(8);
+//    model->headerData(9);
+//    model->headerData(10);
+//    model->headerData(11);
+//    model->headerData(12);
+//    model->headerData(13);
+//    model->headerData(14);
+
+
+    //Configure column titles
+//    model->setHorizontalHeaderItem(0, new QStandardItem("Priority"));
+//    model->setHorizontalHeaderItem(1, new QStandardItem("Added On"));
+//    model->setHorizontalHeaderItem(2, new QStandardItem("Name"));
+//    model->setHorizontalHeaderItem(3, new QStandardItem("Size"));
+//    model->setHorizontalHeaderItem(4, new QStandardItem("Status"));
+//    model->setHorizontalHeaderItem(5, new QStandardItem("Progress"));
+//    model->setHorizontalHeaderItem(6, new QStandardItem("Seeds"));
+//    model->setHorizontalHeaderItem(7, new QStandardItem("Peers"));
+//    model->setHorizontalHeaderItem(8, new QStandardItem("Download Speed"));
+//    model->setHorizontalHeaderItem(9, new QStandardItem("Upload Speed"));
+//    model->setHorizontalHeaderItem(10, new QStandardItem("ETA"));
+//    model->setHorizontalHeaderItem(11, new QStandardItem("Ratio"));
+//    model->setHorizontalHeaderItem(12, new QStandardItem("Tracker"));
+//    model->setHorizontalHeaderItem(13, new QStandardItem("Time Active"));
+//    model->setHorizontalHeaderItem(14, new QStandardItem("Downloaded"));
+//    model->setHorizontalHeaderItem(15, new QStandardItem("Uploaded"));
+
+
+    // Each data row has 2 properties: string and int
+//    struct MyData {
+//        QString str;
+//        int i;
+//        int j;
+//        int k;
+//        int l;
+//        int m;
+//    };
+//    QVector<MyData> data = { { "a", 1 , 25, 2, 5, 10}, { "b", 2 , 303,2, 5, 40},
+//                             {"c", 3, 506, 2, 5, 70}, {"d", 4, 208, 2, 5, 100} };
+
+//    //Add rows to the model
+//    QList<QStandardItem*> rowData;
+//    Q_FOREACH(const auto &item, data){
+//        rowData.clear();
+//        rowData << new QStandardItem(item.str);
+//        rowData << new QStandardItem(QString("%1").arg(item.i));
+//        rowData << new QStandardItem(QString("%1").arg(item.j));
+//        rowData << new QStandardItem(QString("%1").arg(item.k));
+//        rowData << new QStandardItem(QString("%1").arg(item.l));
+//        rowData << new QStandardItem(QString("%1").arg(item.m));
+//        model->appendRow(rowData);
+//    }
 
     torrentTable->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(torrentTable->horizontalHeader(),
@@ -348,6 +381,9 @@ void MainWindow::customHeaderMenuRequested(const QPoint& pos)
 
 void MainWindow::toggleColumnDisplay(bool checked)
 {
+
+
+
     //get sender action
     QAction* action = qobject_cast<QAction*>(sender());
     qDebug() << "Triggered: " << action->text();
@@ -510,6 +546,16 @@ void MainWindow::loadTorrent(std::string fileName, std::string buffer)
     Torrent loadedTorrent = toTorrentObj(fileName.c_str(), decodedTorrent);
     LOG_F(INFO, "Torrent file name: %s", loadedTorrent.generalData.fileName.c_str());
 
+    auto newTorrentAddedOn =
+            QDateTime::currentDateTime().toString("yyyy/MM/dd HH:mm");
+    auto newTorrentName = QString::fromStdString(loadedTorrent.generalData.fileName);
+    auto newTorrentSize = loadedTorrent.piecesData.totalSize;
+    QModelIndex nIndex0 = model->index(0,0);
+    QModelIndex nIndex1 = model->index(0,1);
+    QModelIndex nIndex2 = model->index(0,2);
+    model->setData(nIndex0, QVariant(newTorrentAddedOn), Qt::DisplayRole);
+    model->setData(nIndex1, QVariant(newTorrentName), Qt::DisplayRole);
+    model->setData(nIndex2, QVariant(newTorrentSize), Qt::DisplayRole);
 }
 
 void MainWindow::on_actionAdd_Torrent_triggered()

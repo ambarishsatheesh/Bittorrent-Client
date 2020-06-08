@@ -58,8 +58,10 @@ HEADERS += \
     ../include/sha1.h \
     ../include/trackerObj.h \
     ../include/trackerUrl.h \
+    ../include/workingTorrentList.h \
     mainwindow.h \
     progressDelegate.h \
+    storedPrevTorrents.h \
     tableModel.h
 
 FORMS += \

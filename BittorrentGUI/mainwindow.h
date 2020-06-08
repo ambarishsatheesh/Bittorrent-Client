@@ -7,6 +7,7 @@
 #include <QMenu>
 #include <QPointer>
 #include <QAction>
+#include "tableModel.h"
 
 namespace Ui {
 class MainWindow;
@@ -39,6 +40,7 @@ private:
   QMenu* torrentTableHeaderMenu;
   int numTorrentTableHeaderMenu;
 
+  TestModel *model;
 
   QPointer<QAction> toggleDisplayPriority;
   QPointer<QAction> toggleDisplayAddedOn;
