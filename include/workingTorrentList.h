@@ -18,7 +18,7 @@ namespace Bittorrent
         std::vector<std::shared_ptr<Torrent>> torrentList;
 
         void addNewTorrent(std::string fileName, std::string buffer);
-        void removeTorrent(int rowNum);
+        void removeTorrent(int position);
 
         workingTorrentList();
 

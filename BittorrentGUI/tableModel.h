@@ -17,8 +17,8 @@
 //};
 
 
-#ifndef MYMODEL_H
-#define MYMODEL_H
+#ifndef TestModel_H
+#define TestModel_H
 
 #include "storedPrevTorrents.h"
 #include "Client.h"
@@ -55,8 +55,7 @@ public:
                           const QModelIndex &index) const;
 
     void addNewTorrent(std::string& fileName, std::string& buffer);
-    bool removeRows(int position, int rows,
-                    const QModelIndex &index) override;
+    void removeTorrent(int position, int rows);
 
 private:
     Client* ioClientModel;
@@ -69,4 +68,4 @@ private:
 
 }
 
-#endif // MYMODEL_H
+#endif // TestModel_H

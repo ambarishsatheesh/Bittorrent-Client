@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 #include <QAbstractTableModel>
+#include <QStandardItemModel>
+#include <QItemSelectionModel>
 #include <QTableView>
 #include <QMenu>
 #include <QPointer>
@@ -31,24 +33,34 @@ private slots:
 
     void on_actionExit_Client_triggered();
 
+    void customHeaderMenuRequested(const QPoint& pos);
+
+    void customMainMenuRequested(const QPoint& pos);
+
 private:
   Ui::MainWindow *ui;
   Client* ioClient;
 
-  void customHeaderMenuRequested(const QPoint& pos);
   void toggleColumnDisplay(bool checked);
-  void loadTorrent(std::string& fileName, std::string& buffer);
+  void loadTorrent(std::string fileName, std::string& buffer);
+  void deleteTorrent();
 
 
   QMainWindow* m_rightSideWindow;
   QDockWidget* m_dockWidget1;
   QDockWidget* m_dockWidget2;
   QTableView* torrentTable;
+
   QMenu* torrentTableHeaderMenu;
+  QMenu* torrentTableMainMenu;
   int numTorrentTableHeaderMenu;
 
   TestModel *model;
 
+  //table main menu
+  QPointer<QAction> a_deleteTorrent;
+
+  //table header menu
   QPointer<QAction> toggleDisplayPriority;
   QPointer<QAction> toggleDisplayAddedOn;
   QPointer<QAction> toggleDisplayName;

@@ -32,10 +32,10 @@ namespace Bittorrent
         LOG_F(INFO, "Added Torrent %s to client!", loadedTorrent.generalData.fileName.c_str());
     }
 
-    void workingTorrentList::removeTorrent(int rowNum)
+    void workingTorrentList::removeTorrent(int position)
     {
-        torrentList.erase(torrentList.begin() + (rowNum-1));
-        addedOnList.erase(addedOnList.begin() + (rowNum-1));
+        torrentList.erase(torrentList.begin() + position);
+        addedOnList.erase(addedOnList.begin() + position);
     }
 
 }

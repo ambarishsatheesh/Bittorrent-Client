@@ -11,27 +11,15 @@ TestModel::TestModel(Client* client, QObject *parent)
 {
 }
 
-// Create a method to populate the model with data:
-void TestModel::populateData(const storedPrevTorrents storedTor)
-{
-
-    tm_torrent_addedon = storedTor.torrentAddedOn;
-    tm_torrent_name = storedTor.torrentName;
-    //tm_torrent_size.clear();
-    tm_torrent_size = storedTor.torrentSize;
-    return;
-}
-
 int TestModel::rowCount(const QModelIndex &parent) const
 {
-    Q_UNUSED(parent);
-    return ioClientModel->workingTorrentList.torrentList.size();
+    return parent.isValid() ?
+                0 : ioClientModel->workingTorrentList.torrentList.size();
 }
 
 int TestModel::columnCount(const QModelIndex &parent) const
 {
-    Q_UNUSED(parent);
-    return 16;
+    return parent.isValid() ? 0 : 16;
 }
 
 QVariant TestModel::data(const QModelIndex &index, int role) const
@@ -57,70 +45,48 @@ QVariant TestModel::data(const QModelIndex &index, int role) const
 
 QVariant TestModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
-    if (role == Qt::DisplayRole && orientation == Qt::Horizontal) {
-        if (section == 0)
+    if (role != Qt::DisplayRole)
+    {
+        return QVariant();
+    }
+
+    if (orientation == Qt::Horizontal) {
+        switch (section)
         {
+        case 0:
             return QString("Added On");
-        }
-        else if (section == 1)
-        {
+        case 1:
             return QString("Priority");
-        }
-        else if (section == 2)
-        {
+        case 2:
             return QString("Name");
-        }
-        else if (section == 3)
-        {
+        case 3:
             return QString("Size");
-        }
-        else if (section == 4)
-        {
+        case 4:
             return QString("Progress");
-        }
-        else if (section == 5)
-        {
+        case 5:
             return QString("Status");
-        }
-        else if (section == 6)
-        {
+        case 6:
             return QString("Seeds");
-        }
-        else if (section == 7)
-        {
+        case 7:
             return QString("Peers");
-        }
-        else if (section == 8)
-        {
+        case 8:
             return QString("Download Speed");
-        }
-        else if (section == 9)
-        {
+        case 9:
             return QString("Upload Speed");
-        }
-        else if (section == 10)
-        {
+        case 10:
             return QString("ETA");
-        }
-        else if (section == 11)
-        {
+        case 11:
             return QString("Ratio");
-        }
-        else if (section == 12)
-        {
+        case 12:
             return QString("Tracker");
-        }
-        else if (section == 13)
-        {
+        case 13:
             return QString("Downloaded");
-        }
-        else if (section == 14)
-        {
+        case 14:
             return QString("Uploaded");
-        }
-        else if (section == 15)
-        {
+        case 15:
             return QString("Time Active");
+        default:
+            break;
         }
     }
     return QVariant();
@@ -130,9 +96,6 @@ bool TestModel::setData(const QModelIndex &index, const QVariant &value, int rol
     {
         if (role == Qt::DisplayRole)
         {
-            LOG_F(INFO, "Index.row: %d", index.row());
-            tm_torrent_name[index.row()] = value.toString();  //  set the new data
-
             emit dataChanged(index, index);     //  explicitly emit dataChanged signal, notifies TreeView to update by
                                                 //  calling this->data(index, Qt::DisplayRole)
         }
@@ -215,7 +178,10 @@ QVariant TestModel::generateData(const std::shared_ptr<Torrent> torrent,
 void TestModel::addNewTorrent(std::string& fileName, std::string& buffer)
 {
     //get last row
-    const int newRow = this->rowCount();
+    const int newRow =
+            ioClientModel->workingTorrentList.torrentList.size();
+
+    LOG_F(INFO, "rowCounts1: %d", newRow);
 
     //begin row insert operation before changing data
     beginInsertRows(QModelIndex(), newRow, newRow);
@@ -225,18 +191,23 @@ void TestModel::addNewTorrent(std::string& fileName, std::string& buffer)
 
     //no need to explicitly call emit dataChanged() - this will update view by itself
     endInsertRows();
+
+
+    LOG_F(INFO, "rowCounts2: %d", this->rowCount());
 }
 
-bool TestModel::removeRows(int position, int rows, const QModelIndex &index)
+void TestModel::removeTorrent(int position, int rows)
 {
-//    Q_UNUSED(index);
-//    beginRemoveRows(QModelIndex(), position, position + rows - 1);
+    beginRemoveRows(QModelIndex(), position, position + rows - 1);
 
-//    for (int row = 0; row < rows; ++row)
-//        contacts.removeAt(position);
+    LOG_F(INFO, "Removing torrent \"%s\"",
+          ioClientModel->workingTorrentList.torrentList.at(position)->
+          generalData.fileName.c_str());
 
-//    endRemoveRows();
-//    return true;
+    ioClientModel->
+            workingTorrentList.removeTorrent(position);
+
+    endRemoveRows();
 }
 
 
