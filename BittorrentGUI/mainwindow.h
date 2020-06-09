@@ -9,10 +9,13 @@
 #include <QMenu>
 #include <QPointer>
 #include <QAction>
+#include <QWidgetAction>
+#include <QCheckBox>
 #include <QHash>
 
 #include "Client.h"
 #include "tableModel.h"
+#include "torrentheadercheckbox.h"
 
 namespace Ui {
 class MainWindow;
@@ -44,7 +47,7 @@ private:
   Ui::MainWindow *ui;
   Client* ioClient;
 
-  void toggleColumnDisplay(bool checked);
+  void toggleColumnDisplay();
   void loadTorrent(std::string fileName, std::string& buffer);
 
   QMainWindow* m_rightSideWindow;
@@ -62,23 +65,23 @@ private:
   QPointer<QAction> a_deleteTorrent;
 
   //table header menu
-  QList<QPair<QString, QPointer<QAction>>> actionList;
-  QPointer<QAction> toggleDisplay_Priority;
-  QPointer<QAction> toggleDisplay_AddedOn;
-  QPointer<QAction> toggleDisplay_Name;
-  QPointer<QAction> toggleDisplay_Size;
-  QPointer<QAction> toggleDisplay_Progress;
-  QPointer<QAction> toggleDisplay_Status;
-  QPointer<QAction> toggleDisplay_Seeds;
-  QPointer<QAction> toggleDisplay_Peers;
-  QPointer<QAction> toggleDisplay_DownloadSpeed;
-  QPointer<QAction> toggleDisplay_UploadSpeed;
-  QPointer<QAction> toggleDisplay_ETA;
-  QPointer<QAction> toggleDisplay_Ratio;
-  QPointer<QAction> toggleDisplay_Tracker;
-  QPointer<QAction> toggleDisplay_Downloaded;
-  QPointer<QAction> toggleDisplay_Uploaded;
-  QPointer<QAction> toggleDisplay_TimeActive;
+  QList<QPair<QString, QPointer<TorrentHeaderCheckbox>>> actionList;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_Priority;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_AddedOn;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_Name;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_Size;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_Progress;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_Status;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_Seeds;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_Peers;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_DownloadSpeed;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_UploadSpeed;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_ETA;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_Ratio;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_Tracker;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_Downloaded;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_Uploaded;
+  QPointer<TorrentHeaderCheckbox> toggleDisplay_TimeActive;
 
 
 

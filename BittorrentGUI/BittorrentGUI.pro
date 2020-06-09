@@ -36,7 +36,8 @@ SOURCES += \
     ../src/workingTorrentList.cpp \
     main.cpp \
     mainwindow.cpp \
-    tableModel.cpp
+    tableModel.cpp \
+    torrentheadercheckbox.cpp
 
 HEADERS += \
     ../include/ \
@@ -64,7 +65,8 @@ HEADERS += \
     mainwindow.h \
     progressDelegate.h \
     storedPrevTorrents.h \
-    tableModel.h
+    tableModel.h \
+    torrentheadercheckbox.h
 
 FORMS += \
     mainwindow.ui

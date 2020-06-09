@@ -144,22 +144,25 @@ void MainWindow::customHeaderMenuRequested(const QPoint& pos)
         //iterate through actions and configure menu options and slots
         for (int i = 0; i < actionList.size(); ++i)
         {
-            actionList[i].second = new QAction(actionList.at(i).first, this);
-            actionList[i].second->setCheckable(true);
+            actionList[i].second =
+                    new TorrentHeaderCheckbox(
+                        actionList[i].first, torrentTableMainMenu);
+
+            auto widgetAction = new QWidgetAction(this);
+            widgetAction->setDefaultWidget(actionList[i].second);
 
             //set internal data so it can be used for quick processing in slot
             actionList[i].second->setData(i);
-
-            LOG_F(INFO, "setting action: %d", actionList[i].second->data().toInt());
 
             torrentTable->isColumnHidden(i) ?
                         actionList[i].second->setChecked(false) :
                         actionList[i].second->setChecked(true);
 
-            connect(actionList[i].second, &QAction::triggered, this,
+            connect(actionList[i].second,
+                    &TorrentHeaderCheckbox::stateChanged, this,
                             &MainWindow::toggleColumnDisplay);
 
-            torrentTableMainMenu->addAction(actionList.at(i).second);
+            torrentTableMainMenu->addAction(widgetAction);
         }
 
         isFirstTorrentHeaderMenu = false;
@@ -168,23 +171,24 @@ void MainWindow::customHeaderMenuRequested(const QPoint& pos)
     torrentTableMainMenu->popup(torrentTable->mapToGlobal(pos));
 }
 
-void MainWindow::toggleColumnDisplay(bool checked)
+void MainWindow::toggleColumnDisplay()
 {
     emit model->layoutAboutToBeChanged();
 
     //get sender action
-    QAction* action = qobject_cast<QAction*>(sender());
+    TorrentHeaderCheckbox* chkBox =
+            qobject_cast<TorrentHeaderCheckbox*>(sender());
 
-    if (action->isChecked())
+    if (chkBox->isChecked())
     {
         //use stored action data to determine position in action list
-        LOG_F(INFO, "unhiding action: %d", action->data().toInt());
-        torrentTable->showColumn(action->data().toInt());
+        LOG_F(INFO, "unhiding action: %d", chkBox->data().toInt());
+        torrentTable->showColumn(chkBox->data().toInt());
     }
     else
     {
-        LOG_F(INFO, "hiding action: %d", action->data().toInt());
-        torrentTable->hideColumn(action->data().toInt());
+        LOG_F(INFO, "hiding action: %d", chkBox->data().toInt());
+        torrentTable->hideColumn(chkBox->data().toInt());
     }
 
     emit model->layoutChanged();
