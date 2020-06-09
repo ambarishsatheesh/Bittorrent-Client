@@ -61,7 +61,7 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     // Configure the table view
     torrentTable = new QTableView(m_dockWidget1);
     //torrentTable->horizontalHeader()->setSectionsMovable(true);
-    //torrentTable->verticalHeader()->setVisible(false);
+    torrentTable->verticalHeader()->setVisible(false);
     torrentTable->setShowGrid(false);
     torrentTable->setAlternatingRowColors(true);
 
@@ -99,7 +99,6 @@ MainWindow::~MainWindow()
 {
     delete ui;
     delete m_rightSideWindow;
-    delete torrentTable;
 }
 
 void MainWindow::customMainMenuRequested(const QPoint& pos)

@@ -323,5 +323,30 @@ namespace Bittorrent
             }
         }
 
+        inline std::string prettyBytes(long long bytes)
+        {
+            std::vector<std::string> suffix(5);
+            suffix.at(0) = "B";
+            suffix.at(1) = "KiB";
+            suffix.at(2) = "MiB";
+            suffix.at(3) = "GiB";
+            suffix.at(4) = "TiB";
+
+            unsigned short s = 0;
+            double count = bytes;
+
+            while (count >= 1024 && s < 5)
+            {
+                ++s;
+                count /= 1024;
+            }
+
+            std::ostringstream streamObj;
+            streamObj << std::fixed << std::setprecision(2) << count;
+
+            return streamObj.str() + " " + suffix.at(s);
+        }
+
+
     }
 }

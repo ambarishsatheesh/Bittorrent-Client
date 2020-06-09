@@ -1,5 +1,6 @@
 #include "tableModel.h"
 #include "loguru.h"
+#include "Utility.h"
 
 #include <Qtime>
 
@@ -106,6 +107,8 @@ bool TestModel::setData(const QModelIndex &index, const QVariant &value, int rol
 QVariant TestModel::generateData(const std::shared_ptr<Torrent> torrent,
                                  const QModelIndex &index) const
 {
+    using namespace utility;
+
     switch (index.column())
     {
     //Added on
@@ -121,7 +124,8 @@ QVariant TestModel::generateData(const std::shared_ptr<Torrent> torrent,
         return QString::fromStdString(torrent->generalData.fileName);
     //Size
     case 3:
-        return torrent->piecesData.totalSize;
+        return QString::fromStdString(
+                    prettyBytes(torrent->piecesData.totalSize));
     //Progress
     case 4:
         //implement using delegates
