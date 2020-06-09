@@ -34,6 +34,7 @@ SOURCES += \
     ../src/trackerObj.cpp \
     ../src/trackerUrl.cpp \
     ../src/workingTorrentList.cpp \
+    createtorrent.cpp \
     main.cpp \
     mainwindow.cpp \
     tableModel.cpp \
@@ -62,6 +63,7 @@ HEADERS += \
     ../include/trackerObj.h \
     ../include/trackerUrl.h \
     ../include/workingTorrentList.h \
+    createtorrent.h \
     mainwindow.h \
     progressDelegate.h \
     storedPrevTorrents.h \
@@ -69,6 +71,7 @@ HEADERS += \
     torrentheadercheckbox.h
 
 FORMS += \
+    createtorrent.ui \
     mainwindow.ui
 
 INCLUDEPATH += ../include/

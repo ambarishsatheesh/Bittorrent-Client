@@ -11,11 +11,12 @@
 #include <QAction>
 #include <QWidgetAction>
 #include <QCheckBox>
-#include <QHash>
+#include <QFileDialog>
 
 #include "Client.h"
 #include "tableModel.h"
 #include "torrentheadercheckbox.h"
+#include "createtorrent.h"
 
 namespace Ui {
 class MainWindow;
@@ -43,26 +44,32 @@ private slots:
 
     void on_actionDelete_triggered();
 
+    void on_actionTorrent_Creator_triggered();
+
 private:
-  Ui::MainWindow *ui;
+  Ui::MainWindow* ui;
   Client* ioClient;
+  QPointer<CreateTorrent> createTorDialog;
 
   void toggleColumnDisplay();
   void loadTorrent(std::string fileName, std::string& buffer);
 
-  QMainWindow* m_rightSideWindow;
-  QDockWidget* m_dockWidget1;
-  QDockWidget* m_dockWidget2;
-  QTableView* torrentTable;
+  QPointer<QMainWindow> m_rightSideWindow;
+  QPointer<QDockWidget> m_dockWidget1;
+  QPointer<QDockWidget> m_dockWidget2;
+  QPointer<QTableView> torrentTable;
 
-  QMenu* torrentTableHeaderMenu;
-  QMenu* torrentTableMainMenu;
+  QPointer<QMenu> torrentTableHeaderMenu;
+  QPointer<QMenu> torrentTableMainMenu;
   bool isFirstTorrentHeaderMenu;
 
-  TestModel *model;
+  QPointer<TestModel> model;
 
   //table main menu
   QPointer<QAction> a_deleteTorrent;
+
+  //file dialog
+  QPointer<QFileDialog> addTorrentDialog;
 
   //table header menu
   QList<QPair<QString, QPointer<TorrentHeaderCheckbox>>> actionList;

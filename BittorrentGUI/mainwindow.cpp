@@ -182,12 +182,10 @@ void MainWindow::toggleColumnDisplay()
     if (chkBox->isChecked())
     {
         //use stored action data to determine position in action list
-        LOG_F(INFO, "unhiding action: %d", chkBox->data().toInt());
         torrentTable->showColumn(chkBox->data().toInt());
     }
     else
     {
-        LOG_F(INFO, "hiding action: %d", chkBox->data().toInt());
         torrentTable->hideColumn(chkBox->data().toInt());
     }
 
@@ -214,14 +212,14 @@ void MainWindow::loadTorrent(std::string fileName, std::string& buffer)
 
 void MainWindow::on_actionAdd_Torrent_triggered()
 {
-    QFileDialog dialog(this);
-    dialog.setNameFilter(tr("*.torrent"));
-    dialog.setViewMode(QFileDialog::Detail);
-    dialog.setFileMode(QFileDialog::ExistingFiles);
+    addTorrentDialog = new QFileDialog(this);
+    addTorrentDialog->setNameFilter(tr("*.torrent"));
+    addTorrentDialog->setViewMode(QFileDialog::Detail);
+    addTorrentDialog->setFileMode(QFileDialog::ExistingFiles);
 
-    if ( QDialog::Accepted == dialog.exec() )
+    if ( QDialog::Accepted == addTorrentDialog->exec() )
     {
-        QStringList filenames = dialog.selectedFiles();
+        QStringList filenames = addTorrentDialog->selectedFiles();
         QStringList::const_iterator it = filenames.begin();
         QStringList::const_iterator eIt = filenames.end();
         while ( it != eIt )
@@ -259,7 +257,7 @@ void MainWindow::on_actionExit_Client_triggered()
 }
 
 
-void Bittorrent::MainWindow::on_actionDelete_triggered()
+void MainWindow::on_actionDelete_triggered()
 {
     QModelIndexList selection =
             torrentTable->selectionModel()->selectedRows();
@@ -277,6 +275,20 @@ void Bittorrent::MainWindow::on_actionDelete_triggered()
 }
 
 
+void MainWindow::on_actionTorrent_Creator_triggered()
+{
+    createTorDialog = new CreateTorrent(this);
+
+    //remove question mark from dialog
+    createTorDialog->setWindowFlags(
+                createTorDialog->windowFlags() &
+                ~Qt::WindowContextHelpButtonHint);
+
+    createTorDialog->show();
 
 }
 
+
+
+
+}
