@@ -46,7 +46,6 @@ private:
 
   void toggleColumnDisplay(bool checked);
   void loadTorrent(std::string fileName, std::string& buffer);
-  void deleteTorrent();
 
   QMainWindow* m_rightSideWindow;
   QDockWidget* m_dockWidget1;

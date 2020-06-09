@@ -254,24 +254,6 @@ void MainWindow::on_actionExit_Client_triggered()
     }
 }
 
-void MainWindow::deleteTorrent()
-{
-    QModelIndexList selection =
-            torrentTable->selectionModel()->selectedRows();
-
-    //sort by descending row num so deletion doesn't upset indices
-    std::sort(selection.begin(), selection.end(),
-              [](const QModelIndex& r1, const QModelIndex& r2){
-        return r1.row() > r2.row();});
-
-    for(int i=0; i<selection.count(); i++)
-    {
-        QModelIndex index = selection.at(i);
-        model->removeTorrent(index.row());
-    }
-}
-
-
 
 void Bittorrent::MainWindow::on_actionDelete_triggered()
 {
