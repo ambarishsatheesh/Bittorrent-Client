@@ -490,32 +490,28 @@ void MainWindow::loadTorrent(std::string fileName, std::string& buffer)
 
 void MainWindow::on_actionAdd_Torrent_triggered()
 {
+    QFileDialog dialog(this);
+    dialog.setNameFilter(tr("*.torrent"));
+    dialog.setViewMode(QFileDialog::Detail);
+    dialog.setFileMode(QFileDialog::ExistingFiles);
 
-    QString fileName = QFileDialog::getOpenFileName(
-                this, tr("Choose a torrent file"), "", tr("*.torrent"));
-
-    if (fileName.isEmpty())
+    if ( QDialog::Accepted == dialog.exec() )
     {
-        return;
-    }
-    else
-    {
-        QFile file(fileName);
-
-        if(!file.open(QIODevice::ReadOnly | QFile::Text))
+        QStringList filenames = dialog.selectedFiles();
+        QStringList::const_iterator it = filenames.begin();
+        QStringList::const_iterator eIt = filenames.end();
+        while ( it != eIt )
         {
-            QMessageBox::information(this, tr("Unable to open file: "),
-                                 file.errorString());
-            return;
+            QString fileName = *it++;
+            if ( !fileName.isEmpty() )
+            {
+                LOG_F(INFO, "filename: %s", fileName.toStdString().c_str());
+                std::string buffer = loadFromFile(fileName.toStdString().c_str());
+                LOG_F(INFO, "buffer %s", buffer.c_str());
+
+                loadTorrent(fileName.toStdString(), buffer);
+            }
         }
-
-        LOG_F(INFO, "filename: %s", fileName.toStdString().c_str());
-        std::string buffer = loadFromFile(fileName.toStdString().c_str());
-        LOG_F(INFO, "buffer %s", buffer.c_str());
-
-        loadTorrent(fileName.toStdString(), buffer);
-
-        file.close();
     }
 }
 
