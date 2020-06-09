@@ -13,6 +13,8 @@
 
 #include <QAbstractItemModelTester>
 
+//stringize
+#define NAMEOF(variable) ((void)variable, #variable)
 
 namespace Bittorrent
 {
@@ -22,7 +24,7 @@ using namespace utility;
 
 MainWindow::MainWindow(Client* client, QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow),
-    ioClient(client), numTorrentTableHeaderMenu{0}
+    ioClient(client), isFirstTorrentHeaderMenu{true}
 {
     //General Layout
     ui->setupUi(this);
@@ -91,9 +93,9 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     connect(torrentTable, &QTableView::customContextMenuRequested,
             this, &MainWindow::customTorrentSelectRequested);
 
-    auto tester =
-            new QAbstractItemModelTester(
-                model, QAbstractItemModelTester::FailureReportingMode::Fatal, this);
+//    auto tester =
+//            new QAbstractItemModelTester(
+//                model, QAbstractItemModelTester::FailureReportingMode::Fatal, this);
 
 }
 
@@ -119,361 +121,73 @@ void MainWindow::customTorrentSelectRequested(const QPoint& pos)
 
 void MainWindow::customHeaderMenuRequested(const QPoint& pos)
 {
-   // int column=torrentTable->horizontalHeader()->logicalIndexAt(pos);
-    if (++numTorrentTableHeaderMenu == 1)
+    if (isFirstTorrentHeaderMenu)
     {
-        torrentTableHeaderMenu = new QMenu(this);
+        actionList.push_back({"Added On", toggleDisplay_AddedOn});
+        actionList.push_back({"Priority", toggleDisplay_Priority});
+        actionList.push_back({"Name", toggleDisplay_Name});
+        actionList.push_back({"Size", toggleDisplay_Size});
+        actionList.push_back({"Progress", toggleDisplay_Progress});
+        actionList.push_back({"Status", toggleDisplay_Status});
+        actionList.push_back({"Seeds", toggleDisplay_Seeds});
+        actionList.push_back({"Peers", toggleDisplay_Peers});
+        actionList.push_back({"Download Speed", toggleDisplay_DownloadSpeed});
+        actionList.push_back({"Upload Speed", toggleDisplay_UploadSpeed});
+        actionList.push_back({"ETA", toggleDisplay_ETA});
+        actionList.push_back({"Ratio", toggleDisplay_Ratio});
+        actionList.push_back({"Tracker", toggleDisplay_Tracker});
+        actionList.push_back({"Downloaded", toggleDisplay_Downloaded});
+        actionList.push_back({"Uploaded", toggleDisplay_Uploaded});
 
-        toggleDisplayPriority = new QAction("Priority", this);
-        toggleDisplayPriority->setCheckable(true);
-        connect(toggleDisplayPriority, &QAction::triggered, this,
-                &MainWindow::toggleColumnDisplay);
-        if (torrentTable->isColumnHidden(0))
-        {
-            toggleDisplayPriority->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayPriority->setChecked(true);
-        }
+        torrentTableMainMenu = new QMenu(this);
 
-        toggleDisplayAddedOn = new QAction("Added On", this);
-        toggleDisplayAddedOn->setCheckable(true);
-        connect(toggleDisplayAddedOn, &QAction::triggered, this,
-                &MainWindow::toggleColumnDisplay);
-        if (torrentTable->isColumnHidden(1))
+        //iterate through actions and configure menu options and slots
+        for (int i = 0; i < actionList.size(); ++i)
         {
-            toggleDisplayAddedOn->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayAddedOn->setChecked(true);
-        }
+            actionList[i].second = new QAction(actionList.at(i).first, this);
+            actionList[i].second->setCheckable(true);
 
-        toggleDisplayName = new QAction("Name", this);
-        toggleDisplayName->setCheckable(true);
-        if (torrentTable->isColumnHidden(2))
-        {
-            toggleDisplayName->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayName->setChecked(true);
-        }
+            //set internal data so it can be used for quick processing in slot
+            actionList[i].second->setData(i);
 
-        toggleDisplaySize = new QAction("Size", this);
-        toggleDisplaySize->setCheckable(true);
-        if (torrentTable->isColumnHidden(3))
-        {
-            toggleDisplaySize->setChecked(false);
-        }
-        else
-        {
-            toggleDisplaySize->setChecked(true);
+            LOG_F(INFO, "setting action: %d", actionList[i].second->data().toInt());
+
+            torrentTable->isColumnHidden(i) ?
+                        actionList[i].second->setChecked(false) :
+                        actionList[i].second->setChecked(true);
+
+            connect(actionList[i].second, &QAction::triggered, this,
+                            &MainWindow::toggleColumnDisplay);
+
+            torrentTableMainMenu->addAction(actionList.at(i).second);
         }
 
-
-        toggleDisplayStatus = new QAction("Status", this);
-        toggleDisplayStatus->setCheckable(true);
-        if (torrentTable->isColumnHidden(4))
-        {
-            toggleDisplayStatus->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayStatus->setChecked(true);
-        }
-
-        toggleDisplayProgress = new QAction("Progress", this);
-        toggleDisplayProgress->setCheckable(true);
-        if (torrentTable->isColumnHidden(5))
-        {
-            toggleDisplayProgress->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayProgress->setChecked(true);
-        }
-
-        toggleDisplaySeeds = new QAction("Seeds", this);
-        toggleDisplaySeeds->setCheckable(true);
-        if (torrentTable->isColumnHidden(6))
-        {
-            toggleDisplaySeeds->setChecked(false);
-        }
-        else
-        {
-            toggleDisplaySeeds->setChecked(true);
-        }
-
-        toggleDisplayPeers = new QAction("Peers", this);
-        toggleDisplayPeers->setCheckable(true);
-        if (torrentTable->isColumnHidden(7))
-        {
-            toggleDisplayPeers->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayPeers->setChecked(true);
-        }
-
-        toggleDisplayDSpeed = new QAction("Download Speed", this);
-        toggleDisplayDSpeed->setCheckable(true);
-        if (torrentTable->isColumnHidden(8))
-        {
-            toggleDisplayDSpeed->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayDSpeed->setChecked(true);
-        }
-
-        toggleDisplayUSpeed = new QAction("Upload Speed", this);
-        toggleDisplayUSpeed->setCheckable(true);
-        if (torrentTable->isColumnHidden(9))
-        {
-            toggleDisplayUSpeed->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayUSpeed->setChecked(true);
-        }
-
-        toggleDisplayETA = new QAction("ETA", this);
-        toggleDisplayETA->setCheckable(true);
-        if (torrentTable->isColumnHidden(10))
-        {
-            toggleDisplayETA->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayETA->setChecked(true);
-        }
-
-        toggleDisplayRatio = new QAction("Ratio", this);
-        toggleDisplayRatio->setCheckable(true);
-        if (torrentTable->isColumnHidden(11))
-        {
-            toggleDisplayRatio->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayRatio->setChecked(true);
-        }
-
-        toggleDisplayTracker = new QAction("Tracker", this);
-        toggleDisplayTracker->setCheckable(true);
-        if (torrentTable->isColumnHidden(12))
-        {
-            toggleDisplayTracker->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayTracker->setChecked(true);
-        }
-
-        toggleDisplayTimeActive = new QAction("Time Active", this);
-        toggleDisplayTimeActive->setCheckable(true);
-        if (torrentTable->isColumnHidden(13))
-        {
-            toggleDisplayTimeActive->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayTimeActive->setChecked(true);
-        }
-
-        toggleDisplayDownloaded = new QAction("Downloaded", this);
-        toggleDisplayDownloaded->setCheckable(true);
-        if (torrentTable->isColumnHidden(14))
-        {
-            toggleDisplayDownloaded->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayDownloaded->setChecked(true);
-        }
-
-        toggleDisplayUploaded = new QAction("Uploaded", this);
-        toggleDisplayUploaded->setCheckable(true);
-        connect(toggleDisplayUploaded, &QAction::triggered, this,
-                &MainWindow::toggleColumnDisplay);
-        if (torrentTable->isColumnHidden(15))
-        {
-            toggleDisplayUploaded->setChecked(false);
-        }
-        else
-        {
-            toggleDisplayUploaded->setChecked(true);
-        }
-
-        torrentTableHeaderMenu->addAction(toggleDisplayPriority);
-        torrentTableHeaderMenu->addAction(toggleDisplayAddedOn);
-        torrentTableHeaderMenu->addAction(toggleDisplayName);
-        torrentTableHeaderMenu->addAction(toggleDisplaySize);
-        torrentTableHeaderMenu->addAction(toggleDisplayProgress);
-        torrentTableHeaderMenu->addAction(toggleDisplayStatus);
-        torrentTableHeaderMenu->addAction(toggleDisplaySeeds);
-        torrentTableHeaderMenu->addAction(toggleDisplayPeers);
-        torrentTableHeaderMenu->addAction(toggleDisplayDSpeed);
-        torrentTableHeaderMenu->addAction(toggleDisplayUSpeed);
-        torrentTableHeaderMenu->addAction(toggleDisplayETA);
-        torrentTableHeaderMenu->addAction(toggleDisplayRatio);
-        torrentTableHeaderMenu->addAction(toggleDisplayTracker);
-        torrentTableHeaderMenu->addAction(toggleDisplayTimeActive);
-        torrentTableHeaderMenu->addAction(toggleDisplayDownloaded);
-        torrentTableHeaderMenu->addAction(toggleDisplayUploaded);
+        isFirstTorrentHeaderMenu = false;
     }
 
-    torrentTableHeaderMenu->popup(m_rightSideWindow->mapToGlobal(pos));
+    torrentTableMainMenu->popup(torrentTable->mapToGlobal(pos));
 }
 
 void MainWindow::toggleColumnDisplay(bool checked)
 {
-
-
+    emit model->layoutAboutToBeChanged();
 
     //get sender action
     QAction* action = qobject_cast<QAction*>(sender());
-    qDebug() << "Triggered: " << action->text();
-    qDebug() << "Checked: " << action->isChecked();
-    //action changes state after clicking, so need to update visibility
-    //according to new state
+
     if (action->isChecked())
     {
-        if (action == toggleDisplayPriority)
-        {
-            torrentTable->showColumn(0);
-        }
-        else if (action == toggleDisplayAddedOn)
-        {
-            torrentTable->setColumnHidden(1, false);
-        }
-        else if (action == toggleDisplayName)
-        {
-            torrentTable->setColumnHidden(2, false);
-        }
-        else if (action == toggleDisplaySize)
-        {
-            torrentTable->setColumnHidden(3, false);
-        }
-        else if (action == toggleDisplayStatus)
-        {
-            torrentTable->setColumnHidden(4, false);
-        }
-        else if (action == toggleDisplayProgress)
-        {
-            torrentTable->setColumnHidden(5, false);
-        }
-        else if (action == toggleDisplaySeeds)
-        {
-            torrentTable->setColumnHidden(6, false);
-        }
-        else if (action == toggleDisplayPeers)
-        {
-            torrentTable->setColumnHidden(7, false);
-        }
-        else if (action == toggleDisplayDSpeed)
-        {
-            torrentTable->setColumnHidden(8, false);
-        }
-        else if (action == toggleDisplayUSpeed)
-        {
-            torrentTable->setColumnHidden(9, false);
-        }
-        else if (action == toggleDisplayETA)
-        {
-            torrentTable->setColumnHidden(10, false);
-        }
-        else if (action == toggleDisplayRatio)
-        {
-            torrentTable->setColumnHidden(11, false);
-        }
-        else if (action == toggleDisplayTracker)
-        {
-            torrentTable->setColumnHidden(12, false);
-        }
-        else if (action == toggleDisplayTimeActive)
-        {
-            torrentTable->setColumnHidden(13, false);
-        }
-        else if (action == toggleDisplayDownloaded)
-        {
-            torrentTable->setColumnHidden(14, false);
-        }
-        else if (action == toggleDisplayUploaded)
-        {
-            torrentTable->setColumnHidden(15, false);
-        }
-
+        //use stored action data to determine position in action list
+        LOG_F(INFO, "unhiding action: %d", action->data().toInt());
+        torrentTable->showColumn(action->data().toInt());
     }
     else
     {
-        if (action == toggleDisplayPriority)
-        {
-            torrentTable->hideColumn(0);
-        }
-        else if (action == toggleDisplayAddedOn)
-        {
-            torrentTable->hideColumn(1);
-        }
-        else if (action == toggleDisplayName)
-        {
-            torrentTable->setColumnHidden(2, true);
-        }
-        else if (action == toggleDisplaySize)
-        {
-            torrentTable->setColumnHidden(3, true);
-        }
-        else if (action == toggleDisplayStatus)
-        {
-            torrentTable->setColumnHidden(4, true);
-        }
-        else if (action == toggleDisplayProgress)
-        {
-            torrentTable->setColumnHidden(5, true);
-        }
-        else if (action == toggleDisplaySeeds)
-        {
-            torrentTable->setColumnHidden(6, true);
-        }
-        else if (action == toggleDisplayPeers)
-        {
-            torrentTable->setColumnHidden(7, true);
-        }
-        else if (action == toggleDisplayDSpeed)
-        {
-            torrentTable->setColumnHidden(8, true);
-        }
-        else if (action == toggleDisplayUSpeed)
-        {
-            torrentTable->setColumnHidden(9, true);
-        }
-        else if (action == toggleDisplayETA)
-        {
-            torrentTable->setColumnHidden(10, true);
-        }
-        else if (action == toggleDisplayRatio)
-        {
-            torrentTable->setColumnHidden(11, true);
-        }
-        else if (action == toggleDisplayTracker)
-        {
-            torrentTable->setColumnHidden(12, true);
-        }
-        else if (action == toggleDisplayTimeActive)
-        {
-            torrentTable->setColumnHidden(13, true);
-        }
-        else if (action == toggleDisplayDownloaded)
-        {
-            torrentTable->setColumnHidden(14, true);
-        }
-        else if (action == toggleDisplayUploaded)
-        {
-            torrentTable->setColumnHidden(15, true);
-        }
+        LOG_F(INFO, "hiding action: %d", action->data().toInt());
+        torrentTable->hideColumn(action->data().toInt());
     }
+
+    emit model->layoutChanged();
 }
 
 void MainWindow::loadTorrent(std::string fileName, std::string& buffer)
