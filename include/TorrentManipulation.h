@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TORRENTMANIPULATION_H
+#define TORRENTMANIPULATION_H
 
 #include "Torrent.h"
 #include "Utility.h"
@@ -16,32 +17,32 @@ namespace Bittorrent
 	namespace torrentManipulation
 	{
 		//forward declare
-		std::string encode(const value& torrent);
-		Torrent toTorrentObj(const char* fullFilePath, 
-			const valueDictionary& torrent);
-		value toBencodingObj(Torrent& torrent);
-		Torrent createNewTorrent(std::string fileName, const char* path,
-			std::string targetPath, bool isPrivate, const std::string& comment,
-			std::vector<std::string> trackerList);
-		std::vector<byte> read(Torrent& torrent, long long start, long long length);
-		void write(Torrent& torrent, long long start, std::vector<byte>& buffer);
-		std::vector<byte> readPiece(Torrent& torrent, int piece);
-		std::vector<byte> readBlock(Torrent& torrent, int piece, long long offset,
-			long long length);
-		void writeBlock(Torrent& torrent, int piece, int block,
-			std::vector<byte>& buffer);
-		void verify(Torrent& torrent, int piece);
-		std::vector<byte> getHash(Torrent& torrent, int piece);
+        std::string encode(const value& torrent);
+        Torrent toTorrentObj(const char* fullFilePath,
+            const valueDictionary& torrent);
+        value toBencodingObj(Torrent& torrent);
+        Torrent createNewTorrent(std::string fileName, const char* path,
+            std::string targetPath, bool isPrivate, const std::string& comment,
+            std::vector<std::string> trackerList);
+        std::vector<byte> read(Torrent& torrent, long long start, long long length);
+        void write(Torrent& torrent, long long start, std::vector<byte>& buffer);
+        std::vector<byte> readPiece(Torrent& torrent, int piece);
+        std::vector<byte> readBlock(Torrent& torrent, int piece, long long offset,
+            long long length);
+        void writeBlock(Torrent& torrent, int piece, int block,
+            std::vector<byte>& buffer);
+        void verify(Torrent& torrent, int piece);
+        std::vector<byte> getHash(Torrent& torrent, int piece);
 
 
 		//encode torrent object
-		std::string encode(const value& torrent)
+        inline std::string encode(const value& torrent)
 		{
 			return boost::apply_visitor(encodeVisitor(), torrent);
 		}
 
 		//create complete torrent object from bencoded data
-		Torrent toTorrentObj(const char* fullFilePath, 
+        inline Torrent toTorrentObj(const char* fullFilePath,
 			const valueDictionary& torrentDict)
 		{
 			if (torrentDict.empty())
@@ -79,7 +80,7 @@ namespace Bittorrent
 
 
 		//create complete torrent object (pre-processing for encoding)
-		value toBencodingObj(Torrent& torrent)
+        inline value toBencodingObj(Torrent& torrent)
 		{
 			valueDictionary bencodingObj;
 			valueDictionary bencodingObjInfo;
@@ -98,7 +99,7 @@ namespace Bittorrent
 		}
 
 		//create torrent with default empty tracker list and comment
-		Torrent createNewTorrent(std::string fileName, const char* path, 
+        inline Torrent createNewTorrent(std::string fileName, const char* path,
 			std::string targetPath, bool isPrivate, const std::string& comment,
 			std::vector<std::string> trackerList)
 		{
@@ -232,7 +233,7 @@ namespace Bittorrent
 
 
 		//load bytes from each file into a buffer
-		std::vector<byte> read(Torrent& torrent, long long start, long long length)
+        inline std::vector<byte> read(Torrent& torrent, long long start, long long length)
 		{
 			const auto end = start + length;
 			std::vector<byte> buffer;
@@ -282,7 +283,7 @@ namespace Bittorrent
 		}
 
 		//slice chunks out of byte buffer and write to correct position in each file
-		void write(Torrent& torrent, long long start, std::vector<byte>& buffer)
+        inline void write(Torrent& torrent, long long start, std::vector<byte>& buffer)
 		{
 			const long long end = start + buffer.size();
 
@@ -327,19 +328,19 @@ namespace Bittorrent
 			}
 		}
 
-		std::vector<byte> readPiece(Torrent& torrent, int piece)
+        inline std::vector<byte> readPiece(Torrent& torrent, int piece)
 		{
 			return read(torrent, piece * torrent.piecesData.pieceSize,
 				torrent.piecesData.setPieceSize(piece));
 		}
 
-		std::vector<byte> readBlock(Torrent& torrent, int piece, long long offset,
+        inline std::vector<byte> readBlock(Torrent& torrent, int piece, long long offset,
 			long long length)
 		{
 			return read(torrent, (piece * torrent.piecesData.pieceSize) + offset, length);
 		}
 
-		void writeBlock(Torrent& torrent, int piece, int block, std::vector<byte>& buffer)
+        inline void writeBlock(Torrent& torrent, int piece, int block, std::vector<byte>& buffer)
 		{
 			write(torrent, (piece * torrent.piecesData.pieceSize) +
 				(block * torrent.piecesData.blockSize), buffer);
@@ -347,7 +348,7 @@ namespace Bittorrent
 			verify(torrent, piece);
 		}
 
-		void verify(Torrent& torrent, int piece)
+        inline void verify(Torrent& torrent, int piece)
 		{
 			std::vector<byte> hash = getHash(torrent, piece);
 
@@ -393,7 +394,7 @@ namespace Bittorrent
 			}
 		}
 
-		std::vector<byte> getHash(Torrent& torrent, int piece)
+        inline std::vector<byte> getHash(Torrent& torrent, int piece)
 		{
 			std::vector<byte> data = readPiece(torrent, piece);
 			byte* dataArr = &data[0];
@@ -412,3 +413,5 @@ namespace Bittorrent
 		}
 	}
 }
+
+#endif // TORRENTMANIPULATION_H
