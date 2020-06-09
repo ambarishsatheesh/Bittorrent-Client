@@ -113,7 +113,7 @@ void MainWindow::customTorrentSelectRequested(const QPoint& pos)
         torrentTableMainMenu = new QMenu(this);
         a_deleteTorrent = new QAction("Delete", this);
         connect(a_deleteTorrent, &QAction::triggered, this,
-                &MainWindow::deleteTorrent);
+                &MainWindow::on_actionDelete_triggered);
         torrentTableMainMenu->addAction(a_deleteTorrent);
         torrentTableMainMenu->popup(m_rightSideWindow->mapToGlobal(pos));
     }
@@ -246,11 +246,11 @@ void MainWindow::on_actionExit_Client_triggered()
 
     if(res == QMessageBox::Yes)
     {
-        this->close();
+        QApplication::closeAllWindows();
     }
     else
     {
-       //
+       return;
     }
 }
 
