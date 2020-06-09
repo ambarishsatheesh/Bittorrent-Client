@@ -200,9 +200,9 @@ void TestModel::addNewTorrent(std::string& fileName, std::string& buffer)
     LOG_F(INFO, "rowCounts2: %d", this->rowCount());
 }
 
-void TestModel::removeTorrent(int position, int rows)
+void TestModel::removeTorrent(int position)
 {
-    beginRemoveRows(QModelIndex(), position, position + rows - 1);
+    beginRemoveRows(QModelIndex(), position, position);
 
     LOG_F(INFO, "Removing torrent \"%s\"",
           ioClientModel->workingTorrentList.torrentList.at(position)->

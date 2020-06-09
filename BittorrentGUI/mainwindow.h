@@ -37,6 +37,8 @@ private slots:
 
     void customMainMenuRequested(const QPoint& pos);
 
+    void on_actionDelete_triggered();
+
 private:
   Ui::MainWindow *ui;
   Client* ioClient;

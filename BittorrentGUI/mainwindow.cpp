@@ -65,7 +65,7 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     torrentTable->setShowGrid(false);
     torrentTable->setAlternatingRowColors(true);
 
-//  torrentTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    torrentTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
     torrentTable->setSelectionBehavior(QAbstractItemView::SelectRows);
 
     model = new TestModel(ioClient, this);
@@ -105,8 +105,6 @@ void MainWindow::customMainMenuRequested(const QPoint& pos)
 {
     torrentTableMainMenu = new QMenu(this);
     a_deleteTorrent = new QAction("Delete", this);
-    LOG_F(INFO, "row: %d", torrentTable->indexAt(pos).row());
-    a_deleteTorrent->setData(torrentTable->indexAt(pos).row());
     connect(a_deleteTorrent, &QAction::triggered, this,
             &MainWindow::deleteTorrent);
     torrentTableMainMenu->addAction(a_deleteTorrent);
@@ -545,15 +543,38 @@ void MainWindow::deleteTorrent()
     QModelIndexList selection =
             torrentTable->selectionModel()->selectedRows();
 
-    // Multiple rows can be selected
-    for(int i=0; i< selection.count(); i++)
+    //sort by descending row num so deletion doesn't upset indices
+    std::sort(selection.begin(), selection.end(),
+              [](const QModelIndex& r1, const QModelIndex& r2){
+        return r1.row() > r2.row();});
+
+    for(int i=0; i<selection.count(); i++)
     {
         QModelIndex index = selection.at(i);
-        model->removeTorrent(index.row(), 1);
+        model->removeTorrent(index.row());
     }
 }
 
 
+
+void Bittorrent::MainWindow::on_actionDelete_triggered()
+{
+    QModelIndexList selection =
+            torrentTable->selectionModel()->selectedRows();
+
+    //sort by descending row num so deletion doesn't upset indices
+    std::sort(selection.begin(), selection.end(),
+              [](const QModelIndex& r1, const QModelIndex& r2){
+        return r1.row() > r2.row();});
+
+    for(int i=0; i<selection.count(); i++)
+    {
+        QModelIndex index = selection.at(i);
+        model->removeTorrent(index.row());
+    }
 }
 
+
+
+}
 

@@ -55,7 +55,7 @@ public:
                           const QModelIndex &index) const;
 
     void addNewTorrent(std::string& fileName, std::string& buffer);
-    void removeTorrent(int position, int rows);
+    void removeTorrent(int position);
 
 private:
     Client* ioClientModel;

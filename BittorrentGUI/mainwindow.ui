@@ -45,6 +45,7 @@
     <addaction name="actionResume_all"/>
     <addaction name="actionPause_all"/>
     <addaction name="separator"/>
+    <addaction name="actionDelete"/>
     <addaction name="separator"/>
     <addaction name="actionTop_priority"/>
     <addaction name="actionIncrease_Priority"/>
@@ -203,6 +204,15 @@
    </property>
    <property name="text">
     <string>Exit Client</string>
+   </property>
+  </action>
+  <action name="actionDelete">
+   <property name="icon">
+    <iconset resource="Resources.qrc">
+     <normaloff>:/imgs/Icons/1/33.png</normaloff>:/imgs/Icons/1/33.png</iconset>
+   </property>
+   <property name="text">
+    <string>Delete</string>
    </property>
   </action>
  </widget>
