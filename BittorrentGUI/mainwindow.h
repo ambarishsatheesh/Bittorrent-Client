@@ -35,7 +35,7 @@ private slots:
 
     void customHeaderMenuRequested(const QPoint& pos);
 
-    void customMainMenuRequested(const QPoint& pos);
+    void customTorrentSelectRequested(const QPoint& pos);
 
     void on_actionDelete_triggered();
 

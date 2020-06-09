@@ -67,6 +67,8 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
 
     torrentTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
     torrentTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    //disable bold header text when data is selected
+    torrentTable->horizontalHeader()->setHighlightSections(false);
 
     model = new TestModel(ioClient, this);
 
@@ -80,14 +82,14 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
 
 
     torrentTable->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
-    torrentTable->setContextMenuPolicy(Qt::CustomContextMenu);
+    torrentTable-> setContextMenuPolicy(Qt::CustomContextMenu);
 
     connect(torrentTable->horizontalHeader(),
             &QTableView::customContextMenuRequested,
             this, &MainWindow::customHeaderMenuRequested);
 
     connect(torrentTable, &QTableView::customContextMenuRequested,
-            this, &MainWindow::customMainMenuRequested);
+            this, &MainWindow::customTorrentSelectRequested);
 
     auto tester =
             new QAbstractItemModelTester(
@@ -101,14 +103,18 @@ MainWindow::~MainWindow()
     delete m_rightSideWindow;
 }
 
-void MainWindow::customMainMenuRequested(const QPoint& pos)
+void MainWindow::customTorrentSelectRequested(const QPoint& pos)
 {
-    torrentTableMainMenu = new QMenu(this);
-    a_deleteTorrent = new QAction("Delete", this);
-    connect(a_deleteTorrent, &QAction::triggered, this,
-            &MainWindow::deleteTorrent);
-    torrentTableMainMenu->addAction(a_deleteTorrent);
-    torrentTableMainMenu->popup(m_rightSideWindow->mapToGlobal(pos));
+    //if right clicked in a valid row (i.e. only when there is data)
+    if (torrentTable->indexAt(pos).isValid())
+    {
+        torrentTableMainMenu = new QMenu(this);
+        a_deleteTorrent = new QAction("Delete", this);
+        connect(a_deleteTorrent, &QAction::triggered, this,
+                &MainWindow::deleteTorrent);
+        torrentTableMainMenu->addAction(a_deleteTorrent);
+        torrentTableMainMenu->popup(m_rightSideWindow->mapToGlobal(pos));
+    }
 }
 
 void MainWindow::customHeaderMenuRequested(const QPoint& pos)
