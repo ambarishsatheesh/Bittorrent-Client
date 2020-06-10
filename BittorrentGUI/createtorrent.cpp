@@ -41,21 +41,29 @@ void CreateTorrent::on_buttonCreate_clicked()
 {
     using namespace torrentManipulation;
 
-    if (storedTorrentPath.isEmpty())
+    //handle typed path (and deleted selected path)
+    if (ui->pathField->text().isEmpty())
     {
-        if (ui->pathField->text().isEmpty())
+        QMessageBox::warning(this, "Warning",
+                             "No destination path provided!",
+                             QMessageBox::Ok);
+        return;
+    }
+    else
+    {
+        storedTorrentPath = ui->pathField->text();
+
+        if (!QFileInfo(storedTorrentPath).exists() ||
+                !QDir(storedTorrentPath).exists())
         {
             QMessageBox::warning(this, "Warning",
-                                 "No destination path provided!",
+                                 "Invalid path provided!",
                                  QMessageBox::Ok);
             return;
         }
-        else
-        {
-            storedTorrentPath = ui->pathField->text();
-        }
     }
 
+    //handle empty torrent name
     if (ui->torrentName->text().isEmpty())
     {
         QMessageBox::warning(this, "Warning",
@@ -75,6 +83,7 @@ void CreateTorrent::on_buttonCreate_clicked()
     {
         storedWritePath = writePath;
 
+        //handle empty tracker url field
         if (!ui->trackerUrls->toPlainText().isEmpty())
         {
             //get data from QTextEdit and store in std::vector
@@ -86,6 +95,7 @@ void CreateTorrent::on_buttonCreate_clicked()
                 trackerList.push_back(qTracker.toStdString());
             }
         }
+        //handle empty comments field
         if (!ui->comments->toPlainText().isEmpty())
         {
             comment = ui->comments->toPlainText().toStdString();
@@ -134,7 +144,6 @@ void CreateTorrent::on_selectFile_clicked()
             QString fileName = *it++;
             if ( !fileName.isEmpty() )
             {
-                storedTorrentPath = fileName;
                 ui->pathField->setText(fileName);
             }
         }
@@ -157,7 +166,6 @@ void CreateTorrent::on_selectFolder_clicked()
             QString directoryName = *it++;
             if ( !directoryName.isEmpty() )
             {
-                storedTorrentPath = directoryName;
                 ui->pathField->setText(directoryName);
             }
         }
