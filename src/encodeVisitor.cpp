@@ -58,7 +58,16 @@ namespace Bittorrent
 		{
 			ss << boost::apply_visitor(encodeVisitor(), *i);
 		}
-		ss << "e";
+        ss << "e";
+
+        //remove 0: after "l" in encoding
+        std::string res = ss.str();
+        auto emptyListPos = res.find("l0:");
+        if (emptyListPos != std::string::npos)
+        {
+            res.erase(emptyListPos + 1, 2);
+            std::cout << "REMOVED 0" << "\n";
+        }
 
 		return ss.str();
 	}
