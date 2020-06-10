@@ -192,22 +192,16 @@ void MainWindow::toggleColumnDisplay()
     emit model->layoutChanged();
 }
 
-void MainWindow::loadTorrent(std::string fileName, std::string& buffer)
+void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
 {
-    auto myid = std::this_thread::get_id();
-    std::stringstream ss;
-    ss << myid;
-    std::string mystring = ss.str();
-
-    LOG_F(INFO, "Current thread: %s", mystring.c_str());
-    LOG_F(INFO, "filename: %s", fileName.c_str());
+    LOG_F(INFO, "filename: %s", filePath.c_str());
     if (buffer.empty())
     {
         LOG_F(ERROR, "Torrent is empty!");
         return;
     }
 
-    model->addNewTorrent(fileName, buffer);
+    model->addNewTorrent(filePath, buffer);
 }
 
 void MainWindow::on_actionAdd_Torrent_triggered()
@@ -286,8 +280,21 @@ void MainWindow::on_actionTorrent_Creator_triggered()
 
     createTorDialog->show();
 
+    //connect custom signal from CreateTorrent to send created torrent
+    //file path back to MainWindow and then load its bencoded data
+    //via the loadCreatedTorrent slot
+    connect(createTorDialog, &CreateTorrent::sendfilePath, this,
+            [this](const QString& fileName){
+        MainWindow::loadCreatedTorrent(fileName);}
+    );
+
 }
 
+void MainWindow::loadCreatedTorrent(QString filePath)
+{
+    std::string buffer = loadFromFile(filePath.toStdString().c_str());
+    loadTorrent(filePath.toStdString(), buffer);
+}
 
 
 

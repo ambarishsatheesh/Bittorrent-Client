@@ -185,8 +185,6 @@ void TestModel::addNewTorrent(std::string& fileName, std::string& buffer)
     const int newRow =
             ioClientModel->workingTorrentList.torrentList.size();
 
-    LOG_F(INFO, "rowCounts1: %d", newRow);
-
     //begin row insert operation before changing data
     beginInsertRows(QModelIndex(), newRow, newRow);
 
@@ -196,22 +194,23 @@ void TestModel::addNewTorrent(std::string& fileName, std::string& buffer)
     //no need to explicitly call emit dataChanged() - this will update view by itself
     endInsertRows();
 
-
-    LOG_F(INFO, "rowCounts2: %d", this->rowCount());
+    LOG_F(INFO, "Added torrent \"%s\"",
+          ioClientModel->workingTorrentList.torrentList.at(newRow)->
+          generalData.fileName.c_str());
 }
 
 void TestModel::removeTorrent(int position)
 {
     beginRemoveRows(QModelIndex(), position, position);
 
-    LOG_F(INFO, "Removing torrent \"%s\"",
-          ioClientModel->workingTorrentList.torrentList.at(position)->
-          generalData.fileName.c_str());
-
     ioClientModel->
             workingTorrentList.removeTorrent(position);
 
     endRemoveRows();
+
+    LOG_F(INFO, "Removed torrent \"%s\"",
+          ioClientModel->workingTorrentList.torrentList.at(position)->
+          generalData.fileName.c_str());
 }
 
 

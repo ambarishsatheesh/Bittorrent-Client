@@ -5,6 +5,8 @@
 #include <QFileDialog>
 #include <QPointer>
 
+#include "TorrentManipulation.h"
+
 namespace Ui {
 class CreateTorrent;
 }
@@ -30,14 +32,26 @@ private slots:
 
     void on_startSeedingCheckBox_stateChanged(int arg1);
 
+signals:
+    void sendfilePath(QString);
+
 private:
     Ui::CreateTorrent *ui;
 
     QString storedTorrentPath;
     QString storedWritePath;
 
+    //creationData
+    std::vector<std::string> trackerList;
+    std::string comment;
+    std::string torrentName;
+
+    //torrent
+    std::shared_ptr<Torrent> createdTorrent;
+
     //settings
     bool isStartSeeding;
+    bool isPrivate;
 
     //file dialogs
     QPointer<QFileDialog> selectFileDialog;

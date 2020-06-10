@@ -9,7 +9,9 @@ namespace Bittorrent {
 
 CreateTorrent::CreateTorrent(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::CreateTorrent), isStartSeeding{false}
+    ui(new Ui::CreateTorrent),
+    comment{""},
+    isStartSeeding{false}, isPrivate{false}
 {
     ui->setupUi(this);
 
@@ -28,7 +30,6 @@ CreateTorrent::CreateTorrent(QWidget *parent) :
             continue;
         }
     }
-
 }
 
 CreateTorrent::~CreateTorrent()
@@ -38,40 +39,81 @@ CreateTorrent::~CreateTorrent()
 
 void CreateTorrent::on_buttonCreate_clicked()
 {
+    using namespace torrentManipulation;
+
     if (storedTorrentPath.isEmpty())
     {
-        QMessageBox::warning(this, "Warning",
-                             "No destination path provided!",
-                             QMessageBox::Ok);
-    }
-    else
-    {
-        QString writePath =
-                QFileDialog::getSaveFileName(
-                    this, tr("Select where to save the new torrent"),
-                                    "",
-                                    tr("*.torrent"));
-
-        if (!writePath.isEmpty())
+        if (ui->pathField->text().isEmpty())
         {
-            storedWritePath = writePath;
+            QMessageBox::warning(this, "Warning",
+                                 "No destination path provided!",
+                                 QMessageBox::Ok);
+            return;
+        }
+        else
+        {
+            storedTorrentPath = ui->pathField->text();
+        }
+    }
 
-            LOG_F(INFO, "Created torrent for \"%s\". Torrent saved to %s",
-                  storedTorrentPath.toStdString().c_str(),
+    if (ui->torrentName->text().isEmpty())
+    {
+        QMessageBox::warning(this, "Warning",
+                             "Please provide a torrent name.",
+                             QMessageBox::Ok);
+        return;
+    }
+
+    //get destination path
+    QString writePath =
+            QFileDialog::getSaveFileName(
+                this, tr("Select where to save the new torrent"),
+                                "",
+                                tr("*.torrent"));
+
+    if (!writePath.isEmpty())
+    {
+        storedWritePath = writePath;
+
+        if (!ui->trackerUrls->toPlainText().isEmpty())
+        {
+            //get data from QTextEdit and store in std::vector
+            QString trackerData = ui->trackerUrls->toPlainText();
+            QStringList qStrList = trackerData.split("\n");
+
+            for(auto qTracker : qStrList)
+            {
+                trackerList.push_back(qTracker.toStdString());
+            }
+        }
+        if (!ui->comments->toPlainText().isEmpty())
+        {
+            comment = ui->comments->toPlainText().toStdString();
+        }
+
+        torrentName = ui->torrentName->text().toStdString();
+
+        createNewTorrent(torrentName,
+                    storedTorrentPath.toStdString().c_str(),
+                    storedWritePath.toStdString(),
+                    isPrivate, comment, trackerList);
+
+        LOG_F(INFO, "Created torrent for \"%s\". Torrent saved to %s",
+              storedTorrentPath.toStdString().c_str(),
+              storedWritePath.toStdString().c_str());
+
+
+        if (isStartSeeding)
+        {
+            LOG_F(INFO, "Started seeding torrent %s.",
                   storedWritePath.toStdString().c_str());
 
-            if (isStartSeeding)
-            {
-                LOG_F(INFO, "Started seeding torrent %s.",
-                      storedWritePath.toStdString().c_str());
+            //implement seeding code
 
-                //implement seeding code
 
-            }
-            else
-            {
-                return;
-            }
+            //notify mainwindow by seting result code to Accepted and
+            //calling accept() signal
+            emit sendfilePath(storedWritePath);
         }
     }
 }

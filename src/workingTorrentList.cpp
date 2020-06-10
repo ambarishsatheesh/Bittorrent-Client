@@ -16,6 +16,7 @@ namespace Bittorrent
     void workingTorrentList::addNewTorrent(std::string fileName,
                                            std::string buffer)
     {
+        LOG_F(INFO, "buffer: %s", buffer.c_str());
         valueDictionary decodedTorrent =
                 boost::get<valueDictionary>(Decoder::decode(buffer));
         Torrent loadedTorrent = toTorrentObj(
