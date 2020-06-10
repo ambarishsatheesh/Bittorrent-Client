@@ -226,24 +226,17 @@ namespace Bittorrent
             const float value = static_cast<const float>(bytes / std::pow(1024, multiple));
             const float multiplier = static_cast<const float>(std::pow(10, 2));
             const float res = (std::round(value * multiplier)) / multiplier;
-            return boost::lexical_cast<std::string>(res) + units.at(multiple);
+
+            std::ostringstream streamObj;
+            streamObj << std::fixed << std::setprecision(2) << res;
+
+            return streamObj.str() + units.at(multiple);
         }
 
         //used http://torrentinvites.org/f29/piece-size-guide-167985/
         inline long long recommendedPieceSize(long long totalSize)
         {
-            //up to 50MiB
-            if (totalSize <= 52428800)
-            {
-                return 32768;
-            }
-            //50 to 150
-            if (52428800 < totalSize && totalSize <= 157286400)
-            {
-                return 65536;
-            }
-            //150 to 350
-            if (157286400 < totalSize && totalSize <= 367001600)
+            if (totalSize <= 367001600)
             {
                 return 131072;
             }
@@ -321,30 +314,6 @@ namespace Bittorrent
             {
                 outFile << thread.second << "\n";
             }
-        }
-
-        inline std::string prettyBytes(long long bytes)
-        {
-            std::vector<std::string> suffix(5);
-            suffix.at(0) = "B";
-            suffix.at(1) = "KiB";
-            suffix.at(2) = "MiB";
-            suffix.at(3) = "GiB";
-            suffix.at(4) = "TiB";
-
-            unsigned short s = 0;
-            double count = bytes;
-
-            while (count >= 1024 && s < 5)
-            {
-                ++s;
-                count /= 1024;
-            }
-
-            std::ostringstream streamObj;
-            streamObj << std::fixed << std::setprecision(2) << count;
-
-            return streamObj.str() + " " + suffix.at(s);
         }
 
 

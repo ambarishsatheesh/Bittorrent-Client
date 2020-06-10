@@ -5,7 +5,7 @@ namespace Bittorrent
 {
 	using namespace utility;
 
-	TorrentGeneral::TorrentGeneral(const char* fullFilePath)
+    TorrentGeneral::TorrentGeneral()
 		: fileName{ "" },
 		downloadDirectory{ "" },
 		comment{ "" }, createdBy{ "" },

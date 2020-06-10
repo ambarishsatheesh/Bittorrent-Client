@@ -10,14 +10,14 @@ namespace Bittorrent
 	//add tracker processing
 
 	Torrent::Torrent(const char* fullFilePath, const valueDictionary& torrent)
-		: generalData(fullFilePath), fileList{ }, piecesData(), hashesData(),
+        : generalData(), fileList{ }, piecesData(), hashesData(),
 		statusData(piecesData, torrent)
 	{
 
 	}
 
 	Torrent::Torrent(const char* fullFilePath)
-		: generalData(fullFilePath), fileList{ }, piecesData(), hashesData(),
+        : generalData(), fileList{ }, piecesData(), hashesData(),
 		statusData(piecesData)
 	{
 

@@ -37,9 +37,7 @@ namespace Bittorrent
 		void resetTrackersLastRequest();
 
 		//constructor
-		TorrentGeneral(const char* fullFilePath);
-		//no default constructor - requires parameter
-		TorrentGeneral() = delete;
+        TorrentGeneral();
 
 	private:
 

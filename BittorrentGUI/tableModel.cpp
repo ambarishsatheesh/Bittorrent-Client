@@ -125,7 +125,7 @@ QVariant TestModel::generateData(const std::shared_ptr<Torrent> torrent,
     //Size
     case 3:
         return QString::fromStdString(
-                    prettyBytes(torrent->piecesData.totalSize));
+                    humanReadableBytes(torrent->piecesData.totalSize));
     //Progress
     case 4:
         //implement using delegates
