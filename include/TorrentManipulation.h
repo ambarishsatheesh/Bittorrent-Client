@@ -191,8 +191,9 @@ namespace Bittorrent
 			createdTorrent.piecesData.totalSize = totalSize;
 			createdTorrent.piecesData.pieceSize = recommendedPieceSize(totalSize);
 
-			const auto count = static_cast<int>(createdTorrent.piecesData.totalSize /
-				createdTorrent.piecesData.pieceSize);
+            const auto count = static_cast<int>(std::ceil(
+                static_cast<float>(createdTorrent.piecesData.totalSize) /
+                createdTorrent.piecesData.pieceSize));
 
 			//resize vectors for processing later
 			createdTorrent.piecesData.pieces.resize(count);
@@ -268,7 +269,7 @@ namespace Bittorrent
 				const auto bStart = std::max(static_cast<long long>(0),
 					file.fileOffset - start);
 
-				std::ifstream stream(filePath);
+                std::ifstream stream(filePath, std::ios::binary);
 				//set position of next character to be extracted to fStart
 				stream.seekg(fStart, std::ifstream::beg);
 				//set offset in buffer at which to begin storing read data
@@ -316,7 +317,7 @@ namespace Bittorrent
 				const auto bStart = std::max(static_cast<long long>(0),
 					file.fileOffset - start);
 
-				std::ifstream stream(filePath);
+                std::ifstream stream(filePath, std::ios::binary);
 				//set position of next character to be extracted to fStart
 				stream.seekg(fStart, std::ifstream::beg);
 				//set offset in buffer at which to begin storing read data
