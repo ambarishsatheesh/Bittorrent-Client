@@ -3,12 +3,14 @@
 namespace Bittorrent
 {
 
-TorrentInfoList::TorrentInfoList(Client* client, QPointer<QObject> parent)
+TorrentInfoList::TorrentInfoList(Client* client,
+                                 QPointer<QObject> parent)
     : ioClient(client), QAbstractListModel(parent)
 {
 }
 
-QVariant TorrentInfoList::headerData(int section, Qt::Orientation orientation, int role) const
+QVariant TorrentInfoList::headerData(int section,
+                                     Qt::Orientation orientation, int role) const
 {
     if (role != Qt::DisplayRole)
     {
@@ -40,7 +42,8 @@ int TorrentInfoList::rowCount(const QModelIndex &parent) const
     return ioClient->workingTorrentList.infoTrackerMap.size();
 }
 
-QVariant TorrentInfoList::data(const QModelIndex &index, int role) const
+QVariant TorrentInfoList::data(const QModelIndex &index,
+                               int role) const
 {
     if (!index.isValid() || role != Qt::DisplayRole)
     {
@@ -54,8 +57,19 @@ QVariant TorrentInfoList::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    // FIXME: Implement me!
-    return QVariant();
+    //use list of keys from map
+    auto trackerAdd = ioClient->
+            workingTorrentList.infoTrackerMap.keys().at(index.row());
+
+    return trackerAdd + " (" + QString::number(ioClient->
+                workingTorrentList.infoTrackerMap[trackerAdd]) + ")";
+
+    return "test";
+}
+
+void TorrentInfoList::update()
+{
+    emit dataChanged(QModelIndex(), QModelIndex());
 }
 
 

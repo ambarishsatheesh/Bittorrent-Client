@@ -24,6 +24,8 @@ public:
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
+    void update();
+
 private:
     Client* ioClient;
 };

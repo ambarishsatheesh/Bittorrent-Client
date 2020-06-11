@@ -268,7 +268,9 @@ void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
         return;
     }
 
+    //update all relevant data models
     model->addNewTorrent(filePath, buffer);
+    infoListModel->update();
 }
 
 void MainWindow::on_actionAdd_Torrent_triggered()
@@ -344,6 +346,7 @@ void MainWindow::on_actionDelete_triggered()
     std::sort(selectedSourceRowList.begin(), selectedSourceRowList.end(),
           std::greater<int>());
 
+    //update all relevant data models
     if (!selectedSourceRowList.isEmpty())
     {
         for (auto row : selectedSourceRowList)
@@ -351,6 +354,8 @@ void MainWindow::on_actionDelete_triggered()
             model->removeTorrent(row);
         }
     }
+
+    infoListModel->update();
 }
 
 

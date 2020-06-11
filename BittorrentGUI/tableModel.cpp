@@ -96,12 +96,12 @@ QVariant TestModel::headerData(int section,
     return QVariant();
 }
 
-bool TestModel::setData(const QModelIndex &index, const QVariant &value, int role)
+bool TestModel::setData(const QModelIndex &index,
+                        const QVariant &value, int role)
     {
         if (role == Qt::DisplayRole)
         {
-            emit dataChanged(index, index);     //  explicitly emit dataChanged signal, notifies TreeView to update by
-                                                //  calling this->data(index, Qt::DisplayRole)
+            emit dataChanged(index, index);
         }
 
         return true;
