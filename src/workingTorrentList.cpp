@@ -33,24 +33,88 @@ namespace Bittorrent
         //store map of unique trackers and how many torrents use them
         for (auto trackers : loadedTorrent.generalData.trackerList)
         {
-            QString fullTrackerAdd =
-                    QString::fromStdString(trackers.trackerAddress);
+            //get only main host portion of address
+            std::string fullTrackerAdd = trackers.trackerAddress;
+            std::string mainHost;
 
-            auto mainHost = fullTrackerAdd.split('.').last().split('/').first();
+            //if not ip address
+            if (std::count(fullTrackerAdd.begin(),
+                           fullTrackerAdd.end(), '.') < 3)
+            {
 
-            //store only main domain and increment if already exists
-            infoTrackerMap[mainHost]++;
+                auto portPos = fullTrackerAdd.find_last_of(':');
+                if (std::count(fullTrackerAdd.begin(),
+                               fullTrackerAdd.end(), '.') > 1)
+                {
+                    auto firstDotPos = fullTrackerAdd.find('.') + 1;
+                    mainHost = fullTrackerAdd.substr(
+                                firstDotPos, portPos - firstDotPos);
+                }
+                else
+                {
+                    auto protocolPos = fullTrackerAdd.find("//") + 2;
+                    mainHost = fullTrackerAdd.substr(
+                                protocolPos, portPos - protocolPos);
+                }
+            }
+            else
+            {
+                mainHost = fullTrackerAdd;
+            }
 
-            LOG_F(INFO, "added host: %s, count: %d",
-                  mainHost.toStdString().c_str(),
-                  infoTrackerMap[mainHost]);
+
+            // and increment if already exists
+            infoTrackerMap[QString::fromStdString(mainHost)]++;;
         }
 
-        LOG_F(INFO, "Added Torrent %s to client!", loadedTorrent.generalData.fileName.c_str());
+        LOG_F(INFO, "Added Torrent %s to client!",
+              loadedTorrent.generalData.fileName.c_str());
     }
 
     void workingTorrentList::removeTorrent(int position)
     {
+        for (auto trackers : torrentList.at(position)->
+             generalData.trackerList)
+        {
+            //get only main host portion of address
+            std::string fullTrackerAdd = trackers.trackerAddress;
+            std::string mainHost;
+
+            //if not ip address
+            if (std::count(fullTrackerAdd.begin(),
+                           fullTrackerAdd.end(), '.') < 3)
+            {
+                auto portPos = fullTrackerAdd.find_last_of(':');
+                if (std::count(fullTrackerAdd.begin(),
+                               fullTrackerAdd.end(), '.') > 1)
+                {
+                    auto firstDotPos = fullTrackerAdd.find('.') + 1;
+                    mainHost = fullTrackerAdd.substr(
+                                firstDotPos, portPos - firstDotPos);
+                }
+                else
+                {
+                    auto protocolPos = fullTrackerAdd.find("//") + 2;
+                    mainHost = fullTrackerAdd.substr(
+                                protocolPos, portPos - protocolPos);
+                }
+            }
+            else
+            {
+                 mainHost = fullTrackerAdd;
+            }
+
+            //if count hits 0, remove from map, else just decrement
+            if (--infoTrackerMap[QString::fromStdString(mainHost)]
+                    < 1)
+            {
+                infoTrackerMap.erase(
+                            infoTrackerMap.find(
+                                QString::fromStdString(mainHost)));
+            }
+        }
+
+        //remove torrent info from list
         torrentList.erase(torrentList.begin() + position);
         addedOnList.erase(addedOnList.begin() + position);
     }
