@@ -76,11 +76,17 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
 
     model = new TestModel(ioClient, this);
 
-//    progressDelegate* delegate = new progressDelegate(torrentTable);
-//    torrentTable->setItemDelegateForColumn(5, delegate);
+    progressDelegate* delegate = new progressDelegate(torrentTable);
+    torrentTable->setItemDelegateForColumn(5, delegate);
 
-    //proxyModel->setSourceModel(model);
-    torrentTable->setModel(model);
+    proxyModel = new QSortFilterProxyModel(this);
+    proxyModel->setSourceModel(model);
+    torrentTable->setModel(proxyModel);
+
+    torrentTable->setSortingEnabled(true);
+    proxyModel->setDynamicSortFilter(true);
+    proxyModel->setSortCaseSensitivity(Qt::CaseInsensitive);
+
     m_dockWidget1->setWidget(torrentTable);
     m_dockWidget1->show();
 
@@ -285,18 +291,36 @@ void MainWindow::on_actionExit_Client_triggered()
 
 void MainWindow::on_actionDelete_triggered()
 {
-    QModelIndexList selection =
-            torrentTable->selectionModel()->selectedRows();
+    //map proxy selection to source
+    auto mappedSelection = proxyModel->mapSelectionToSource(
+                torrentTable->selectionModel()->selection());
+
+    //get selected indices
+    QModelIndexList selectedViewIdxList =
+            mappedSelection.indexes();
+
+    //map selected view indices to source model rows
+    //use QSet to remove duplicates (since multiple indices will share a row)
+    QSet<int> selectedSourceRowSet;
+    for (auto selectedViewIndex : selectedViewIdxList)
+    {
+        selectedSourceRowSet.insert(selectedViewIndex.row());
+    }
+
+    //transform to QList for simpler sort and iteration
+    QList<int> selectedSourceRowList(selectedSourceRowSet.begin(),
+                                     selectedSourceRowSet.end());
 
     //sort by descending row num so deletion doesn't upset indices
-    std::sort(selection.begin(), selection.end(),
-              [](const QModelIndex& r1, const QModelIndex& r2){
-        return r1.row() > r2.row();});
+    std::sort(selectedSourceRowList.begin(), selectedSourceRowList.end(),
+          std::greater<int>());
 
-    for(int i=0; i<selection.count(); i++)
+    if (!selectedSourceRowList.isEmpty())
     {
-        QModelIndex index = selection.at(i);
-        model->removeTorrent(index.row());
+        for (auto row : selectedSourceRowList)
+        {
+            model->removeTorrent(row);
+        }
     }
 }
 

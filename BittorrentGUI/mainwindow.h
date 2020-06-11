@@ -12,6 +12,7 @@
 #include <QWidgetAction>
 #include <QCheckBox>
 #include <QFileDialog>
+#include <QSortFilterProxyModel>
 
 #include "Client.h"
 #include "tableModel.h"
@@ -60,6 +61,7 @@ private:
     QPointer<QDockWidget> m_dockWidget1;
     QPointer<QDockWidget> m_dockWidget2;
     QPointer<QTableView> torrentTable;
+    QSortFilterProxyModel *proxyModel;
 
     QPointer<QMenu> torrentTableHeaderMenu;
     QPointer<QMenu> torrentTableMainMenuData;
