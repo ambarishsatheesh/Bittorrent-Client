@@ -68,7 +68,7 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     torrentTable->verticalHeader()->setVisible(false);
     torrentTable->setShowGrid(false);
     torrentTable->setAlternatingRowColors(true);
-
+    torrentTable->setStyleSheet("alternate-background-color: #F0F0F0;");
     torrentTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
     torrentTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     //disable bold header text when data is selected
@@ -122,6 +122,13 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
 
     connect(searchFilter, &QLineEdit::textChanged, this,
             &MainWindow::textFilterChanged);
+
+
+    QPointer<QListView> infoList = new QListView(transfersTab);
+    infoListModel = new TorrentInfoList(ioClient, this);
+    infoList->setModel(infoListModel);
+    infoList->setFrameStyle(QFrame::NoFrame);
+
 
 //    auto tester =
 //            new QAbstractItemModelTester(

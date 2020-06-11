@@ -1,30 +1,62 @@
 #include "torrentinfolist.h"
 
-torrentInfoList::torrentInfoList(QObject *parent)
-    : QAbstractListModel(parent)
+namespace Bittorrent
+{
+
+TorrentInfoList::TorrentInfoList(Client* client, QPointer<QObject> parent)
+    : ioClient(client), QAbstractListModel(parent)
 {
 }
 
-QVariant torrentInfoList::headerData(int section, Qt::Orientation orientation, int role) const
+QVariant TorrentInfoList::headerData(int section, Qt::Orientation orientation, int role) const
 {
-    // FIXME: Implement me!
-}
-
-int torrentInfoList::rowCount(const QModelIndex &parent) const
-{
-    // For list models only the root node (an invalid parent) should return the list's size. For all
-    // other (valid) parents, rowCount() should return 0 so that it does not become a tree model.
-    if (parent.isValid())
-        return 0;
-
-    // FIXME: Implement me!
-}
-
-QVariant torrentInfoList::data(const QModelIndex &index, int role) const
-{
-    if (!index.isValid())
+    if (role != Qt::DisplayRole)
+    {
         return QVariant();
+    }
+
+    if (orientation == Qt::Vertical) {
+        switch (section)
+        {
+        case 0:
+            return "Status";
+        case 1:
+            return "Trackers";
+        default:
+            break;
+        }
+    }
+    return QVariant();
+}
+
+int TorrentInfoList::rowCount(const QModelIndex &parent) const
+{
+    if (parent.isValid())
+    {
+        return 0;
+    }
+
+    //return number of unique trackers
+    return ioClient->workingTorrentList.infoTrackerMap.size();
+}
+
+QVariant TorrentInfoList::data(const QModelIndex &index, int role) const
+{
+    if (!index.isValid() || role != Qt::DisplayRole)
+    {
+        return QVariant();
+    }
+
+    if (index.row() >= ioClient->
+            workingTorrentList.infoTrackerMap.size() ||
+            index.row() < 0)
+    {
+        return QVariant();
+    }
 
     // FIXME: Implement me!
     return QVariant();
+}
+
+
 }

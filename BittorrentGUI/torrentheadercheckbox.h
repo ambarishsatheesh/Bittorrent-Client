@@ -3,6 +3,8 @@
 
 #include <QCheckBox>
 #include <QVariant>
+#include <QPointer>
+#include <QMenu>
 
 //Subclass of QCheckBox made to allow data to be sent to slots
 
@@ -11,7 +13,8 @@ class TorrentHeaderCheckbox : public QCheckBox
     Q_OBJECT
 
 public:
-    TorrentHeaderCheckbox(const QString &text, QWidget *parent = 0);
+    TorrentHeaderCheckbox(const QString &text,
+                          QPointer<QMenu> parent = 0);
 
     void setData(const QVariant& userData);
     QVariant data() const;

@@ -7,7 +7,7 @@
 
 namespace Bittorrent {
 
-CreateTorrent::CreateTorrent(QWidget *parent) :
+CreateTorrent::CreateTorrent(QPointer<QWidget> parent) :
     QDialog(parent),
     ui(new Ui::CreateTorrent),
     comment{""},

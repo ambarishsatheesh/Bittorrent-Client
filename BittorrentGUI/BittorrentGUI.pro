@@ -39,6 +39,7 @@ SOURCES += \
     mainwindow.cpp \
     tableModel.cpp \
     torrentheadercheckbox.cpp \
+    torrentinfolist.cpp \
     torrentsortfilterproxymodel.cpp
 
 HEADERS += \
@@ -70,6 +71,7 @@ HEADERS += \
     storedPrevTorrents.h \
     tableModel.h \
     torrentheadercheckbox.h \
+    torrentinfolist.h \
     torrentsortfilterproxymodel.h
 
 FORMS += \

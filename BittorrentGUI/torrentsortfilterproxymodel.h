@@ -4,6 +4,8 @@
 #include "tableModel.h"
 
 #include <QSortFilterProxyModel>
+#include <QPointer>
+#include <QObject>
 
 namespace Bittorrent
 {
@@ -13,7 +15,7 @@ class TorrentSortFilterProxyModel : public QSortFilterProxyModel
     Q_OBJECT
 
 public:
-    TorrentSortFilterProxyModel(QObject* parent = 0);
+    TorrentSortFilterProxyModel(QPointer<QObject> parent = 0);
 
 
 protected:

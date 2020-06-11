@@ -26,6 +26,8 @@
 #include <QAbstractTableModel>
 #include <QVector>
 #include <QTimer>
+#include <QPointer>
+#include <QObject>
 
 namespace Bittorrent
 {
@@ -35,7 +37,7 @@ class TestModel : public QAbstractTableModel
     Q_OBJECT
 
 public:
-    TestModel(Client* client, QObject *parent = 0);
+    TestModel(Client* client, QPointer<QObject> parent = 0);
 
     void populateData(const storedPrevTorrents storedTor);
 

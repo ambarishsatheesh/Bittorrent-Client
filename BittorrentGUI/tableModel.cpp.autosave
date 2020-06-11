@@ -96,7 +96,8 @@ QVariant TestModel::headerData(int section,
     return QVariant();
 }
 
-bool TestModel::setData(const QModelIndex &index, const QVariant &value, int role)
+bool TestModel::setData(const QModelIndex &index, 
+                        const QVariant &value, int role)
     {
         if (role == Qt::DisplayRole)
         {

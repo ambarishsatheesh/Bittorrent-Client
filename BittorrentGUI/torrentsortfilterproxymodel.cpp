@@ -4,7 +4,7 @@ namespace Bittorrent
 {
 
 TorrentSortFilterProxyModel::TorrentSortFilterProxyModel(
-        QObject* parent)
+        QPointer<QObject> parent)
 {
 
 }

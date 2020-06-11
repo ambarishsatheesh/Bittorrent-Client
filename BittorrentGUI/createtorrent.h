@@ -18,7 +18,7 @@ class CreateTorrent : public QDialog
     Q_OBJECT
 
 public:
-    explicit CreateTorrent(QWidget *parent = nullptr);
+    explicit CreateTorrent(QPointer<QWidget> parent = nullptr);
     ~CreateTorrent();
 
 private slots:

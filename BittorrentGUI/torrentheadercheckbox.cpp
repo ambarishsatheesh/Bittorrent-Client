@@ -1,7 +1,7 @@
 #include "torrentheadercheckbox.h"
 
 TorrentHeaderCheckbox::TorrentHeaderCheckbox(
-        const QString &text, QWidget *parent)
+        const QString &text, QPointer<QMenu> parent)
     : QCheckBox(parent)
 {
     setText(text);

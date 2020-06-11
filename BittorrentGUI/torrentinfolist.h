@@ -2,13 +2,19 @@
 #define TORRENTINFOLIST_H
 
 #include <QAbstractListModel>
+#include <QPointer>
 
-class torrentInfoList : public QAbstractListModel
+#include "Client.h"
+
+namespace Bittorrent
+{
+
+class TorrentInfoList : public QAbstractListModel
 {
     Q_OBJECT
 
 public:
-    explicit torrentInfoList(QObject *parent = nullptr);
+    explicit TorrentInfoList(Client* client, QPointer<QObject> parent = nullptr);
 
     // Header:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
@@ -19,6 +25,9 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
 private:
+    Client* ioClient;
 };
+
+}
 
 #endif // TORRENTINFOLIST_H

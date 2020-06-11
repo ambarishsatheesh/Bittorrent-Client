@@ -21,6 +21,7 @@
 #include "torrentheadercheckbox.h"
 #include "createtorrent.h"
 #include "torrentsortfilterproxymodel.h"
+#include "torrentinfolist.h"
 
 namespace Ui {
 class MainWindow;
@@ -112,7 +113,8 @@ private:
     QPointer<TorrentHeaderCheckbox> toggleDisplay_Uploaded;
     QPointer<TorrentHeaderCheckbox> toggleDisplay_TimeActive;
 
-
+    //infoList
+    QPointer<TorrentInfoList> infoListModel;
 
 };
 
