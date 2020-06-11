@@ -24,7 +24,9 @@ using namespace utility;
 
 MainWindow::MainWindow(Client* client, QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow),
-    ioClient(client), isFirstTorrentHeaderMenu{true}
+      ioClient(client), isFirstTorrentHeaderMenu{true},
+      isFirstTorrentTableMenuData{true},
+      isFirstTorrentTableMenuOutside{true}
 {
     //General Layout
     ui->setupUi(this);
@@ -107,16 +109,46 @@ MainWindow::~MainWindow()
 
 void MainWindow::customTorrentSelectRequested(const QPoint& pos)
 {
-    //if right clicked in a valid row (i.e. only when there is data)
+    //if right clicked in a valid row (i.e. only where there is data)
     if (torrentTable->indexAt(pos).isValid())
     {
-        torrentTableMainMenu = new QMenu(this);
-        a_deleteTorrent = new QAction("Delete", this);
-        connect(a_deleteTorrent, &QAction::triggered, this,
-                &MainWindow::on_actionDelete_triggered);
-        torrentTableMainMenu->addAction(a_deleteTorrent);
-        torrentTableMainMenu->popup(m_rightSideWindow->mapToGlobal(pos));
+        if (isFirstTorrentTableMenuData)
+        {
+            torrentTableMainMenuData = new QMenu(this);
+
+            a_deleteTorrent = new QAction("Delete", this);
+            connect(a_deleteTorrent, &QAction::triggered, this,
+                    &MainWindow::on_actionDelete_triggered);
+            a_deleteTorrent->setIcon(QIcon(":/imgs/Icons/1/33.png"));
+            torrentTableMainMenuData->addAction(a_deleteTorrent);
+
+            //set flag
+            isFirstTorrentTableMenuData = false;
+        }
+
+        torrentTableMainMenuData->
+                popup(m_rightSideWindow->mapToGlobal(pos));
     }
+    else
+    {
+        if (isFirstTorrentTableMenuOutside)
+        {
+            torrentTableMainMenuOutside = new QMenu(this);
+
+            a_addTorrent = new QAction("Add Torrent", this);
+            connect(a_addTorrent, &QAction::triggered, this,
+                    &MainWindow::on_actionAdd_Torrent_triggered);
+            a_addTorrent->setIcon(QIcon(":/imgs/Icons/add (1).png"));
+            torrentTableMainMenuOutside->addAction(a_addTorrent);
+
+            //set flag
+            isFirstTorrentTableMenuOutside = false;
+        }
+
+        torrentTableMainMenuOutside->
+                popup(m_rightSideWindow->mapToGlobal(pos));
+    }
+
 }
 
 void MainWindow::customHeaderMenuRequested(const QPoint& pos)
@@ -139,14 +171,14 @@ void MainWindow::customHeaderMenuRequested(const QPoint& pos)
         actionList.push_back({"Downloaded", toggleDisplay_Downloaded});
         actionList.push_back({"Uploaded", toggleDisplay_Uploaded});
 
-        torrentTableMainMenu = new QMenu(this);
+        torrentTableHeaderMenu = new QMenu(this);
 
         //iterate through actions and configure menu options and slots
         for (int i = 0; i < actionList.size(); ++i)
         {
             actionList[i].second =
                     new TorrentHeaderCheckbox(
-                        actionList[i].first, torrentTableMainMenu);
+                        actionList[i].first, torrentTableHeaderMenu);
 
             auto widgetAction = new QWidgetAction(this);
             widgetAction->setDefaultWidget(actionList[i].second);
@@ -162,13 +194,13 @@ void MainWindow::customHeaderMenuRequested(const QPoint& pos)
                     &TorrentHeaderCheckbox::stateChanged, this,
                             &MainWindow::toggleColumnDisplay);
 
-            torrentTableMainMenu->addAction(widgetAction);
+            torrentTableHeaderMenu->addAction(widgetAction);
         }
 
         isFirstTorrentHeaderMenu = false;
     }
 
-    torrentTableMainMenu->popup(torrentTable->mapToGlobal(pos));
+    torrentTableHeaderMenu->popup(torrentTable->mapToGlobal(pos));
 }
 
 void MainWindow::toggleColumnDisplay()

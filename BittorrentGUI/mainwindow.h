@@ -62,12 +62,16 @@ private:
     QPointer<QTableView> torrentTable;
 
     QPointer<QMenu> torrentTableHeaderMenu;
-    QPointer<QMenu> torrentTableMainMenu;
+    QPointer<QMenu> torrentTableMainMenuData;
+    QPointer<QMenu> torrentTableMainMenuOutside;
     bool isFirstTorrentHeaderMenu;
+    bool isFirstTorrentTableMenuData;
+    bool isFirstTorrentTableMenuOutside;
 
     QPointer<TestModel> model;
 
     //table main menu
+    QPointer<QAction> a_addTorrent;
     QPointer<QAction> a_deleteTorrent;
 
     //file dialog

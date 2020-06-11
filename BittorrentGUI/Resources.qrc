@@ -1,7 +1,6 @@
 <RCC>
     <qresource prefix="/imgs">
         <file>Icons/add (1).png</file>
-        <file>Icons/add.png</file>
         <file>Icons/fast-forward-double-right-arrows - Copy.png</file>
         <file>Icons/fast-forward-double-right-arrows.png</file>
         <file>Icons/icons8-pause-48.png</file>

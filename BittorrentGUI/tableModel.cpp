@@ -201,6 +201,10 @@ void TestModel::addNewTorrent(std::string& fileName, std::string& buffer)
 
 void TestModel::removeTorrent(int position)
 {
+    auto deletedTorName =
+            ioClientModel->workingTorrentList.torrentList.at(position)->
+            generalData.fileName;
+
     beginRemoveRows(QModelIndex(), position, position);
 
     ioClientModel->
@@ -208,9 +212,8 @@ void TestModel::removeTorrent(int position)
 
     endRemoveRows();
 
-    LOG_F(INFO, "Removed torrent \"%s\"",
-          ioClientModel->workingTorrentList.torrentList.at(position)->
-          generalData.fileName.c_str());
+    LOG_F(INFO, "Removed torrent \"%s\"", deletedTorName.c_str());
+
 }
 
 
