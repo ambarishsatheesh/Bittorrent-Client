@@ -125,7 +125,7 @@ namespace Bittorrent
 
         inline void saveToFile(std::string fullFilePath, std::string encoded)
         {
-            std::ofstream file(fullFilePath);
+            std::ofstream file(fullFilePath, std::ios::binary);
             file << encoded;
             file.close();
         }
