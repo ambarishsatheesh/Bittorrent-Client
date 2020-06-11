@@ -40,7 +40,6 @@ namespace Bittorrent
 		for (valueDictionary::const_iterator i = inputObj.begin();
 			i != inputObj.end(); ++i)
 		{
-			//this?
 			ss << (*this)(i->first) <<
 				boost::apply_visitor(encodeVisitor(), i->second);
 		}
