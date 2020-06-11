@@ -93,13 +93,6 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     torrentTable->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
     torrentTable-> setContextMenuPolicy(Qt::CustomContextMenu);
 
-    connect(torrentTable->horizontalHeader(),
-            &QTableView::customContextMenuRequested,
-            this, &MainWindow::customHeaderMenuRequested);
-
-    connect(torrentTable, &QTableView::customContextMenuRequested,
-            this, &MainWindow::customTorrentSelectRequested);
-
     //toolbar
     toolbar = new QToolBar(this);
     toolbar->setMovable(false);
@@ -118,6 +111,17 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     searchFilter->setClearButtonEnabled(true);
     searchFilter->addAction(QIcon(":/imgs/Icons/search.png"), QLineEdit::LeadingPosition);
     toolbar->addWidget(searchFilter);
+
+
+    connect(torrentTable->horizontalHeader(),
+            &QTableView::customContextMenuRequested,
+            this, &MainWindow::customHeaderMenuRequested);
+
+    connect(torrentTable, &QTableView::customContextMenuRequested,
+            this, &MainWindow::customTorrentSelectRequested);
+
+    connect(searchFilter, &QLineEdit::textChanged, this,
+            &MainWindow::textFilterChanged);
 
 //    auto tester =
 //            new QAbstractItemModelTester(
@@ -361,7 +365,6 @@ void MainWindow::on_actionTorrent_Creator_triggered()
             [this](const QString& fileName){
         MainWindow::loadCreatedTorrent(fileName);}
     );
-
 }
 
 void MainWindow::loadCreatedTorrent(QString filePath)
@@ -372,10 +375,9 @@ void MainWindow::loadCreatedTorrent(QString filePath)
 
 void MainWindow::textFilterChanged()
 {
-//    QRegExp regExp(filterWidget->text(),
-//                   filterWidget->caseSensitivity(),
-//                   filterWidget->patternSyntax());
-//    proxyModel->setFilterRegExp(regExp);
+    QRegExp torrentFilterRegExp(searchFilter->text());
+    torrentFilterRegExp.setCaseSensitivity(Qt::CaseInsensitive);
+    proxyModel->setFilterRegExp(torrentFilterRegExp);
 }
 
 

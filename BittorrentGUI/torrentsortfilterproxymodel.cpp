@@ -9,7 +9,7 @@ TorrentSortFilterProxyModel::TorrentSortFilterProxyModel(
 
 }
 
-bool TorrentSortFilterProxyModel::filterTorrentName(
+bool TorrentSortFilterProxyModel::filterAcceptsRow(
         int sourceRow, const QModelIndex& sourceParent) const
 {
     //get index of given row at the torrent Name column (2)
