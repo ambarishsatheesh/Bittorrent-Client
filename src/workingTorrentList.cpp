@@ -26,9 +26,25 @@ namespace Bittorrent
         torrentList.push_back(loadedTorrent_ptr);
 
         //get current time as appropriately formatted string
-
         addedOnList.push_back(
-                    QDateTime::currentDateTime().toString("yyyy/MM/dd HH:mm"));
+                    QDateTime::currentDateTime().
+                    toString("yyyy/MM/dd HH:mm"));
+
+        //store map of unique trackers and how many torrents use them
+        for (auto trackers : loadedTorrent.generalData.trackerList)
+        {
+            QString fullTrackerAdd =
+                    QString::fromStdString(trackers.trackerAddress);
+
+            auto mainHost = fullTrackerAdd.split('.').last().split('/').first();
+
+            //store only main domain and increment if already exists
+            infoTrackerMap[mainHost]++;
+
+            LOG_F(INFO, "added host: %s, count: %d",
+                  mainHost.toStdString().c_str(),
+                  infoTrackerMap[mainHost]);
+        }
 
         LOG_F(INFO, "Added Torrent %s to client!", loadedTorrent.generalData.fileName.c_str());
     }
