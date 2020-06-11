@@ -38,7 +38,8 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     tableModel.cpp \
-    torrentheadercheckbox.cpp
+    torrentheadercheckbox.cpp \
+    torrentsortfilterproxymodel.cpp
 
 HEADERS += \
     ../include/ \
@@ -68,7 +69,8 @@ HEADERS += \
     progressDelegate.h \
     storedPrevTorrents.h \
     tableModel.h \
-    torrentheadercheckbox.h
+    torrentheadercheckbox.h \
+    torrentsortfilterproxymodel.h
 
 FORMS += \
     createtorrent.ui \

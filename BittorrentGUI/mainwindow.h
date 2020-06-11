@@ -13,11 +13,14 @@
 #include <QCheckBox>
 #include <QFileDialog>
 #include <QSortFilterProxyModel>
+#include <QToolBar>
+#include <QLineEdit>
 
 #include "Client.h"
 #include "tableModel.h"
 #include "torrentheadercheckbox.h"
 #include "createtorrent.h"
+#include "torrentsortfilterproxymodel.h"
 
 namespace Ui {
 class MainWindow;
@@ -49,28 +52,39 @@ private slots:
 
     void loadCreatedTorrent(QString filePath);
 
+    void toggleColumnDisplay();
+
+    void loadTorrent(std::string fileName, std::string& buffer);
+
+    void textFilterChanged();
+
 private:
     Ui::MainWindow* ui;
     Client* ioClient;
     QPointer<CreateTorrent> createTorDialog;
 
-    void toggleColumnDisplay();
-    void loadTorrent(std::string fileName, std::string& buffer);
 
     QPointer<QMainWindow> m_rightSideWindow;
     QPointer<QDockWidget> m_dockWidget1;
     QPointer<QDockWidget> m_dockWidget2;
     QPointer<QTableView> torrentTable;
-    QSortFilterProxyModel *proxyModel;
 
+    //toolbar
+    QPointer<QToolBar> toolbar;
+    QPointer<QWidget> dummySpacer;
+    QPointer<QLineEdit> searchFilter;
+
+    //data/proxy models
+    QPointer<TorrentSortFilterProxyModel> proxyModel;
+    QPointer<TestModel> model;
+
+    //Menus
     QPointer<QMenu> torrentTableHeaderMenu;
     QPointer<QMenu> torrentTableMainMenuData;
     QPointer<QMenu> torrentTableMainMenuOutside;
     bool isFirstTorrentHeaderMenu;
     bool isFirstTorrentTableMenuData;
     bool isFirstTorrentTableMenuOutside;
-
-    QPointer<TestModel> model;
 
     //table main menu
     QPointer<QAction> a_addTorrent;

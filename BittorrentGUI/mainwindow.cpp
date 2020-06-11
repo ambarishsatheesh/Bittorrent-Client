@@ -79,17 +79,16 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     progressDelegate* delegate = new progressDelegate(torrentTable);
     torrentTable->setItemDelegateForColumn(5, delegate);
 
-    proxyModel = new QSortFilterProxyModel(this);
+    //sort/filter
+    proxyModel = new TorrentSortFilterProxyModel(this);
     proxyModel->setSourceModel(model);
     torrentTable->setModel(proxyModel);
-
     torrentTable->setSortingEnabled(true);
     proxyModel->setDynamicSortFilter(true);
     proxyModel->setSortCaseSensitivity(Qt::CaseInsensitive);
 
     m_dockWidget1->setWidget(torrentTable);
     m_dockWidget1->show();
-
 
     torrentTable->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
     torrentTable-> setContextMenuPolicy(Qt::CustomContextMenu);
@@ -100,6 +99,25 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
 
     connect(torrentTable, &QTableView::customContextMenuRequested,
             this, &MainWindow::customTorrentSelectRequested);
+
+    //toolbar
+    toolbar = new QToolBar(this);
+    toolbar->setMovable(false);
+    this->addToolBar(Qt::TopToolBarArea, toolbar);
+
+    //create dummy spacer so that search bar is right aligned
+    dummySpacer = new QWidget();
+    dummySpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    toolbar->addWidget(dummySpacer);
+
+    //add search bar to toolbar
+    searchFilter = new QLineEdit(this);
+    searchFilter->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+    searchFilter->setMaximumWidth(250);
+    searchFilter->setPlaceholderText("Filter torrents");
+    searchFilter->setClearButtonEnabled(true);
+    searchFilter->addAction(QIcon(":/imgs/Icons/search.png"), QLineEdit::LeadingPosition);
+    toolbar->addWidget(searchFilter);
 
 //    auto tester =
 //            new QAbstractItemModelTester(
@@ -350,6 +368,14 @@ void MainWindow::loadCreatedTorrent(QString filePath)
 {
     std::string buffer = loadFromFile(filePath.toStdString().c_str());
     loadTorrent(filePath.toStdString(), buffer);
+}
+
+void MainWindow::textFilterChanged()
+{
+//    QRegExp regExp(filterWidget->text(),
+//                   filterWidget->caseSensitivity(),
+//                   filterWidget->patternSyntax());
+//    proxyModel->setFilterRegExp(regExp);
 }
 
 
