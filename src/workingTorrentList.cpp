@@ -65,6 +65,12 @@ namespace Bittorrent
 
             // and increment if already exists
             infoTrackerMap[QString::fromStdString(mainHost)]++;;
+
+            //use hex string as torrent identifier and store as vector of torrents
+            //mapped to each tracker for use in filtering via tracker list
+            trackerTorrentMap[QString::fromStdString(mainHost)].insert(
+                        QString::fromStdString(
+                            loadedTorrent.hashesData.hexStringInfoHash));
         }
 
         LOG_F(INFO, "Added Torrent %s to client!",
@@ -111,6 +117,30 @@ namespace Bittorrent
                 infoTrackerMap.erase(
                             infoTrackerMap.find(
                                 QString::fromStdString(mainHost)));
+            }
+        }
+
+        //remove infohash associated with removed torrent f\rom the
+        //torrent map used for filtering
+        for (auto it = trackerTorrentMap.begin(),
+               end = trackerTorrentMap.end(); it != end;)
+        {
+            auto infoHash = QString::fromStdString(torrentList.at(position)->
+                    hashesData.hexStringInfoHash);
+
+            if (it.value().find(infoHash) != it.value().end())
+            {
+                it.value().erase(infoHash);
+            }
+            //remove key and value if value set is empty (needed to keep it
+            //perfectly mapped to infoTrackerMap used for list view.
+            if (it.value().empty())
+            {
+                it = trackerTorrentMap.erase(it);
+            }
+            else
+            {
+                ++it;
             }
         }
 

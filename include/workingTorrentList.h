@@ -8,6 +8,7 @@
 #include <vector>
 #include <QString>
 #include <QMap>
+#include <set>
 
 namespace Bittorrent
 {
@@ -21,6 +22,7 @@ namespace Bittorrent
 
         //unique trackers
         QMap<QString, int> infoTrackerMap;
+        QMap<QString, std::set<QString>> trackerTorrentMap;
 
         void addNewTorrent(std::string fileName, std::string buffer);
         void removeTorrent(int position);
