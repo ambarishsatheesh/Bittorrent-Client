@@ -12,6 +12,9 @@
 #include <sstream>
 
 #include <QAbstractItemModelTester>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QFont>
 
 //stringize
 #define NAMEOF(variable) ((void)variable, #variable)
@@ -80,7 +83,7 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     torrentTable->setItemDelegateForColumn(5, delegate);
 
     //sort/filter
-    proxyModel = new TorrentSortFilterProxyModel(this);
+    proxyModel = new TorrentSortFilterProxyModel(ioClient, this);
     proxyModel->setSourceModel(model);
     torrentTable->setModel(proxyModel);
     torrentTable->setSortingEnabled(true);
@@ -123,11 +126,23 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     connect(searchFilter, &QLineEdit::textChanged, this,
             &MainWindow::textFilterChanged);
 
-
-    QPointer<QListView> infoList = new QListView(transfersTab);
+    infoList = new QListView(this);
     infoListModel = new TorrentInfoList(ioClient, this);
     infoList->setModel(infoListModel);
     infoList->setFrameStyle(QFrame::NoFrame);
+
+    //Trackers list header
+    trackerBox = new QVBoxLayout(transfersTab);
+    trackersHeader = new QLabel("Trackers");
+    QFont trackerFont = trackersHeader->font();
+    trackerFont.setWeight(QFont::Bold);
+    trackersHeader->setFont(trackerFont);
+    trackerBox->addWidget(trackersHeader);
+
+    trackerBox->addWidget(infoList);
+
+    connect(infoList, &QListView::clicked, this,
+            &MainWindow::trackerListItemSelected);
 
 
 //    auto tester =
@@ -140,6 +155,37 @@ MainWindow::~MainWindow()
 {
     delete ui;
     delete m_rightSideWindow;
+}
+
+void MainWindow::trackerListItemSelected(const QModelIndex& index)
+{
+    emit model->dataChanged(QModelIndex(), QModelIndex());
+    if (index.isValid())
+    {
+        //store infoHashes of torrents associated with selected tracker
+        //so that they can be used to filter torrent table rows
+        auto torList = ioClient->workingTorrentList;
+        auto trackerAdd = torList.trackerTorrentMap.keys().at(index.row());
+        auto infoHashes = torList.trackerTorrentMap.value(trackerAdd);
+        for (auto str : infoHashes)
+        {
+            proxyModel->infoHashList.push_back(str);
+        }
+
+        //placeholder dummy regex to trigger reapplication of filter
+        //infoHashList is not empty so tracker filter will trigger instead of
+        //search filter (see subclass function definition)
+        proxyModel->setFilterRegExp(QRegExp(""));
+    }
+
+    for (auto i : ioClient->workingTorrentList.trackerTorrentMap.value(ioClient->workingTorrentList.trackerTorrentMap.keys().at(index.row())))
+    {
+        LOG_F(INFO, "torrent: %s", i.toStdString().c_str());
+    }
+
+
+    //clear so that future search filter calls can be safely made
+    proxyModel->infoHashList.clear();
 }
 
 void MainWindow::customTorrentSelectRequested(const QPoint& pos)

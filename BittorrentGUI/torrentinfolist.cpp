@@ -5,29 +5,13 @@ namespace Bittorrent
 
 TorrentInfoList::TorrentInfoList(Client* client,
                                  QPointer<QObject> parent)
-    : ioClient(client), QAbstractListModel(parent)
+    : QAbstractListModel(parent), ioClient(client)
 {
 }
 
 QVariant TorrentInfoList::headerData(int section,
                                      Qt::Orientation orientation, int role) const
 {
-    if (role != Qt::DisplayRole)
-    {
-        return QVariant();
-    }
-
-    if (orientation == Qt::Vertical) {
-        switch (section)
-        {
-        case 0:
-            return "Status";
-        case 1:
-            return "Trackers";
-        default:
-            break;
-        }
-    }
     return QVariant();
 }
 
@@ -63,8 +47,6 @@ QVariant TorrentInfoList::data(const QModelIndex &index,
 
     return trackerAdd + " (" + QString::number(ioClient->
                 workingTorrentList.infoTrackerMap[trackerAdd]) + ")";
-
-    return "test";
 }
 
 void TorrentInfoList::update()

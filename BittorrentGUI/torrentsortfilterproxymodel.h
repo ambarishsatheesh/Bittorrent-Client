@@ -15,7 +15,9 @@ class TorrentSortFilterProxyModel : public QSortFilterProxyModel
     Q_OBJECT
 
 public:
-    TorrentSortFilterProxyModel(QPointer<QObject> parent = 0);
+    TorrentSortFilterProxyModel(Client* client, QPointer<QObject> parent = 0);
+
+    QList<QString> infoHashList;
 
 
 protected:

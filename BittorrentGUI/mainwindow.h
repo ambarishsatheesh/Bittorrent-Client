@@ -6,6 +6,7 @@
 #include <QStandardItemModel>
 #include <QItemSelectionModel>
 #include <QTableView>
+#include <QListView>
 #include <QMenu>
 #include <QPointer>
 #include <QAction>
@@ -15,6 +16,8 @@
 #include <QSortFilterProxyModel>
 #include <QToolBar>
 #include <QLineEdit>
+#include <QLabel>
+#include <QVBoxLayout>
 
 #include "Client.h"
 #include "tableModel.h"
@@ -59,6 +62,8 @@ private slots:
 
     void textFilterChanged();
 
+    void trackerListItemSelected(const QModelIndex& index);
+
 private:
     Ui::MainWindow* ui;
     Client* ioClient;
@@ -90,6 +95,15 @@ private:
     //table main menu
     QPointer<QAction> a_addTorrent;
     QPointer<QAction> a_deleteTorrent;
+
+    //List
+    QPointer<QListView> infoList;
+
+    //Box
+    QPointer<QVBoxLayout> trackerBox;
+
+    //label
+    QPointer<QLabel> trackersHeader;
 
     //file dialog
     QPointer<QFileDialog> addTorrentDialog;
