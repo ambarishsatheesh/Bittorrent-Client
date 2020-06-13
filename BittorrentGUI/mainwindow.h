@@ -91,6 +91,7 @@ private:
     QPointer<QAction> toolbar_increasePriority;
     QPointer<QAction> toolbar_decreasePriority;
     QPointer<QAction> toolbar_minPriority;
+    QPointer<QAction> toolbar_settings;
 
     QPointer<QWidget> dummySpacer;
     QPointer<QLineEdit> searchFilter;

@@ -166,7 +166,11 @@ void MainWindow::initToolbar()
     toolbar_addTorrent->setToolTip("Add Torrent");
     toolbar_deleteTorrent = new QAction(QIcon(":/imgs/Icons/deleteTorrent.png"), "");
     toolbar_deleteTorrent->setToolTip("Delete Torrent");
+    connect(toolbar_addTorrent, &QAction::triggered, this,
+            &MainWindow::on_actionAdd_Torrent_triggered);
     toolbar->addAction(toolbar_addTorrent);
+    connect(toolbar_deleteTorrent, &QAction::triggered, this,
+            &MainWindow::on_actionDelete_triggered);
     toolbar->addAction(toolbar_deleteTorrent);
 
     toolbar->addSeparator();
@@ -187,11 +191,17 @@ void MainWindow::initToolbar()
     toolbar_decreasePriority = new QAction(QIcon(":/imgs/Icons/decreasePriority.png"), "");
     toolbar_decreasePriority->setToolTip("Decrease Priority");
     toolbar_minPriority = new QAction(QIcon(":/imgs/Icons/minPriority.png"), "");
-    toolbar_maxPriority->setToolTip("Min Priority");
+    toolbar_minPriority->setToolTip("Min Priority");
     toolbar->addAction(toolbar_maxPriority);
     toolbar->addAction(toolbar_increasePriority);
     toolbar->addAction(toolbar_decreasePriority);
     toolbar->addAction(toolbar_minPriority);
+
+    toolbar->addSeparator();
+
+    toolbar_settings = new QAction(QIcon(":/imgs/Icons/settings.png"), "");
+    toolbar_settings->setToolTip("Settings");
+    toolbar->addAction(toolbar_settings);
 
     toolbar->addSeparator();
 
