@@ -15,6 +15,9 @@ CreateTorrent::CreateTorrent(QPointer<QWidget> parent) :
 {
     ui->setupUi(this);
 
+    //set progress bar range
+    ui->progressBar->setRange(0, 5);
+
     //set placeholder text in path field
     auto locationList = QStandardPaths::standardLocations(
                 QStandardPaths::DocumentsLocation);
@@ -79,6 +82,7 @@ void CreateTorrent::on_buttonCreate_clicked()
                                 "",
                                 tr("*.torrent"));
 
+    //actual torrent file creation
     if (!writePath.isEmpty())
     {
         storedWritePath = writePath;
@@ -94,6 +98,9 @@ void CreateTorrent::on_buttonCreate_clicked()
             {
                 trackerList.push_back(qTracker.toStdString());
             }
+
+            //set current progress level
+            ui->progressBar->setValue(2);
         }
         //handle empty comments field
         if (!ui->comments->toPlainText().isEmpty())
@@ -111,6 +118,9 @@ void CreateTorrent::on_buttonCreate_clicked()
         LOG_F(INFO, "Created torrent for \"%s\". Torrent saved to %s",
               storedTorrentPath.toStdString().c_str(),
               storedWritePath.toStdString().c_str());
+
+        //set current progress level
+        ui->progressBar->setValue(5);
 
 
         if (isStartSeeding)
