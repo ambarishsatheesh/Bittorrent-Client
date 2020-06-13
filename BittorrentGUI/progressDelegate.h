@@ -18,7 +18,7 @@ public:
     void paint(QPainter *painter, const QStyleOptionViewItem &option,
         const QModelIndex &index) const
     {
-        int progress = index.data().toInt();  // How do I access my models .progress_ property?
+        int progress = index.data().toInt();
 
         QStyleOptionProgressBar progressBarOption;
         progressBarOption.rect = option.rect;
