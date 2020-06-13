@@ -222,15 +222,15 @@ namespace Bittorrent
             {
                 return "0" + units.at(0);
             }
-            const int multiple = static_cast<const int>(std::log(bytes) / std::log(1024));
-            const float value = static_cast<const float>(bytes / std::pow(1024, multiple));
-            const float multiplier = static_cast<const float>(std::pow(10, 2));
+            int multiple = static_cast<int>(std::log(bytes) / std::log(1024));
+            float value = static_cast<float>(bytes / std::pow(1024, multiple));
+            float multiplier = static_cast<float>(std::pow(10, 2));
             const float res = (std::round(value * multiplier)) / multiplier;
 
             std::ostringstream streamObj;
             streamObj << std::fixed << std::setprecision(2) << res;
 
-            return streamObj.str() + units.at(multiple);
+            return streamObj.str() + " " + units.at(multiple);
         }
 
         //used http://torrentinvites.org/f29/piece-size-guide-167985/
