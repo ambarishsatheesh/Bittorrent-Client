@@ -81,7 +81,17 @@ private:
     QPointer<QTableView> torrentTable;
 
     //toolbar
+    void initToolbar();
     QPointer<QToolBar> toolbar;
+    QPointer<QAction> toolbar_addTorrent;
+    QPointer<QAction> toolbar_deleteTorrent;
+    QPointer<QAction> toolbar_resume;
+    QPointer<QAction> toolbar_pause;
+    QPointer<QAction> toolbar_maxPriority;
+    QPointer<QAction> toolbar_increasePriority;
+    QPointer<QAction> toolbar_decreasePriority;
+    QPointer<QAction> toolbar_minPriority;
+
     QPointer<QWidget> dummySpacer;
     QPointer<QLineEdit> searchFilter;
 

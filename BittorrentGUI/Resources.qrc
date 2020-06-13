@@ -1,17 +1,12 @@
 <RCC>
     <qresource prefix="/imgs">
-        <file>Icons/add (1).png</file>
-        <file>Icons/fast-forward-double-right-arrows - Copy.png</file>
-        <file>Icons/fast-forward-double-right-arrows.png</file>
-        <file>Icons/icons8-pause-48.png</file>
-        <file>Icons/icons8-play-48 - Copy (2).png</file>
-        <file>Icons/icons8-play-48 - Copy.png</file>
-        <file>Icons/icons8-play-48.png</file>
-        <file>Icons/icons8-resume-button-48 - Copy.png</file>
-        <file>Icons/icons8-resume-button-48.png</file>
+        <file>Icons/addTorrent.png</file>
+        <file>Icons/pause.png</file>
+        <file>Icons/increasePriority.png</file>
+        <file>Icons/decreasePriority.png</file>
+        <file>Icons/resume.png</file>
         <file>Icons/info.png</file>
-        <file>Icons/note.png</file>
-        <file>Icons/notepad.png</file>
+        <file>Icons/createTorrent.png</file>
         <file>Icons/settings.png</file>
         <file>Icons/1/1.png</file>
         <file>Icons/1/2.png</file>
@@ -26,7 +21,7 @@
         <file>Icons/1/11.png</file>
         <file>Icons/1/12.png</file>
         <file>Icons/1/13.png</file>
-        <file>Icons/1/14.png</file>
+        <file>Icons/deleteTorrent.png</file>
         <file>Icons/1/15.png</file>
         <file>Icons/1/16.png</file>
         <file>Icons/1/17.png</file>
@@ -44,7 +39,7 @@
         <file>Icons/1/30.png</file>
         <file>Icons/1/31.png</file>
         <file>Icons/1/32.png</file>
-        <file>Icons/1/33.png</file>
+        <file>Icons/Exit.png</file>
         <file>Icons/1/34.png</file>
         <file>Icons/1/35.png</file>
         <file>Icons/1/36.png</file>
@@ -110,5 +105,7 @@
         <file>Icons/1/95.png</file>
         <file>Icons/1/96.png</file>
         <file>Icons/search.png</file>
+        <file>Icons/maxPriority.png</file>
+        <file>Icons/minPriority.png</file>
     </qresource>
 </RCC>

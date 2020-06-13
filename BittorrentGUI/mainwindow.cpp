@@ -115,25 +115,8 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     torrentTable->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
     torrentTable-> setContextMenuPolicy(Qt::CustomContextMenu);
 
-    //toolbar
-    toolbar = new QToolBar(this);
-    toolbar->setMovable(false);
-    this->addToolBar(Qt::TopToolBarArea, toolbar);
-
-    //create dummy spacer so that search bar is right aligned
-    dummySpacer = new QWidget();
-    dummySpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    toolbar->addWidget(dummySpacer);
-
-    //add search bar to toolbar
-    searchFilter = new QLineEdit(this);
-    searchFilter->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
-    searchFilter->setMaximumWidth(250);
-    searchFilter->setPlaceholderText("Filter torrents");
-    searchFilter->setClearButtonEnabled(true);
-    searchFilter->addAction(QIcon(":/imgs/Icons/search.png"), QLineEdit::LeadingPosition);
-    toolbar->addWidget(searchFilter);
-
+    //Initialise toolbar
+    initToolbar();
 
     connect(torrentTable->horizontalHeader(),
             &QTableView::customContextMenuRequested,
@@ -141,9 +124,6 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
 
     connect(torrentTable, &QTableView::customContextMenuRequested,
             this, &MainWindow::customTorrentSelectRequested);
-
-    connect(searchFilter, &QLineEdit::textChanged, this,
-            &MainWindow::textFilterChanged);
 
     infoList = new QListView(this);
     infoListModel = new TorrentInfoList(ioClient, this);
@@ -174,6 +154,69 @@ MainWindow::~MainWindow()
 {
     delete ui;
     delete m_rightSideWindow;
+}
+
+void MainWindow::initToolbar()
+{
+    toolbar = new QToolBar(this);
+    toolbar->setMovable(false);
+    this->addToolBar(Qt::TopToolBarArea, toolbar);
+
+    toolbar_addTorrent = new QAction(QIcon(":/imgs/Icons/addTorrent.png"), "");
+    toolbar_addTorrent->setToolTip("Add Torrent");
+    toolbar_deleteTorrent = new QAction(QIcon(":/imgs/Icons/deleteTorrent.png"), "");
+    toolbar_deleteTorrent->setToolTip("Delete Torrent");
+    toolbar->addAction(toolbar_addTorrent);
+    toolbar->addAction(toolbar_deleteTorrent);
+
+    toolbar->addSeparator();
+
+    toolbar_resume = new QAction(QIcon(":/imgs/Icons/resume.png"), "");
+    toolbar_resume->setToolTip("Resume");
+    toolbar_pause = new QAction(QIcon(":/imgs/Icons/pause.png"), "");
+    toolbar_pause->setToolTip("Pause");
+    toolbar->addAction(toolbar_resume);
+    toolbar->addAction(toolbar_pause);
+
+    toolbar->addSeparator();
+
+    toolbar_maxPriority = new QAction(QIcon(":/imgs/Icons/maxPriority.png"), "");
+    toolbar_maxPriority->setToolTip("Max Priority");
+    toolbar_increasePriority = new QAction(QIcon(":/imgs/Icons/increasePriority.png"), "");
+    toolbar_increasePriority->setToolTip("Increase Priority");
+    toolbar_decreasePriority = new QAction(QIcon(":/imgs/Icons/decreasePriority.png"), "");
+    toolbar_decreasePriority->setToolTip("Decrease Priority");
+    toolbar_minPriority = new QAction(QIcon(":/imgs/Icons/minPriority.png"), "");
+    toolbar_maxPriority->setToolTip("Min Priority");
+    toolbar->addAction(toolbar_maxPriority);
+    toolbar->addAction(toolbar_increasePriority);
+    toolbar->addAction(toolbar_decreasePriority);
+    toolbar->addAction(toolbar_minPriority);
+
+    toolbar->addSeparator();
+
+    QPointer<QPushButton> btn_showAll =
+            new QPushButton("Show All Torrents", this);
+    toolbar->addWidget(btn_showAll);
+
+    //create dummy spacer so that search bar is right aligned
+    dummySpacer = new QWidget();
+    dummySpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    toolbar->addWidget(dummySpacer);
+
+    //add search bar to toolbar
+    searchFilter = new QLineEdit(this);
+    searchFilter->setSizePolicy(
+                QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+    searchFilter->setMaximumWidth(250);
+    searchFilter->setPlaceholderText("Filter torrents");
+    searchFilter->setClearButtonEnabled(true);
+    searchFilter->addAction(
+                QIcon(":/imgs/Icons/search.png"), QLineEdit::LeadingPosition);
+    toolbar->addWidget(searchFilter);
+
+    connect(searchFilter, &QLineEdit::textChanged, this,
+            &MainWindow::textFilterChanged);
 }
 
 void MainWindow::trackerListItemSelected(const QModelIndex& index)
@@ -219,7 +262,7 @@ void MainWindow::customTorrentSelectRequested(const QPoint& pos)
             a_deleteTorrent = new QAction("Delete", this);
             connect(a_deleteTorrent, &QAction::triggered, this,
                     &MainWindow::on_actionDelete_triggered);
-            a_deleteTorrent->setIcon(QIcon(":/imgs/Icons/1/33.png"));
+            a_deleteTorrent->setIcon(QIcon(":/imgs/Icons/deleteTorrent.png"));
             torrentTableMainMenuData->addAction(a_deleteTorrent);
 
             //set flag
@@ -238,7 +281,7 @@ void MainWindow::customTorrentSelectRequested(const QPoint& pos)
             a_addTorrent = new QAction("Add Torrent", this);
             connect(a_addTorrent, &QAction::triggered, this,
                     &MainWindow::on_actionAdd_Torrent_triggered);
-            a_addTorrent->setIcon(QIcon(":/imgs/Icons/add (1).png"));
+            a_addTorrent->setIcon(QIcon(":/imgs/Icons/addTorrent.png"));
             torrentTableMainMenuOutside->addAction(a_addTorrent);
 
             //set flag

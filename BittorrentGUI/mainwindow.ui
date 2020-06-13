@@ -81,7 +81,7 @@
   <action name="actionResume">
    <property name="icon">
     <iconset resource="Resources.qrc">
-     <normaloff>:/imgs/Icons/icons8-play-48.png</normaloff>:/imgs/Icons/icons8-play-48.png</iconset>
+     <normaloff>:/imgs/Icons/resume.png</normaloff>:/imgs/Icons/resume.png</iconset>
    </property>
    <property name="text">
     <string>Resume</string>
@@ -90,7 +90,7 @@
   <action name="actionPause">
    <property name="icon">
     <iconset resource="Resources.qrc">
-     <normaloff>:/imgs/Icons/icons8-pause-48.png</normaloff>:/imgs/Icons/icons8-pause-48.png</iconset>
+     <normaloff>:/imgs/Icons/pause.png</normaloff>:/imgs/Icons/pause.png</iconset>
    </property>
    <property name="text">
     <string>Pause</string>
@@ -99,7 +99,7 @@
   <action name="actionResume_all">
    <property name="icon">
     <iconset resource="Resources.qrc">
-     <normaloff>:/imgs/Icons/icons8-play-48.png</normaloff>:/imgs/Icons/icons8-play-48.png</iconset>
+     <normaloff>:/imgs/Icons/resume.png</normaloff>:/imgs/Icons/resume.png</iconset>
    </property>
    <property name="text">
     <string>Resume all</string>
@@ -108,7 +108,7 @@
   <action name="actionPause_all">
    <property name="icon">
     <iconset resource="Resources.qrc">
-     <normaloff>:/imgs/Icons/icons8-pause-48.png</normaloff>:/imgs/Icons/icons8-pause-48.png</iconset>
+     <normaloff>:/imgs/Icons/pause.png</normaloff>:/imgs/Icons/pause.png</iconset>
    </property>
    <property name="text">
     <string>Pause all</string>
@@ -117,7 +117,7 @@
   <action name="actionTop_priority">
    <property name="icon">
     <iconset resource="Resources.qrc">
-     <normaloff>:/imgs/Icons/fast-forward-double-right-arrows - Copy.png</normaloff>:/imgs/Icons/fast-forward-double-right-arrows - Copy.png</iconset>
+     <normaloff>:/imgs/Icons/maxPriority.png</normaloff>:/imgs/Icons/maxPriority.png</iconset>
    </property>
    <property name="text">
     <string>Max priority</string>
@@ -126,7 +126,7 @@
   <action name="actionIncrease_Priority">
    <property name="icon">
     <iconset resource="Resources.qrc">
-     <normaloff>:/imgs/Icons/icons8-play-48 - Copy (2).png</normaloff>:/imgs/Icons/icons8-play-48 - Copy (2).png</iconset>
+     <normaloff>:/imgs/Icons/increasePriority.png</normaloff>:/imgs/Icons/increasePriority.png</iconset>
    </property>
    <property name="text">
     <string>Increase Priority</string>
@@ -135,7 +135,7 @@
   <action name="actionDecrease_Priority">
    <property name="icon">
     <iconset resource="Resources.qrc">
-     <normaloff>:/imgs/Icons/icons8-play-48 - Copy.png</normaloff>:/imgs/Icons/icons8-play-48 - Copy.png</iconset>
+     <normaloff>:/imgs/Icons/decreasePriority.png</normaloff>:/imgs/Icons/decreasePriority.png</iconset>
    </property>
    <property name="text">
     <string>Decrease Priority</string>
@@ -144,7 +144,7 @@
   <action name="actionMin_Priority">
    <property name="icon">
     <iconset resource="Resources.qrc">
-     <normaloff>:/imgs/Icons/fast-forward-double-right-arrows.png</normaloff>:/imgs/Icons/fast-forward-double-right-arrows.png</iconset>
+     <normaloff>:/imgs/Icons/minPriority.png</normaloff>:/imgs/Icons/minPriority.png</iconset>
    </property>
    <property name="text">
     <string>Min Priority</string>
@@ -171,7 +171,7 @@
   <action name="actionTorrent_Creator">
    <property name="icon">
     <iconset resource="Resources.qrc">
-     <normaloff>:/imgs/Icons/notepad.png</normaloff>:/imgs/Icons/notepad.png</iconset>
+     <normaloff>:/imgs/Icons/createTorrent.png</normaloff>:/imgs/Icons/createTorrent.png</iconset>
    </property>
    <property name="text">
     <string>Torrent Creator</string>
@@ -180,7 +180,7 @@
   <action name="actionAdd_Torrent">
    <property name="icon">
     <iconset resource="Resources.qrc">
-     <normaloff>:/imgs/Icons/add (1).png</normaloff>:/imgs/Icons/add (1).png</iconset>
+     <normaloff>:/imgs/Icons/addTorrent.png</normaloff>:/imgs/Icons/addTorrent.png</iconset>
    </property>
    <property name="text">
     <string>Add Torrent</string>
@@ -189,7 +189,7 @@
   <action name="actionExit_Client">
    <property name="icon">
     <iconset resource="Resources.qrc">
-     <normaloff>:/imgs/Icons/1/33.png</normaloff>:/imgs/Icons/1/33.png</iconset>
+     <normaloff>:/imgs/Icons/Exit.png</normaloff>:/imgs/Icons/Exit.png</iconset>
    </property>
    <property name="text">
     <string>Exit Client</string>
@@ -198,10 +198,10 @@
   <action name="actionDelete">
    <property name="icon">
     <iconset resource="Resources.qrc">
-     <normaloff>:/imgs/Icons/1/33.png</normaloff>:/imgs/Icons/1/33.png</iconset>
+     <normaloff>:/imgs/Icons/deleteTorrent.png</normaloff>:/imgs/Icons/deleteTorrent.png</iconset>
    </property>
    <property name="text">
-    <string>Delete</string>
+    <string>Delete Torrent</string>
    </property>
   </action>
  </widget>
