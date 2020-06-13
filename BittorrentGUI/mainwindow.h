@@ -64,6 +64,8 @@ private slots:
 
     void trackerListItemSelected(const QModelIndex& index);
 
+    void showAllTorrents();
+
 private:
     Ui::MainWindow* ui;
     Client* ioClient;

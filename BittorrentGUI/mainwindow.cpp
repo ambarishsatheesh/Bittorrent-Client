@@ -205,8 +205,11 @@ void MainWindow::initToolbar()
 
     toolbar->addSeparator();
 
+    //"show all" button
     QPointer<QPushButton> btn_showAll =
             new QPushButton("Show All Torrents", this);
+    connect(btn_showAll, &QPushButton::clicked, this,
+            &MainWindow::showAllTorrents);
     toolbar->addWidget(btn_showAll);
 
     //create dummy spacer so that search bar is right aligned
@@ -227,6 +230,17 @@ void MainWindow::initToolbar()
 
     connect(searchFilter, &QLineEdit::textChanged, this,
             &MainWindow::textFilterChanged);
+}
+
+void MainWindow::showAllTorrents()
+{
+    //use match anything regex
+    QRegExp torrentFilterRegExp(".*");
+    torrentFilterRegExp.setCaseSensitivity(Qt::CaseInsensitive);
+    proxyModel->setFilterRegExp(torrentFilterRegExp);
+
+    //clear any filter list selections
+    infoList->clearSelection();
 }
 
 void MainWindow::trackerListItemSelected(const QModelIndex& index)
