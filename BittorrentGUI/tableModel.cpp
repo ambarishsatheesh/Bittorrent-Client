@@ -38,11 +38,7 @@ QVariant TestModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    const auto &singleTorrent =
-            ioClientModel->
-            workingTorrentList.torrentList.at(index.row());
-
-    return generateData(singleTorrent, index);
+    return generateData(index);
 }
 
 
@@ -107,8 +103,7 @@ bool TestModel::setData(const QModelIndex &index,
         return true;
  }
 
-QVariant TestModel::generateData(const std::shared_ptr<Torrent> torrent,
-                                 const QModelIndex &index) const
+QVariant TestModel::generateData(const QModelIndex &index) const
 {
     using namespace utility;
 
@@ -124,15 +119,28 @@ QVariant TestModel::generateData(const std::shared_ptr<Torrent> torrent,
         return 1;
     //Name
     case 2:
-        return QString::fromStdString(torrent->generalData.fileName);
+        return QString::fromStdString(ioClientModel->
+                                      workingTorrentList.torrentList.
+                                      at(index.row())->generalData.fileName);
     //Size
     case 3:
         return QString::fromStdString(
-                    humanReadableBytes(torrent->piecesData.totalSize));
+                    humanReadableBytes(ioClientModel->
+                                       workingTorrentList.torrentList.
+                                       at(index.row())->piecesData.totalSize));
     //Progress
     case 4:
-        //implement using delegates
-        return 0;
+    {
+        auto downloadedBytes = ioClientModel->
+                workingTorrentList.torrentList.at(index.row())->
+                statusData.downloaded();
+
+        auto totalBytes = ioClientModel->
+                workingTorrentList.torrentList.at(index.row())->
+                piecesData.totalSize;
+
+        return downloadedBytes/totalBytes;
+    }
     //Status
     case 5:
          //implement using progress
@@ -159,20 +167,25 @@ QVariant TestModel::generateData(const std::shared_ptr<Torrent> torrent,
         return 0;
     //Ratio
     case 11:
-        //implement properly
-        return 0;
+        return ioClientModel->
+                workingTorrentList.torrentList.at(index.row())->
+                statusData.uploaded() / ioClientModel->
+                workingTorrentList.torrentList.at(index.row())->
+                statusData.downloaded();
     //Tracker
     case 12:
         //implement properly
         return 0;
     //Downloaded
     case 13:
-        //implement properly
-        return 0;
+        return QString::fromStdString(humanReadableBytes(ioClientModel->
+                workingTorrentList.torrentList.at(index.row())->
+                statusData.downloaded()));
     //Uploaded
     case 14:
-        //implement properly
-        return 0;
+        return QString::fromStdString(humanReadableBytes(ioClientModel->
+                workingTorrentList.torrentList.at(index.row())->
+                statusData.uploaded()));
     //Time Active
     case 15:
         //implement properly

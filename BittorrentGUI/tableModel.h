@@ -53,8 +53,7 @@ public:
     bool setData(const QModelIndex &index, const QVariant &value,
                  int role = Qt::EditRole) override;
 
-    QVariant generateData(const std::shared_ptr<Torrent> torrent,
-                          const QModelIndex &index) const;
+    QVariant generateData(const QModelIndex &index) const;
 
     void addNewTorrent(std::string& fileName, std::string& buffer);
     void removeTorrent(int position);

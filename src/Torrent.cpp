@@ -11,14 +11,14 @@ namespace Bittorrent
 
 	Torrent::Torrent(const char* fullFilePath, const valueDictionary& torrent)
         : generalData(), fileList{ }, piecesData(), hashesData(),
-		statusData(piecesData, torrent)
+        statusData(std::make_shared<TorrentPieces>(piecesData), torrent)
 	{
 
 	}
 
 	Torrent::Torrent(const char* fullFilePath)
         : generalData(), fileList{ }, piecesData(), hashesData(),
-		statusData(piecesData)
+        statusData(std::make_shared<TorrentPieces>(piecesData))
 	{
 
 	}

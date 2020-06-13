@@ -16,11 +16,12 @@ namespace Bittorrent
     void workingTorrentList::addNewTorrent(std::string fileName,
                                            std::string buffer)
     {
-        LOG_F(INFO, "buffer: %s", buffer.c_str());
         valueDictionary decodedTorrent =
                 boost::get<valueDictionary>(Decoder::decode(buffer));
         Torrent loadedTorrent = toTorrentObj(
                     fileName.c_str(), decodedTorrent);
+
+        //LOG_F(INFO, "downloaded (%s): %d", loadedTorrent.generalData.fileName.c_str(), loadedTorrent.statusData.downloaded());
 
         auto loadedTorrent_ptr = std::make_shared<Torrent>(loadedTorrent);
         torrentList.push_back(loadedTorrent_ptr);

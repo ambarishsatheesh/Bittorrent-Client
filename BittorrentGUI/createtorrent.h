@@ -46,9 +46,6 @@ private:
     std::string comment;
     std::string torrentName;
 
-    //torrent
-    std::shared_ptr<Torrent> createdTorrent;
-
     //settings
     bool isStartSeeding;
     bool isPrivate;
