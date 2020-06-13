@@ -3,6 +3,7 @@
 #include "Utility.h"
 
 #include <Qtime>
+#include <QString>
 
 namespace Bittorrent
 {
@@ -202,25 +203,41 @@ QVariant TestModel::generateData(const QModelIndex &index) const
     }
 }
 
-void TestModel::addNewTorrent(std::string& fileName, std::string& buffer)
+void TestModel::addNewTorrent(const std::string& fileName, const std::string& buffer)
 {
     //get last row
     const int newRow =
             ioClientModel->workingTorrentList.torrentList.size();
 
-    //begin row insert operation before changing data
-    beginInsertRows(QModelIndex(), newRow, newRow);
+    //duplicate torrent validation (returns torrent name if duplicate)
+    auto duplicateName = QString::fromStdString(ioClientModel->
+                           workingTorrentList.isDuplicateTorrent(
+                               fileName, buffer));
 
-    //load torrent
-    ioClientModel->workingTorrentList.addNewTorrent(fileName, buffer);
+    if (duplicateName.isEmpty())
+    {
+        //begin row insert operation before changing data
+        beginInsertRows(QModelIndex(), newRow, newRow);
 
-    //no need to explicitly call emit dataChanged() - this will update view by itself
-    endInsertRows();
+        ioClientModel->
+                    workingTorrentList.addNewTorrent(fileName, buffer);
 
-    LOG_F(INFO, "Added torrent \"%s\"",
-          ioClientModel->workingTorrentList.torrentList.at(newRow)->
-          generalData.fileName.c_str());
+        endInsertRows();
+
+        LOG_F(INFO, "Added torrent \"%s\".",
+              ioClientModel->workingTorrentList.torrentList.at(newRow)->
+              generalData.fileName.c_str());
+    }
+    else
+    {
+        //send signal notifying of torrent duplication
+        emit duplicateTorrentSig(duplicateName);
+
+        LOG_F(INFO, "Duplicate torrent \"%s\"!",
+              duplicateName.toStdString().c_str());
+    }
 }
+
 
 void TestModel::removeTorrent(int position)
 {

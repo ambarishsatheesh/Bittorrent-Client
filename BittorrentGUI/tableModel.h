@@ -55,8 +55,11 @@ public:
 
     QVariant generateData(const QModelIndex &index) const;
 
-    void addNewTorrent(std::string& fileName, std::string& buffer);
+    void addNewTorrent(const std::string& fileName, const std::string& buffer);
     void removeTorrent(int position);
+
+signals:
+    void duplicateTorrentSig(QString torrentName);
 
 private:
     Client* ioClientModel;

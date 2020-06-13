@@ -66,6 +66,8 @@ private slots:
 
     void showAllTorrents();
 
+    void duplicateTorrentSlot(QString torrentName);
+
 private:
     Ui::MainWindow* ui;
     Client* ioClient;

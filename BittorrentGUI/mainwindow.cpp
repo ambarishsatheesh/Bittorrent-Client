@@ -143,6 +143,10 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     connect(infoList, &QListView::clicked, this,
             &MainWindow::trackerListItemSelected);
 
+    //connect duplicate torrent signal
+    connect(model, &TestModel::duplicateTorrentSig, this,
+            &MainWindow::duplicateTorrentSlot);
+
 
 //    auto tester =
 //            new QAbstractItemModelTester(
@@ -393,7 +397,6 @@ void MainWindow::toggleColumnDisplay()
 
 void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
 {
-    LOG_F(INFO, "filename: %s", filePath.c_str());
     if (buffer.empty())
     {
         LOG_F(ERROR, "Torrent is empty!");
@@ -403,6 +406,18 @@ void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
     //update all relevant data models
     model->addNewTorrent(filePath, buffer);
     infoListModel->update();
+}
+
+void MainWindow::duplicateTorrentSlot(QString torrentName)
+{
+    LOG_F(INFO, "duplicate test1");
+
+    QMessageBox::information(this, "Torrent is already present",
+                             QString("Torrent '%1' is already in the transfer "
+                             "list. Trackers have been merged").arg(torrentName),
+                             QMessageBox::Ok);
+
+    LOG_F(INFO, "duplicate test2");
 }
 
 void MainWindow::on_actionAdd_Torrent_triggered()
@@ -422,10 +437,7 @@ void MainWindow::on_actionAdd_Torrent_triggered()
             QString fileName = *it++;
             if ( !fileName.isEmpty() )
             {
-                LOG_F(INFO, "filename: %s", fileName.toStdString().c_str());
                 std::string buffer = loadFromFile(fileName.toStdString().c_str());
-                LOG_F(INFO, "buffer %s", buffer.c_str());
-
                 loadTorrent(fileName.toStdString(), buffer);
             }
         }
