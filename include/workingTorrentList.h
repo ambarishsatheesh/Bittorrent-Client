@@ -24,7 +24,9 @@ namespace Bittorrent
         QMap<QString, int> infoTrackerMap;
         QMap<QString, std::set<QString>> trackerTorrentMap;
 
-        void addNewTorrent(std::string fileName, std::string buffer);
+        std::string isDuplicateTorrent(const std::string& fileName,
+                                const std::string& buffer);
+        void addNewTorrent(const std::string& fileName, const std::string& buffer);
         void removeTorrent(int position);
 
         workingTorrentList();
