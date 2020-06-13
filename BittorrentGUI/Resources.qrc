@@ -107,5 +107,6 @@
         <file>Icons/search.png</file>
         <file>Icons/maxPriority.png</file>
         <file>Icons/minPriority.png</file>
+        <file>Icons/splashScreen.png</file>
     </qresource>
 </RCC>

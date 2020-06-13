@@ -18,7 +18,9 @@
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
-#include <algorithm>
+#include <QPixmap>
+#include <QSplashScreen>
+#include <QScreen>
 
 
 using namespace Bittorrent;
@@ -104,10 +106,24 @@ int main(int argc, char* argv[])
 //    thread3.join();
 
 
-
     QApplication a(argc, argv);
+
+    //splash screen
+    //scale pixmap to desktop sesolution
+
+    QPixmap pixmap(":/imgs/Icons/splashScreen.png");
+    QPointer<QScreen> screen = QGuiApplication::primaryScreen();
+    pixmap = pixmap.scaled(screen->geometry().size()*0.4, Qt::KeepAspectRatio);
+    QPointer<QSplashScreen> splash =
+            new QSplashScreen(pixmap, Qt::WindowStaysOnTopHint);
+    splash->show();
+    //update spash with messages
+    splash->showMessage("Setting up client...");
+
+    //main window
     MainWindow w(client.get());
     w.show();
+    splash->finish(&w);
 
     return a.exec();
 }
