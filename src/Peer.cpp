@@ -1473,4 +1473,10 @@ namespace Bittorrent
 			blockReceived(*this, newPackage);
 		}
 	}
+
+    std::shared_ptr<Peer> Peer::getPtr()
+    {
+        return shared_from_this();
+    }
+
 }

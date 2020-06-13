@@ -84,6 +84,8 @@ namespace Bittorrent
 		//new connection called from client
 		void startNew(const std::string& host, const std::string& port);
 
+        std::shared_ptr<Peer> getPtr();
+
 	private:
 		//tcp data
 		boost::asio::io_context& context;
