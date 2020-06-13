@@ -53,15 +53,35 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     splitter1->addWidget(leftWidget);
     splitter1->addWidget(m_rightSideWindow);
 
-    m_dockWidget1 = new QDockWidget("Dock 1", this);
+    //sub windows
+    m_dockWidget1 = new QDockWidget("Torrents", this);
     m_rightSideWindow->addDockWidget(Qt::TopDockWidgetArea, m_dockWidget1);
     m_dockWidget1->setTitleBarWidget(new QWidget()); // remove title bar
     m_dockWidget1->setAllowedAreas(Qt::NoDockWidgetArea); // do not allow to dock
 
-    m_dockWidget2 = new QDockWidget("Dock 2", this);
+    m_dockWidget2 = new QDockWidget("General", this);
     m_rightSideWindow->addDockWidget(Qt::BottomDockWidgetArea, m_dockWidget2);
     m_dockWidget2->setTitleBarWidget(new QWidget());
     m_dockWidget2->setAllowedAreas(Qt::NoDockWidgetArea);
+
+    m_dockWidget3 = new QDockWidget("Trackers", this);
+    m_rightSideWindow->addDockWidget(Qt::BottomDockWidgetArea, m_dockWidget3);
+    m_dockWidget3->setTitleBarWidget(new QWidget());
+    m_rightSideWindow->tabifyDockWidget(m_dockWidget2, m_dockWidget3);
+
+    m_dockWidget4 = new QDockWidget("Content", this);
+    m_rightSideWindow->addDockWidget(Qt::BottomDockWidgetArea, m_dockWidget4);
+    m_dockWidget4->setTitleBarWidget(new QWidget());
+    m_rightSideWindow->tabifyDockWidget(m_dockWidget2, m_dockWidget4);
+
+    m_dockWidget5 = new QDockWidget("Speed", this);
+    m_rightSideWindow->addDockWidget(Qt::BottomDockWidgetArea, m_dockWidget5);
+    m_dockWidget5->setTitleBarWidget(new QWidget());
+    m_rightSideWindow->tabifyDockWidget(m_dockWidget2, m_dockWidget5);
+
+    //set as default tab
+    m_dockWidget2->show();
+    m_dockWidget2->raise();
 
     setCentralWidget(splitter1);
 
@@ -91,7 +111,6 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     proxyModel->setSortCaseSensitivity(Qt::CaseInsensitive);
 
     m_dockWidget1->setWidget(torrentTable);
-    m_dockWidget1->show();
 
     torrentTable->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
     torrentTable-> setContextMenuPolicy(Qt::CustomContextMenu);

@@ -69,10 +69,15 @@ private:
     Client* ioClient;
     QPointer<CreateTorrent> createTorDialog;
 
-
+    //Windows
     QPointer<QMainWindow> m_rightSideWindow;
     QPointer<QDockWidget> m_dockWidget1;
     QPointer<QDockWidget> m_dockWidget2;
+    QPointer<QDockWidget> m_dockWidget3;
+    QPointer<QDockWidget> m_dockWidget4;
+    QPointer<QDockWidget> m_dockWidget5;
+
+    //table
     QPointer<QTableView> torrentTable;
 
     //toolbar
