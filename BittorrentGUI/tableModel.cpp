@@ -167,11 +167,18 @@ QVariant TestModel::generateData(const QModelIndex &index) const
         return 0;
     //Ratio
     case 11:
-        return ioClientModel->
-                workingTorrentList.torrentList.at(index.row())->
-                statusData.uploaded() / ioClientModel->
+    {
+        auto downloadedBytes = ioClientModel->
                 workingTorrentList.torrentList.at(index.row())->
                 statusData.downloaded();
+        if (downloadedBytes != 0)
+        {
+            return ioClientModel->
+                    workingTorrentList.torrentList.at(index.row())->
+                    statusData.uploaded() / downloadedBytes;
+        }
+        return 0;
+    }
     //Tracker
     case 12:
         //implement properly
