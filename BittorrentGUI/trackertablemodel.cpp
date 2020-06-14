@@ -61,7 +61,7 @@ QVariant TrackerTableModel::headerData(int section,
         case 3:
             return QString("Seeds");
         case 4:
-            return QString("Peers");
+            return QString("Leechers");
         case 5:
             return QString("Message");
         default:
@@ -90,19 +90,21 @@ QVariant TrackerTableModel::generateData(const QModelIndex &index) const
     {
     //URL
     case 0:
-        return 0;
+        return QString::fromStdString(
+                    trackerList->at(index.row()).trackerAddress);
     //Status
     case 1:
         return 0;
     //Received Peers
     case 2:
-        return 0;
+        return trackerList->at(index.row()).seeders +
+                trackerList->at(index.row()).leechers;
     //Seeds
     case 3:
-        return 0;
-    //Peers
+        return trackerList->at(index.row()).seeders;
+    //Leechers
     case 4:
-        return 0;
+        return trackerList->at(index.row()).leechers;
     //Message
     case 5:
         return 0;
