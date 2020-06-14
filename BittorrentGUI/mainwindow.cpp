@@ -5,19 +5,12 @@
 #include "Decoder.h"
 #include "loguru.h"
 
-#include <QtWidgets>
-#include <QtConcurrent/QtConcurrent>
 #include <iostream>
 #include <thread>
 #include <sstream>
 
 #include <QAbstractItemModelTester>
-#include <QVBoxLayout>
-#include <QLabel>
-#include <QFont>
-
-//stringize
-#define NAMEOF(variable) ((void)variable, #variable)
+#include <QMessageBox>
 
 namespace Bittorrent
 {
@@ -35,13 +28,40 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     ui->setupUi(this);
     this->setWindowTitle("ioTorrent");
 
-    QSplitter *splitter1 = new QSplitter(this);
+    //initialise windows
+    initWindows();
+
+    //Initialise toolbar
+    initToolbar();
+
+    //Initialise tables
+    initTorrentTable();
+    initTrackersTable();
+
+    //initialise tabs
+    initTransfersTab();
+
+//    auto tester =
+//            new QAbstractItemModelTester(
+//                torrentModel, QAbstractItemModelTester::FailureReportingMode::Fatal, this);
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+    delete m_rightSideWindow;
+}
+
+void MainWindow::initWindows()
+{
+    splitter1 = new QSplitter(this);
     splitter1->setOrientation(Qt::Horizontal);
+    setCentralWidget(splitter1);
 
-    QTabWidget* leftWidget = new QTabWidget(this);
+    leftWidget = new QTabWidget(this);
 
-    QWidget* transfersTab = new QWidget();
-    QWidget* logTab = new QWidget();
+    transfersTab = new QWidget();
+    logTab = new QWidget();
 
     leftWidget->addTab(transfersTab, "Transfers");
     leftWidget->addTab(logTab, "Log");
@@ -82,88 +102,6 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     //set as default tab
     m_dockWidget2->show();
     m_dockWidget2->raise();
-
-    trackerTable = new QTableView(m_dockWidget2);
-    trackerModel = new TrackerTableModel(ioClient, this);
-    trackerTable->setModel(trackerModel);
-    m_dockWidget3->setWidget(trackerTable);
-
-
-    setCentralWidget(splitter1);
-
-    // Configure the table view
-    torrentTable = new QTableView(m_dockWidget1);
-    //torrentTable->horizontalHeader()->setSectionsMovable(true);
-    torrentTable->verticalHeader()->setVisible(false);
-    torrentTable->setShowGrid(false);
-    torrentTable->setAlternatingRowColors(true);
-    torrentTable->setStyleSheet("alternate-background-color: #F0F0F0;");
-    torrentTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    torrentTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    //disable bold header text when data is selected
-    torrentTable->horizontalHeader()->setHighlightSections(false);
-
-    torrentModel = new TorrentTableModel(ioClient, this);
-
-    progressDelegate* delegate = new progressDelegate(torrentTable);
-    torrentTable->setItemDelegateForColumn(5, delegate);
-
-    //sort/filter
-    proxyModel = new TorrentSortFilterProxyModel(ioClient, this);
-    proxyModel->setSourceModel(torrentModel);
-    torrentTable->setModel(proxyModel);
-    torrentTable->setSortingEnabled(true);
-    proxyModel->setDynamicSortFilter(true);
-    proxyModel->setSortCaseSensitivity(Qt::CaseInsensitive);
-
-    m_dockWidget1->setWidget(torrentTable);
-
-    torrentTable->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
-    torrentTable-> setContextMenuPolicy(Qt::CustomContextMenu);
-
-    //Initialise toolbar
-    initToolbar();
-
-    connect(torrentTable->horizontalHeader(),
-            &QTableView::customContextMenuRequested,
-            this, &MainWindow::customHeaderMenuRequested);
-
-    connect(torrentTable, &QTableView::customContextMenuRequested,
-            this, &MainWindow::customTorrentSelectRequested);
-
-    infoList = new QListView(this);
-    infoListModel = new TorrentInfoList(ioClient, this);
-    infoList->setModel(infoListModel);
-    infoList->setFrameStyle(QFrame::NoFrame);
-
-    //Trackers list header
-    trackerBox = new QVBoxLayout(transfersTab);
-    trackersHeader = new QLabel("Trackers");
-    QFont trackerFont = trackersHeader->font();
-    trackerFont.setWeight(QFont::Bold);
-    trackersHeader->setFont(trackerFont);
-    trackerBox->addWidget(trackersHeader);
-
-    trackerBox->addWidget(infoList);
-
-    connect(infoList, &QListView::clicked, this,
-            &MainWindow::trackerListItemSelected);
-
-    //connect duplicate torrent signal
-    connect(torrentModel, &TorrentTableModel::duplicateTorrentSig, this,
-            &MainWindow::duplicateTorrentSlot);
-
-
-//    auto tester =
-//            new QAbstractItemModelTester(
-//                torrentModel, QAbstractItemModelTester::FailureReportingMode::Fatal, this);
-
-}
-
-MainWindow::~MainWindow()
-{
-    delete ui;
-    delete m_rightSideWindow;
 }
 
 void MainWindow::initToolbar()
@@ -240,6 +178,93 @@ void MainWindow::initToolbar()
 
     connect(searchFilter, &QLineEdit::textChanged, this,
             &MainWindow::textFilterChanged);
+}
+
+void MainWindow::initTorrentTable()
+{
+    torrentTable = new QTableView(m_dockWidget1);
+
+    //torrentTable->horizontalHeader()->setSectionsMovable(true);
+    torrentTable->verticalHeader()->setVisible(false);
+    torrentTable->setShowGrid(false);
+    torrentTable->setAlternatingRowColors(true);
+    torrentTable->setStyleSheet("alternate-background-color: #F0F0F0;");
+    torrentTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    torrentTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    //disable bold header text when data is selected
+    torrentTable->horizontalHeader()->setHighlightSections(false);
+    //right click menus
+    torrentTable->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
+    torrentTable->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    torrentModel = new TorrentTableModel(ioClient, this);
+
+    progressDelegate* delegate = new progressDelegate(torrentTable);
+    torrentTable->setItemDelegateForColumn(5, delegate);
+
+    //sort/filter
+    proxyModel = new TorrentSortFilterProxyModel(ioClient, this);
+    proxyModel->setSourceModel(torrentModel);
+    torrentTable->setModel(proxyModel);
+    torrentTable->setSortingEnabled(true);
+    proxyModel->setDynamicSortFilter(true);
+    proxyModel->setSortCaseSensitivity(Qt::CaseInsensitive);
+
+    connect(torrentTable->horizontalHeader(),
+            &QTableView::customContextMenuRequested,
+            this, &MainWindow::customHeaderMenuRequested);
+
+    connect(torrentTable, &QTableView::customContextMenuRequested,
+            this, &MainWindow::customTorrentSelectRequested);
+
+    //connect duplicate torrent signal
+    connect(torrentModel, &TorrentTableModel::duplicateTorrentSig, this,
+            &MainWindow::duplicateTorrentSlot);
+
+    m_dockWidget1->setWidget(torrentTable);
+}
+
+void MainWindow::initTrackersTable()
+{
+    trackerTable = new QTableView(m_dockWidget2);
+
+    trackerTable->verticalHeader()->setVisible(false);
+    trackerTable->setShowGrid(false);
+    trackerTable->setAlternatingRowColors(true);
+    trackerTable->setStyleSheet("alternate-background-color: #F0F0F0;");
+    trackerTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    trackerTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    //disable bold header text when data is selected
+    trackerTable->horizontalHeader()->setHighlightSections(false);
+    //right click menu
+    trackerTable->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    trackerModel = new TrackerTableModel(ioClient, this);
+    trackerTable->setModel(trackerModel);
+
+
+    m_dockWidget3->setWidget(trackerTable);
+}
+
+void MainWindow::initTransfersTab()
+{
+    infoList = new QListView(this);
+    infoListModel = new TorrentInfoList(ioClient, this);
+    infoList->setModel(infoListModel);
+    infoList->setFrameStyle(QFrame::NoFrame);
+
+    //Trackers list header
+    trackerBox = new QVBoxLayout(transfersTab);
+    trackersHeader = new QLabel("Trackers");
+    QFont trackerFont = trackersHeader->font();
+    trackerFont.setWeight(QFont::Bold);
+    trackersHeader->setFont(trackerFont);
+    trackerBox->addWidget(trackersHeader);
+
+    trackerBox->addWidget(infoList);
+
+    connect(infoList, &QListView::clicked, this,
+            &MainWindow::trackerListItemSelected);
 }
 
 void MainWindow::showAllTorrents()

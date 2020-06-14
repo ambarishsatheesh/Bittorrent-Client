@@ -5,6 +5,8 @@
 #include <QAbstractTableModel>
 #include <QStandardItemModel>
 #include <QItemSelectionModel>
+#include <QDockWidget>
+#include <QHeaderView>
 #include <QTableView>
 #include <QListView>
 #include <QMenu>
@@ -18,6 +20,9 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QVBoxLayout>
+#include <QSplitter>
+#include <QFont>
+#include <QPushButton>
 
 #include "Client.h"
 #include "tableModel.h"
@@ -75,18 +80,29 @@ private:
     QPointer<CreateTorrent> createTorDialog;
 
     //Windows
+    void initWindows();
     QPointer<QMainWindow> m_rightSideWindow;
     QPointer<QDockWidget> m_dockWidget1;
     QPointer<QDockWidget> m_dockWidget2;
     QPointer<QDockWidget> m_dockWidget3;
     QPointer<QDockWidget> m_dockWidget4;
     QPointer<QDockWidget> m_dockWidget5;
+    QPointer<QSplitter> splitter1;
+    QPointer<QTabWidget> leftWidget;
+    QPointer<QWidget> transfersTab;
+    QPointer<QWidget> logTab;
 
     //torrents table
+    void initTorrentTable();
     QPointer<QTableView> torrentTable;
 
     //trackers table
+    void initTrackersTable();
     QPointer<QTableView> trackerTable;
+
+    //transfers tab
+    void initTransfersTab();
+    QPointer<QListView> infoList;
 
     //toolbar
     void initToolbar();
@@ -120,9 +136,6 @@ private:
     //table main menu
     QPointer<QAction> a_addTorrent;
     QPointer<QAction> a_deleteTorrent;
-
-    //List
-    QPointer<QListView> infoList;
 
     //Box
     QPointer<QVBoxLayout> trackerBox;
