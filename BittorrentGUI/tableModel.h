@@ -1,22 +1,3 @@
-
-//#ifndef TABLEMODEL_H
-//#define TABLEMODEL_H
-
-//#endif // TABLEMODEL_H
-
-//#include <QAbstractTableModel>
-
-//class tableModel : public QAbstractTableModel
-//{
-//    Q_OBJECT
-//public:
-//    tableModel(QObject *parent);
-//    int rowCount(const QModelIndex &parent = QModelIndex()) const ;
-//    int columnCount(const QModelIndex &parent = QModelIndex()) const;
-//    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
-//};
-
-
 #ifndef TestModel_H
 #define TestModel_H
 
@@ -32,12 +13,12 @@
 namespace Bittorrent
 {
 
-class TestModel : public QAbstractTableModel
+class TorrentTableModel : public QAbstractTableModel
 {
     Q_OBJECT
 
 public:
-    TestModel(Client* client, QPointer<QObject> parent = 0);
+    TorrentTableModel(Client* client, QPointer<QObject> parent = 0);
 
     void populateData(const storedPrevTorrents storedTor);
 
@@ -63,10 +44,6 @@ signals:
 
 private:
     Client* ioClientModel;
-
-    QList<QString> tm_torrent_addedon;
-    QList<QString> tm_torrent_name;
-    QList<long long> tm_torrent_size;
 
 };
 
