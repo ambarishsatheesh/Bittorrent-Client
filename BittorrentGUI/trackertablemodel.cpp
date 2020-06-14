@@ -22,7 +22,7 @@ int TrackerTableModel::rowCount(const QModelIndex &parent) const
 
 int TrackerTableModel::columnCount(const QModelIndex &parent) const
 {
-    return parent.isValid() ? 0 : 16;
+    return parent.isValid() ? 0 : 6;
 }
 
 QVariant TrackerTableModel::data(const QModelIndex &index, int role) const
