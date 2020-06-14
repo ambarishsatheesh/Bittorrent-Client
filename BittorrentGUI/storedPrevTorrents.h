@@ -1,8 +1,6 @@
 #ifndef STOREDPREVTORRENTS_H
 #define STOREDPREVTORRENTS_H
 
-#endif // STOREDPREVTORRENTS_H
-
 #include <QList>
 #include <QString>
 
@@ -13,3 +11,5 @@ struct storedPrevTorrents
     QList<long long> torrentSize;
 
 };
+
+#endif // STOREDPREVTORRENTS_H
