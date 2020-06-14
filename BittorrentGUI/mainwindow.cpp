@@ -217,6 +217,10 @@ void MainWindow::initTorrentTable()
     connect(torrentTable, &QTableView::customContextMenuRequested,
             this, &MainWindow::customTorrentSelectRequested);
 
+    connect(torrentTable->selectionModel(),
+            &QItemSelectionModel::selectionChanged,
+            this, &MainWindow::torrentSelected);
+
     //connect duplicate torrent signal
     connect(torrentModel, &TorrentTableModel::duplicateTorrentSig, this,
             &MainWindow::duplicateTorrentSlot);
@@ -248,7 +252,7 @@ void MainWindow::initTrackersTable()
 
     trackerTableStack = new QStackedWidget(m_dockWidget3);
     trackerTableStack->addWidget(initTrackerTable);
-    trackerTableStack->setCurrentWidget(initTrackerTable);
+    //trackerTableStack->setCurrentWidget(initTrackerTable);
 
     m_dockWidget3->setWidget(trackerTableStack);
 }
@@ -314,6 +318,22 @@ void MainWindow::trackerListItemSelected(const QModelIndex& index)
 
     //clear so that future search filter calls can be safely made
     proxyModel->infoHashList.clear();
+}
+
+void MainWindow::torrentSelected(const QItemSelection &selected,
+                                 const QItemSelection &deselected)
+{
+    //get source indices from proxy model
+    auto mappedSelection = proxyModel->mapSelectionToSource(selected);
+
+    for (auto index : mappedSelection.indexes())
+    {
+        auto ptr_struct = std::make_unique<trackerTableData>(
+                    trackerTableVec.at(index.row()));
+        //ptr_struct->trackerTable->setModel(ptr_struct->trackerModel);
+        //ptr_struct->trackerTable->resizeColumnsToContents();
+        trackerTableStack->setCurrentWidget(ptr_struct->trackerTable);
+    }
 }
 
 void MainWindow::customTorrentSelectRequested(const QPoint& pos)
@@ -441,11 +461,12 @@ void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
         return;
     }
 
-    //update all relevant data models
+    //update relevant data models
     torrentModel->addNewTorrent(filePath, buffer);
+    infoListModel->update();
 
     //create new trackerTableview and associated model
-
+    //and add to tableview stack
     QPointer<QTableView> trackerTableView = new QTableView;
 
     using defVec = std::vector<trackerObj>;
@@ -455,12 +476,28 @@ void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
     QPointer<TrackerTableModel> trackerModel =
             new TrackerTableModel(std::move(ptr_trackerList), this);
 
+    //configure new table
+    trackerTableView->setModel(trackerModel);
+    trackerTableView->resizeColumnsToContents();
+    trackerTableView->verticalHeader()->setVisible(false);
+    trackerTableView->setShowGrid(false);
+    trackerTableView->setAlternatingRowColors(true);
+    trackerTableView->setStyleSheet("alternate-background-color: #F0F0F0;");
+    trackerTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    trackerTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    //disable bold header text when data is selected
+    trackerTableView->horizontalHeader()->setHighlightSections(false);
+    //right click menus
+    trackerTableView->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
+    trackerTableView->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    //add to struct
     trackerTableData singleTrackerTable{std::move(trackerTableView),
                 std::move(trackerModel)};
 
+    //add struct to vector and stack
     trackerTableVec.push_back(singleTrackerTable);
     trackerTableStack->addWidget(singleTrackerTable.trackerTable);
-    infoListModel->update();
 }
 
 void MainWindow::duplicateTorrentSlot(QString torrentName)

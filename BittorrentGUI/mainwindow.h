@@ -75,6 +75,9 @@ private slots:
 
     void duplicateTorrentSlot(QString torrentName);
 
+    void torrentSelected(const QItemSelection &selected,
+                         const QItemSelection &deselected);
+
 private:
     Ui::MainWindow* ui;
     Client* ioClient;
