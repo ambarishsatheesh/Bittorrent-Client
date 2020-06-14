@@ -588,6 +588,7 @@ void MainWindow::on_actionDelete_triggered()
         for (auto row : selectedSourceRowList)
         {
             torrentModel->removeTorrent(row);
+            trackerTableVec.erase(trackerTableVec.begin() + row);
         }
     }
 
