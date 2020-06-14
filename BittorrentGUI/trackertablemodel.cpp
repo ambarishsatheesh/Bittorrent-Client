@@ -2,22 +2,22 @@
 #include "loguru.h"
 #include "Utility.h"
 
-#include <Qtime>
 #include <QString>
 
 namespace Bittorrent
 {
 
-TrackerTableModel::TrackerTableModel(Client* client, QPointer<QObject> parent)
-    : QAbstractTableModel(parent), ioClientModel(client)
+TrackerTableModel::TrackerTableModel(ptr_vec ptr_trackerList,
+        QPointer<QObject> parent)
+    : QAbstractTableModel(parent),
+      trackerList(std::move(ptr_trackerList))
 {
 }
 
 int TrackerTableModel::rowCount(const QModelIndex &parent) const
 {
     return parent.isValid() ?
-                0 : ioClientModel->
-                workingTorrentList.torrentList.size();
+                0 : trackerList->size();
 }
 
 int TrackerTableModel::columnCount(const QModelIndex &parent) const
@@ -32,9 +32,7 @@ QVariant TrackerTableModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    if (index.row() >=
-            ioClientModel->workingTorrentList.torrentList.size() ||
-            index.row() < 0)
+    if (index.row() >= trackerList->size() || index.row() < 0)
     {
         return QVariant();
     }

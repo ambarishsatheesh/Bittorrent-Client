@@ -3,6 +3,7 @@
 
 #include "storedPrevTorrents.h"
 #include "Client.h"
+#include "trackerObj.h"
 
 #include <QAbstractTableModel>
 #include <QVector>
@@ -13,12 +14,16 @@
 namespace Bittorrent
 {
 
+using ptr_vec = std::unique_ptr<std::vector<trackerObj>>;
+
+
 class TrackerTableModel : public QAbstractTableModel
 {
     Q_OBJECT
 
 public:
-    TrackerTableModel(Client* client, QPointer<QObject> parent = 0);
+    TrackerTableModel(ptr_vec ptr_trackerList,
+                      QPointer<QObject> parent = 0);
 
     void populateData(const storedPrevTorrents storedTor);
 
@@ -40,11 +45,7 @@ signals:
 
 
 private:
-    Client* ioClientModel;
-
-    QList<QString> tm_torrent_addedon;
-    QList<QString> tm_torrent_name;
-    QList<long long> tm_torrent_size;
+    ptr_vec trackerList;
 
 };
 
