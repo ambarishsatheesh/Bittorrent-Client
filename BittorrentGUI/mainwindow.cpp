@@ -226,24 +226,31 @@ void MainWindow::initTorrentTable()
 
 void MainWindow::initTrackersTable()
 {
-    trackerTable = new QTableView(m_dockWidget2);
+    initTrackerTable = new QTableView;
 
-    trackerTable->verticalHeader()->setVisible(false);
-    trackerTable->setShowGrid(false);
-    trackerTable->setAlternatingRowColors(true);
-    trackerTable->setStyleSheet("alternate-background-color: #F0F0F0;");
-    trackerTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    trackerTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    initTrackerTable->verticalHeader()->setVisible(false);
+    initTrackerTable->setShowGrid(false);
+    initTrackerTable->setAlternatingRowColors(true);
+    initTrackerTable->setStyleSheet("alternate-background-color: #F0F0F0;");
+    initTrackerTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    initTrackerTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     //disable bold header text when data is selected
-    trackerTable->horizontalHeader()->setHighlightSections(false);
+    initTrackerTable->horizontalHeader()->setHighlightSections(false);
     //right click menu
-    trackerTable->setContextMenuPolicy(Qt::CustomContextMenu);
+    initTrackerTable->setContextMenuPolicy(Qt::CustomContextMenu);
 
-    trackerModel = new TrackerTableModel(ioClient, this);
-    trackerTable->setModel(trackerModel);
+    //set up initial empty model
+    std::vector<trackerObj> initVec;
+    auto ptr_init = std::make_unique<std::vector<trackerObj>>(initVec);
+    initTrackerModel = new TrackerTableModel(std::move(ptr_init), this);
 
+    initTrackerTable->setModel(initTrackerModel);
 
-    m_dockWidget3->setWidget(trackerTable);
+    trackerTableStack = new QStackedWidget(m_dockWidget3);
+    trackerTableStack->addWidget(initTrackerTable);
+    trackerTableStack->setCurrentWidget(initTrackerTable);
+
+    m_dockWidget3->setWidget(trackerTableStack);
 }
 
 void MainWindow::initTransfersTab()
@@ -436,6 +443,23 @@ void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
 
     //update all relevant data models
     torrentModel->addNewTorrent(filePath, buffer);
+
+    //create new trackerTableview and associated model
+
+    QPointer<QTableView> trackerTableView = new QTableView;
+
+    using defVec = std::vector<trackerObj>;
+    auto ptr_trackerList = std::make_unique<defVec>(
+                ioClient->workingTorrentList.torrentList.back()->
+                generalData.trackerList);
+    QPointer<TrackerTableModel> trackerModel =
+            new TrackerTableModel(std::move(ptr_trackerList), this);
+
+    trackerTableData singleTrackerTable{std::move(trackerTableView),
+                std::move(trackerModel)};
+
+    trackerTableVec.push_back(singleTrackerTable);
+    trackerTableStack->addWidget(singleTrackerTable.trackerTable);
     infoListModel->update();
 }
 

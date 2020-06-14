@@ -23,6 +23,7 @@
 #include <QSplitter>
 #include <QFont>
 #include <QPushButton>
+#include <QStackedWidget>
 
 #include "Client.h"
 #include "tableModel.h"
@@ -95,10 +96,25 @@ private:
     //torrents table
     void initTorrentTable();
     QPointer<QTableView> torrentTable;
+    QPointer<TorrentTableModel> torrentModel;
 
-    //trackers table
+    //trackers tables
     void initTrackersTable();
-    QPointer<QTableView> trackerTable;
+    QPointer<QTableView> initTrackerTable;
+    QPointer<TrackerTableModel> initTrackerModel;
+    QPointer<QStackedWidget> trackerTableStack;
+    struct trackerTableData
+    {
+        QPointer<QTableView> trackerTable;
+        QPointer<TrackerTableModel> trackerModel;
+
+        trackerTableData(QPointer<QTableView> table,
+                         QPointer<TrackerTableModel> model)
+            : trackerTable(std::move(table)),
+              trackerModel(std::move(model))
+        {}
+    };
+    QVector<trackerTableData> trackerTableVec;
 
     //transfers tab
     void initTransfersTab();
@@ -120,10 +136,8 @@ private:
     QPointer<QWidget> dummySpacer;
     QPointer<QLineEdit> searchFilter;
 
-    //data/proxy models
+    //proxy models
     QPointer<TorrentSortFilterProxyModel> proxyModel;
-    QPointer<TorrentTableModel> torrentModel;
-    QPointer<TrackerTableModel> trackerModel;
 
     //Menus
     QPointer<QMenu> torrentTableHeaderMenu;
