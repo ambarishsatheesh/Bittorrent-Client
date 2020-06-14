@@ -25,6 +25,7 @@
 #include "createtorrent.h"
 #include "torrentsortfilterproxymodel.h"
 #include "torrentinfolist.h"
+#include "trackertablemodel.h"
 
 namespace Ui {
 class MainWindow;
@@ -81,8 +82,11 @@ private:
     QPointer<QDockWidget> m_dockWidget4;
     QPointer<QDockWidget> m_dockWidget5;
 
-    //table
+    //torrents table
     QPointer<QTableView> torrentTable;
+
+    //trackers table
+    QPointer<QTableView> trackerTable;
 
     //toolbar
     void initToolbar();
@@ -102,7 +106,8 @@ private:
 
     //data/proxy models
     QPointer<TorrentSortFilterProxyModel> proxyModel;
-    QPointer<TestModel> model;
+    QPointer<TorrentTableModel> torrentModel;
+    QPointer<TrackerTableModel> trackerModel;
 
     //Menus
     QPointer<QMenu> torrentTableHeaderMenu;

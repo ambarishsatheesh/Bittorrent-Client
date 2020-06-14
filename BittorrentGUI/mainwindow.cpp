@@ -83,6 +83,12 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     m_dockWidget2->show();
     m_dockWidget2->raise();
 
+    trackerTable = new QTableView(m_dockWidget2);
+    trackerModel = new TrackerTableModel(ioClient, this);
+    trackerTable->setModel(trackerModel);
+    m_dockWidget3->setWidget(trackerTable);
+
+
     setCentralWidget(splitter1);
 
     // Configure the table view
@@ -97,14 +103,14 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     //disable bold header text when data is selected
     torrentTable->horizontalHeader()->setHighlightSections(false);
 
-    model = new TestModel(ioClient, this);
+    torrentModel = new TorrentTableModel(ioClient, this);
 
     progressDelegate* delegate = new progressDelegate(torrentTable);
     torrentTable->setItemDelegateForColumn(5, delegate);
 
     //sort/filter
     proxyModel = new TorrentSortFilterProxyModel(ioClient, this);
-    proxyModel->setSourceModel(model);
+    proxyModel->setSourceModel(torrentModel);
     torrentTable->setModel(proxyModel);
     torrentTable->setSortingEnabled(true);
     proxyModel->setDynamicSortFilter(true);
@@ -144,13 +150,13 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
             &MainWindow::trackerListItemSelected);
 
     //connect duplicate torrent signal
-    connect(model, &TestModel::duplicateTorrentSig, this,
+    connect(torrentModel, &TorrentTableModel::duplicateTorrentSig, this,
             &MainWindow::duplicateTorrentSlot);
 
 
 //    auto tester =
 //            new QAbstractItemModelTester(
-//                model, QAbstractItemModelTester::FailureReportingMode::Fatal, this);
+//                torrentModel, QAbstractItemModelTester::FailureReportingMode::Fatal, this);
 
 }
 
@@ -249,7 +255,7 @@ void MainWindow::showAllTorrents()
 
 void MainWindow::trackerListItemSelected(const QModelIndex& index)
 {
-    emit model->dataChanged(QModelIndex(), QModelIndex());
+    emit torrentModel->dataChanged(QModelIndex(), QModelIndex());
     if (index.isValid())
     {
         //store infoHashes of torrents associated with selected tracker
@@ -376,7 +382,7 @@ void MainWindow::customHeaderMenuRequested(const QPoint& pos)
 
 void MainWindow::toggleColumnDisplay()
 {
-    emit model->layoutAboutToBeChanged();
+    emit torrentModel->layoutAboutToBeChanged();
 
     //get sender action
     TorrentHeaderCheckbox* chkBox =
@@ -392,7 +398,7 @@ void MainWindow::toggleColumnDisplay()
         torrentTable->hideColumn(chkBox->data().toInt());
     }
 
-    emit model->layoutChanged();
+    emit torrentModel->layoutChanged();
 }
 
 void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
@@ -404,7 +410,7 @@ void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
     }
 
     //update all relevant data models
-    model->addNewTorrent(filePath, buffer);
+    torrentModel->addNewTorrent(filePath, buffer);
     infoListModel->update();
 }
 
@@ -474,7 +480,7 @@ void MainWindow::on_actionDelete_triggered()
     QModelIndexList selectedViewIdxList =
             mappedSelection.indexes();
 
-    //map selected view indices to source model rows
+    //map selected view indices to source torrentModel rows
     //use QSet to remove duplicates (since multiple indices will share a row)
     QSet<int> selectedSourceRowSet;
     for (auto selectedViewIndex : selectedViewIdxList)
@@ -495,7 +501,7 @@ void MainWindow::on_actionDelete_triggered()
     {
         for (auto row : selectedSourceRowList)
         {
-            model->removeTorrent(row);
+            torrentModel->removeTorrent(row);
         }
     }
 

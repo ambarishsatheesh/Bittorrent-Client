@@ -8,24 +8,24 @@
 namespace Bittorrent
 {
 
-TestModel::TestModel(Client* client, QPointer<QObject> parent)
+TorrentTableModel::TorrentTableModel(Client* client, QPointer<QObject> parent)
     : QAbstractTableModel(parent), ioClientModel(client)
 {
 }
 
-int TestModel::rowCount(const QModelIndex &parent) const
+int TorrentTableModel::rowCount(const QModelIndex &parent) const
 {
     return parent.isValid() ?
                 0 : ioClientModel->
                 workingTorrentList.torrentList.size();
 }
 
-int TestModel::columnCount(const QModelIndex &parent) const
+int TorrentTableModel::columnCount(const QModelIndex &parent) const
 {
     return parent.isValid() ? 0 : 16;
 }
 
-QVariant TestModel::data(const QModelIndex &index, int role) const
+QVariant TorrentTableModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid() || role != Qt::DisplayRole)
     {
@@ -43,7 +43,7 @@ QVariant TestModel::data(const QModelIndex &index, int role) const
 }
 
 
-QVariant TestModel::headerData(int section,
+QVariant TorrentTableModel::headerData(int section,
                                Qt::Orientation orientation, int role) const
 {
     if (role != Qt::DisplayRole)
@@ -93,7 +93,7 @@ QVariant TestModel::headerData(int section,
     return QVariant();
 }
 
-bool TestModel::setData(const QModelIndex &index,
+bool TorrentTableModel::setData(const QModelIndex &index,
                         const QVariant &value, int role)
     {
         if (role == Qt::DisplayRole)
@@ -104,7 +104,7 @@ bool TestModel::setData(const QModelIndex &index,
         return true;
  }
 
-QVariant TestModel::generateData(const QModelIndex &index) const
+QVariant TorrentTableModel::generateData(const QModelIndex &index) const
 {
     using namespace utility;
 
@@ -203,7 +203,7 @@ QVariant TestModel::generateData(const QModelIndex &index) const
     }
 }
 
-void TestModel::addNewTorrent(const std::string& fileName, const std::string& buffer)
+void TorrentTableModel::addNewTorrent(const std::string& fileName, const std::string& buffer)
 {
     //get last row
     const int newRow =
@@ -239,7 +239,7 @@ void TestModel::addNewTorrent(const std::string& fileName, const std::string& bu
 }
 
 
-void TestModel::removeTorrent(int position)
+void TorrentTableModel::removeTorrent(int position)
 {
     auto deletedTorName =
             ioClientModel->workingTorrentList.torrentList.at(position)->

@@ -40,7 +40,8 @@ SOURCES += \
     tableModel.cpp \
     torrentheadercheckbox.cpp \
     torrentinfolist.cpp \
-    torrentsortfilterproxymodel.cpp
+    torrentsortfilterproxymodel.cpp \
+    trackertablemodel.cpp
 
 HEADERS += \
     ../include/ \
@@ -72,7 +73,8 @@ HEADERS += \
     tableModel.h \
     torrentheadercheckbox.h \
     torrentinfolist.h \
-    torrentsortfilterproxymodel.h
+    torrentsortfilterproxymodel.h \
+    trackertablemodel.h
 
 FORMS += \
     createtorrent.ui \
