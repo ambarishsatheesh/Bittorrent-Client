@@ -35,6 +35,7 @@ SOURCES += \
     ../src/trackerUrl.cpp \
     ../src/workingTorrentList.cpp \
     createtorrent.cpp \
+    generalinfomodel.cpp \
     main.cpp \
     mainwindow.cpp \
     tableModel.cpp \
@@ -67,6 +68,7 @@ HEADERS += \
     ../include/trackerUrl.h \
     ../include/workingTorrentList.h \
     createtorrent.h \
+    generalinfomodel.h \
     mainwindow.h \
     progressDelegate.h \
     storedPrevTorrents.h \

@@ -73,7 +73,7 @@ QVariant TrackerTableModel::headerData(int section,
 
 bool TrackerTableModel::setData(const QModelIndex &index,
                         const QVariant &value, int role)
-    {
+{
         if (role == Qt::DisplayRole)
         {
             emit dataChanged(index, index);
