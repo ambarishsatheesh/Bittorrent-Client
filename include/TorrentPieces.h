@@ -12,9 +12,7 @@ namespace Bittorrent
 
 		long blockSize;
 		long long pieceSize;
-		std::string readablePieceSize;
 		long long totalSize;
-		std::string readableTotalSize;
 		int pieceCount;
 		std::vector<std::vector<byte>> pieces;
 
@@ -28,15 +26,8 @@ namespace Bittorrent
 		using sigPieceVer = boost::signals2::signal<void(int piece)>;
 		std::shared_ptr<sigPieceVer> pieceVerifiedSig;
 
-		void setReadablePieceSize()
-		{
-			readablePieceSize = humanReadableBytes(pieceSize);
-		}
-
-		void setReadableTotalSize()
-		{
-			readableTotalSize = humanReadableBytes(totalSize);
-		}
+        std::string readablePieceSize();
+        std::string readableTotalSize();
 
 		int setPieceSize(int piece);
 		int setBlockSize(int piece, int block);

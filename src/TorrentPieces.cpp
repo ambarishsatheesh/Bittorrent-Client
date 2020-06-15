@@ -72,10 +72,7 @@ namespace Bittorrent
 
 		//update pieceCount
 		pieceCount = pieces.size();
-		readablePieceSize = humanReadableBytes(pieceSize);
-		readableTotalSize = humanReadableBytes(totalSize);
 	}
-
 
 	int TorrentPieces::setPieceSize(int piece)
 	{
@@ -107,4 +104,14 @@ namespace Bittorrent
 	{
 		return std::ceil(setPieceSize(piece) / static_cast<double>(blockSize));
 	}
+
+    std::string TorrentPieces::readablePieceSize()
+    {
+        return humanReadableBytes(pieceSize);
+    }
+
+    std::string TorrentPieces::readableTotalSize()
+    {
+        return humanReadableBytes(totalSize);
+    }
 }
