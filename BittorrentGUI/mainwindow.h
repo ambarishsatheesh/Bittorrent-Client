@@ -25,6 +25,7 @@
 #include <QPushButton>
 #include <QStackedWidget>
 
+#include "ui_generalInfoTab.h"
 #include "Client.h"
 #include "tableModel.h"
 #include "torrentheadercheckbox.h"
@@ -80,6 +81,7 @@ private slots:
 
 private:
     Ui::MainWindow* ui;
+    Ui::generalInfo* generalInfoTab;
     Client* ioClient;
     QPointer<CreateTorrent> createTorDialog;
 

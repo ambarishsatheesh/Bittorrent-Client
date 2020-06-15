@@ -20,12 +20,15 @@ using namespace utility;
 
 MainWindow::MainWindow(Client* client, QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow),
+      generalInfoTab(new Ui::generalInfo),
       ioClient(client), isFirstTorrentHeaderMenu{true},
       isFirstTorrentTableMenuData{true},
       isFirstTorrentTableMenuOutside{true}
 {
-    //General Layout
+    //initialise ui forms
     ui->setupUi(this);
+    generalInfoTab->setupUi(this);
+
     this->setWindowTitle("ioTorrent");
 
     //initialise windows
@@ -102,6 +105,8 @@ void MainWindow::initWindows()
     //set as default tab
     m_dockWidget2->show();
     m_dockWidget2->raise();
+
+    m_dockWidget2->setWidget(generalInfoTab->generalBox);
 }
 
 void MainWindow::initToolbar()

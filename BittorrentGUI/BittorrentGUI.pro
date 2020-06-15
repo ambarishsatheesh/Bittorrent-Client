@@ -78,6 +78,7 @@ HEADERS += \
 
 FORMS += \
     createtorrent.ui \
+    generalInfoTab.ui \
     mainwindow.ui
 
 INCLUDEPATH += ../include/
