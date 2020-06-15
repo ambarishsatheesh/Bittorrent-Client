@@ -8,8 +8,7 @@ namespace Bittorrent
 	using namespace utility;
 
 	TorrentPieces::TorrentPieces()
-		: blockSize{ 16384 }, pieceSize{ 0 }, readablePieceSize{ "" }, totalSize{ 0 },
-		readableTotalSize{ "" }, pieceCount{ 0 }
+        : blockSize{ 16384 }, pieceSize{ 0 }, totalSize{ 0 }, pieceCount{ 0 }
 	{
 
 	}
