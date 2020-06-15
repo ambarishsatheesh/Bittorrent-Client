@@ -3,58 +3,119 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 #include <locale>
+#include <sstream>
+#include <QPointer>
 
 
 namespace Bittorrent
 {
 
 generalInfoModel::generalInfoModel(Client* client, QPointer<QObject> parent)
-    : QAbstractItemModel(parent), ioClient(client), columnSize{18}
+    : QAbstractItemModel(parent), ioClient(client), columnSize{17}
 {
 
 }
 
-QVariant generalInfoModel::headerData(int section, Qt::Orientation orientation, int role) const
+//int generalInfoModel::rowCount(const QModelIndex &parent) const
+//{
+//    return parent.isValid() ?
+//                0 : ioClient->workingTorrentList.torrentList.size();
+//}
+
+//int generalInfoModel::columnCount(const QModelIndex &parent) const
+//{
+//    return parent.isValid() ? 0 : columnSize;
+//}
+
+//QVariant generalInfoModel::data(const QModelIndex &index, int role) const
+//{
+//    if (!index.isValid() || role != Qt::DisplayRole)
+//    {
+//        return QVariant();
+//    }
+
+//    if (index.row() >= ioClient->workingTorrentList.torrentList.size() ||
+//            index.row() < 0)
+//    {
+//        return QVariant();
+//    }
+
+//    return generateData(index);
+//}
+
+
+//QVariant generalInfoModel::headerData(int section,
+//                               Qt::Orientation orientation, int role) const
+//{
+//    return QVariant();
+//}
+
+//bool generalInfoModel::setData(const QModelIndex &index,
+//                        const QVariant &value, int role)
+//{
+//        if (role == Qt::DisplayRole)
+//        {
+//            emit dataChanged(index, index);
+//        }
+
+//        return true;
+// }
+
+
+
+QVariant generalInfoModel::headerData(int section, Qt::Orientation orientation,
+                                      int role) const
 {
     return QVariant();
 }
 
-QModelIndex generalInfoModel::index(int row, int column, const QModelIndex &parent) const
+QModelIndex generalInfoModel::index(int row, int column,
+                                    const QModelIndex &parent) const
 {
-    // FIXME: Implement me!
+    if (hasIndex(row, column, parent))
+    {
+        return createIndex(row, column);
+    }
+    return QModelIndex();
 }
 
 QModelIndex generalInfoModel::parent(const QModelIndex &index) const
 {
-    // FIXME: Implement me!
+    return QModelIndex();
 }
 
 int generalInfoModel::rowCount(const QModelIndex &parent) const
 {
-    if (parent.isValid())
-    {
-        return 0;
-    }
-
-    return 18;
+    return parent.isValid() ?
+                0 : ioClient->
+                workingTorrentList.torrentList.size();
 }
 
 int generalInfoModel::columnCount(const QModelIndex &parent) const
 {
-    if (!parent.isValid())
-        return 0;
-
-    // FIXME: Implement me!
+    return parent.isValid() ? 0 : columnSize;
 }
+
+bool generalInfoModel::setData(const QModelIndex &index,
+                        const QVariant &value, int role)
+    {
+        if (role == Qt::DisplayRole)
+        {
+            emit dataChanged(index, index);
+        }
+
+        return true;
+ }
 
 QVariant generalInfoModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || role != Qt::DisplayRole)
+    if (!index.isValid())
     {
         return QVariant();
     }
 
-    if (index.row() >= columnSize || index.row() < 0)
+    if (index.row() >= ioClient->workingTorrentList.torrentList.size() ||
+            index.row() < 0)
     {
         return QVariant();
     }
@@ -73,8 +134,10 @@ QVariant generalInfoModel::generateData(const QModelIndex &index) const
 
     //Total Size
     case 0:
+    {
         return QString::fromStdString(humanReadableBytes(
                         entry->piecesData.totalSize));
+    }
     //Added On
     case 1:
         return ioClient->workingTorrentList.addedOnList.at(index.row());
@@ -83,12 +146,12 @@ QVariant generalInfoModel::generateData(const QModelIndex &index) const
         //convert ptime to required string format
     {
         auto time = entry->generalData.creationDate;
+        //no need to delete facet - locale is responsible for this
         auto* facet = new boost::posix_time::time_facet();
         facet->format("%Y/%m/%d %H:%M");
         std::stringstream stream;
         stream.imbue(std::locale(std::locale::classic(), facet));
         stream << time;
-        delete facet;
         return QString::fromStdString(stream.str());
     }
     //Created By

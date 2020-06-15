@@ -41,6 +41,9 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     initTorrentTable();
     initTrackersTable();
 
+    //initialise general info
+    initGeneralInfo();
+
     //initialise tabs
     initTransfersTab();
 
@@ -105,8 +108,6 @@ void MainWindow::initWindows()
     //set as default tab
     m_dockWidget2->show();
     m_dockWidget2->raise();
-
-    m_dockWidget2->setWidget(generalInfoTab->generalBox);
 }
 
 void MainWindow::initToolbar()
@@ -262,6 +263,38 @@ void MainWindow::initTrackersTable()
     m_dockWidget3->setWidget(trackerTableStack);
 }
 
+void MainWindow::initGeneralInfo()
+{
+    generalDataModel = new generalInfoModel(ioClient, this);
+    generalInfoMapper = new QDataWidgetMapper();
+    generalInfoMapper->setOrientation(Qt::Horizontal);
+    generalInfoMapper->setModel(generalDataModel);
+
+    //map information values
+    generalInfoMapper->addMapping(generalInfoTab->totalSize_val, 0, "text");
+    generalInfoMapper->addMapping(generalInfoTab->addedOn_val, 1, "text");
+    generalInfoMapper->addMapping(generalInfoTab->createdOn_val, 2, "text");
+    generalInfoMapper->addMapping(generalInfoTab->createdBy_val, 3, "text");
+    generalInfoMapper->addMapping(generalInfoTab->comment_val, 4, "text");
+    generalInfoMapper->addMapping(generalInfoTab->completedOn_val, 5, "text");
+    generalInfoMapper->addMapping(generalInfoTab->pieces_val, 6, "text");
+    generalInfoMapper->addMapping(generalInfoTab->torrentHash_val, 7, "text");
+    generalInfoMapper->addMapping(generalInfoTab->savePath_val, 8, "text");
+
+    //map transfer values
+    generalInfoMapper->addMapping(generalInfoTab->timeActive_val, 9, "text");
+    generalInfoMapper->addMapping(generalInfoTab->downloaded_val, 10, "text");
+    generalInfoMapper->addMapping(generalInfoTab->dlSpeed_val, 11, "text");
+    generalInfoMapper->addMapping(generalInfoTab->ETA_val, 12, "text");
+    generalInfoMapper->addMapping(generalInfoTab->uploaded_val, 13, "text");
+    generalInfoMapper->addMapping(generalInfoTab->uSpeed_val, 14, "text");
+    generalInfoMapper->addMapping(generalInfoTab->connections_val, 15, "text");
+    generalInfoMapper->addMapping(generalInfoTab->seeds_val, 16, "text");
+    generalInfoMapper->addMapping(generalInfoTab->peers_val, 17, "text");
+
+    m_dockWidget2->setWidget(generalInfoTab->generalBox);
+}
+
 void MainWindow::initTransfersTab()
 {
     infoList = new QListView(this);
@@ -331,13 +364,25 @@ void MainWindow::torrentSelected(const QItemSelection &selected,
     //get source indices from proxy model
     auto mappedSelection = proxyModel->mapSelectionToSource(selected);
 
-    for (auto index : mappedSelection.indexes())
+    //map selected view indices to source torrentModel rows
+    //use QSet to remove duplicates (since multiple indices will share a row)
+    QSet<int> selectedSourceRowSet;
+    for (auto selectionIndex : mappedSelection.indexes())
+    {
+        selectedSourceRowSet.insert(selectionIndex.row());
+    }
+
+    for (auto row : selectedSourceRowSet)
     {
         auto ptr_struct = std::make_unique<trackerTableData>(
-                    trackerTableVec.at(index.row()));
+                    trackerTableVec.at(row));
         //ptr_struct->trackerTable->setModel(ptr_struct->trackerModel);
         //ptr_struct->trackerTable->resizeColumnsToContents();
         trackerTableStack->setCurrentWidget(ptr_struct->trackerTable);
+
+        //set general info mapper to relevant row
+        generalInfoMapper->setCurrentIndex(row);
+        LOG_F(INFO, "current idx: %d", generalInfoMapper->currentIndex());
     }
 }
 

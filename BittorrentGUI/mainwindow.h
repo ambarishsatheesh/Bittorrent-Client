@@ -24,6 +24,7 @@
 #include <QFont>
 #include <QPushButton>
 #include <QStackedWidget>
+#include <QDataWidgetMapper>
 
 #include "ui_generalInfoTab.h"
 #include "Client.h"
@@ -33,6 +34,7 @@
 #include "torrentsortfilterproxymodel.h"
 #include "torrentinfolist.h"
 #include "trackertablemodel.h"
+#include "generalinfomodel.h"
 
 namespace Ui {
 class MainWindow;
@@ -120,6 +122,11 @@ private:
         {}
     };
     QVector<trackerTableData> trackerTableVec;
+
+    //general info
+    void initGeneralInfo();
+    QPointer<generalInfoModel> generalDataModel;
+    QPointer<QDataWidgetMapper> generalInfoMapper;
 
     //transfers tab
     void initTransfersTab();
