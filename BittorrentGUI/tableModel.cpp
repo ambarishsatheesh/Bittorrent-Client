@@ -108,6 +108,8 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
 {
     using namespace utility;
 
+    auto entry = ioClientModel->workingTorrentList.torrentList.at(index.row());
+
     switch (index.column())
     {
     //Added on
@@ -120,25 +122,17 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
         return 1;
     //Name
     case 2:
-        return QString::fromStdString(ioClientModel->
-                                      workingTorrentList.torrentList.
-                                      at(index.row())->generalData.fileName);
+        return QString::fromStdString(entry->generalData.fileName);
     //Size
     case 3:
         return QString::fromStdString(
-                    humanReadableBytes(ioClientModel->
-                                       workingTorrentList.torrentList.
-                                       at(index.row())->piecesData.totalSize));
+                    humanReadableBytes(entry->piecesData.totalSize));
     //Progress
     case 4:
     {
-        auto downloadedBytes = ioClientModel->
-                workingTorrentList.torrentList.at(index.row())->
-                statusData.downloaded();
+        auto downloadedBytes = entry->statusData.downloaded();
 
-        auto totalBytes = ioClientModel->
-                workingTorrentList.torrentList.at(index.row())->
-                piecesData.totalSize;
+        auto totalBytes = entry->piecesData.totalSize;
 
         return downloadedBytes/totalBytes;
     }
@@ -169,14 +163,10 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
     //Ratio
     case 11:
     {
-        auto downloadedBytes = ioClientModel->
-                workingTorrentList.torrentList.at(index.row())->
-                statusData.downloaded();
+        auto downloadedBytes = entry->statusData.downloaded();
         if (downloadedBytes != 0)
         {
-            return ioClientModel->
-                    workingTorrentList.torrentList.at(index.row())->
-                    statusData.uploaded() / downloadedBytes;
+            return entry->statusData.uploaded() / downloadedBytes;
         }
         return 0;
     }
@@ -186,13 +176,11 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
         return 0;
     //Downloaded
     case 13:
-        return QString::fromStdString(humanReadableBytes(ioClientModel->
-                workingTorrentList.torrentList.at(index.row())->
+        return QString::fromStdString(humanReadableBytes(entry->
                 statusData.downloaded()));
     //Uploaded
     case 14:
-        return QString::fromStdString(humanReadableBytes(ioClientModel->
-                workingTorrentList.torrentList.at(index.row())->
+        return QString::fromStdString(humanReadableBytes(entry->
                 statusData.uploaded()));
     //Time Active
     case 15:
