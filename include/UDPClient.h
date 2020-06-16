@@ -10,83 +10,107 @@
 
 namespace Bittorrent
 {
-	using boost::asio::ip::udp;
-	using boost::asio::ip::address;
+    using boost::asio::ip::udp;
+    using boost::asio::ip::address;
 
-	class UDPClient
-	{
-	public:
-		boost::posix_time::ptime connIDReceivedTime;
-		boost::posix_time::ptime lastRequestTime;
+    class UDPClient
+    {
+    public:
+        boost::posix_time::ptime connIDReceivedTime;
+        boost::posix_time::ptime lastRequestTime;
 
-		//announce response data
-		boost::posix_time::seconds peerRequestInterval;
-		int leechers;
-		int seeders;
-		int completed;
-		std::vector<peer> peerList;
+        //announce response data
+        boost::posix_time::seconds peerRequestInterval;
+        int leechers;
+        int seeders;
+        int completed;
+        std::vector<peer> peerList;
 
-		void dataTransmission(trackerUrl& parsedUrl, bool isAnnounce);
+        void dataTransmission(trackerUrl& parsedUrl, bool isAnnounce);
 
-		//default constructor & destructor
-		UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID, 
-			std::vector<byte>& infoHash, long long& uploaded, 
-			long long& downloaded, long long& remaining, int& intEvent, 
-			int& port, bool isAnnounce);
-		~UDPClient();
+        //default constructor & destructor
+        UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID,
+            std::vector<byte>& infoHash, long long& uploaded,
+            long long& downloaded, long long& remaining, int& intEvent,
+            int& port, bool isAnnounce);
+        ~UDPClient();
 
-	private:
-		//general variables
-		std::string peerHost;
-		std::string peerPort;
-		int localPort;
-		std::vector<byte> errorAction;
-		bool isFail;
+    private:
+        //general variables
+        std::string peerHost;
+        std::string peerPort;
+        int localPort;
+        std::vector<byte> errorAction;
+        bool isFail;
+        std::string logBuffer;
+        bool m_isAnnounce;
 
-		//sent variables
-		std::vector<byte> protocolID;
-		std::vector<byte> sentTransactionID;
-		std::vector<byte> connectAction;
+        //sent variables
+        std::vector<byte> protocolID;
+        std::vector<byte> sentTransactionID;
+        std::vector<byte> connectAction;
 
-		//received variables
-		std::vector<byte> connectionID;
+        //received variables
+        std::vector<byte> connectionID;
 
-		//scrape variables
-		std::vector<byte> scrapeAction;
-		std::vector<byte> byteInfoHash;
+        //scrape variables
+        std::vector<byte> scrapeAction;
+        std::vector<byte> byteInfoHash;
 
-		//announce (send) variables
-		std::vector<byte> ancAction;
-		std::vector<byte> ancClientID;
-		long long ancDownloaded;
-		long long ancUploaded;
-		long long ancRemaining;
-		int ancIntEvent;
+        //announce (send) variables
+        std::vector<byte> ancAction;
+        std::vector<byte> ancClientID;
+        long long ancDownloaded;
+        long long ancUploaded;
+        long long ancRemaining;
+        int ancIntEvent;
 
-		//send/receive buffers
-		std::vector<byte> recConnBuffer;
-		std::vector<byte> recScrapeBuffer;
-		std::vector<byte> recAncBuffer;
+        //send/receive buffers
+        std::vector<byte> recConnBuffer;
+        std::vector<byte> recScrapeBuffer;
+        std::vector<byte> recAncBuffer;
 
-		boost::asio::io_context io_context;
-		//Need two sockets since the connect free function will close the 
-		//socket and bind to an unspecified port.
-		//Easier to create a separate socket bound to the correct port
-		udp::socket socket_connect;
-		udp::socket socket_transmission;
-		udp::endpoint remoteEndpoint;
-		udp::endpoint localEndpoint;
+        boost::asio::io_context io_context;
+        //Need two sockets since the connect free function will close the
+        //socket and bind to an unspecified port.
+        //Easier to create a separate socket bound to the correct port
+        udp::socket socket_connect;
+        udp::socket socket_transmission;
+        udp::endpoint remoteEndpoint;
+        udp::endpoint localEndpoint;
 
-		std::vector<byte> buildScrapeReq();
-		std::vector<byte> buildConnectReq();
-		std::vector<byte> buildAnnounceReq();
+        void handleConnect(const boost::system::error_code& error);
 
-		void handleConnectResp(const std::size_t& connBytesRec);
-		void handleScrapeResp(const std::size_t& scrapeBytesRec);
-		void handleAnnounceResp(const std::size_t& AncBytesRec);
+        void handleConnectWrite(const boost::system::error_code& error,
+            const size_t& bytesTransferred);
 
-		void connectRequest(boost::system::error_code& err);
-		void scrapeRequest(boost::system::error_code& err);
-		void announceRequest(boost::system::error_code& err);
-	};
+        void handleConnectRead(const boost::system::error_code& error,
+            const size_t& bytesTransferred);
+
+        void handleScrapeWrite(const boost::system::error_code& error,
+            const size_t& bytesTransferred);
+
+        void handleScrapeRead(const boost::system::error_code& error,
+            const size_t& bytesTransferred);
+
+        void handleAnnounceWrite(const boost::system::error_code& error,
+            const size_t& bytesTransferred);
+
+        void handleAnnounceRead(const boost::system::error_code& error,
+            const size_t& bytesTransferred);
+
+        std::vector<byte> buildScrapeReq();
+        std::vector<byte> buildConnectReq();
+        std::vector<byte> buildAnnounceReq();
+
+        void handleConnectResp(const std::size_t& connBytesRec);
+        void handleScrapeResp(const std::size_t& scrapeBytesRec);
+        void handleAnnounceResp(const std::size_t& AncBytesRec);
+
+        void connectRequest();
+        void scrapeRequest();
+        void announceRequest();
+
+        void close();
+    };
 }
