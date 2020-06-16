@@ -12,44 +12,61 @@
 
 namespace Bittorrent
 {
-	using tcp = boost::asio::ip::tcp;
-	namespace http = boost::beast::http;
+    using tcp = boost::asio::ip::tcp;
+    namespace http = boost::beast::http;
 
-	class HTTPClient
-	{
-	public:
+    class HTTPClient
+    {
+    public:
+        //general variables
+        std::string peerHost;
+        std::string peerPort;
+        std::string target;
+        int version;
+        bool m_isAnnounce;
 
-		//general variables
-		std::string peerHost;
-		std::string peerPort;
-		std::string target;
-		int version;
+        //response data
+        boost::posix_time::seconds peerRequestInterval;
+        int complete;
+        int incomplete;
+        std::vector<peer> peerList;
 
-		//response data
-		boost::posix_time::seconds peerRequestInterval;
-		int complete;
-		int incomplete;
-		std::vector<peer> peerList;
+        void dataTransmission(bool isAnnounce);
 
-		void dataTransmission(bool isAnnounce);
+        //constructor
+        HTTPClient(trackerUrl& parsedUrl, bool isAnnounce);
+        ~HTTPClient();
 
-		//constructor
-		HTTPClient(trackerUrl& parsedUrl, bool isAnnounce);
-		~HTTPClient();
+    private:
+        boost::asio::io_context io_context;
+        tcp::resolver resolver;
+        tcp::socket socket;
+        tcp::endpoint remoteEndpoint;
+        http::request<boost::beast::http::string_body> req;
+        //parser to read and response into
+        http::response<http::dynamic_body> res;
+        //buffer to hold additional data that lies past the end of the message
+        //being read
+        boost::beast::flat_buffer recBuffer;
 
-	private:
-		boost::asio::io_context io_context;
-		tcp::resolver resolver;
-		tcp::socket socket;
-		tcp::endpoint remoteEndpoint;
+        void close();
 
-		void scrapeRequest(boost::system::error_code& err);
-		void announceRequest(boost::system::error_code& err);
+        void handleConnect(const boost::system::error_code& error);
+        void handleScrapeSend(const boost::system::error_code& error);
+        void handleScrapeReceive(const boost::system::error_code& error,
+            const size_t& bytesTransferred);
+        void handleAnnounceSend(const boost::system::error_code& error);
+        void handleAnnounceReceive(const boost::system::error_code& error,
+            const size_t& bytesTransferred);
 
-		void handleScrapeResp(http::response<http::dynamic_body>& response);
-		void handleAnnounceResp(http::response<http::dynamic_body>& response);
 
-	};
+        void scrapeRequest();
+        void announceRequest();
+
+        void handleScrapeResp();
+        void handleAnnounceResp();
+
+    };
 
 
 }
