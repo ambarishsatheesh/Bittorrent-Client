@@ -17,7 +17,7 @@ namespace Bittorrent
 {
 using namespace utility;
 
-//port "0" in member initialisation list for socket_connect assigns any
+//port "0" in member initialisation list for socket assigns any
 //free port
 UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID,
     std::vector<byte>& infoHash, long long& uploaded, long long& downloaded,
@@ -30,8 +30,7 @@ UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID,
     ancDownloaded{ downloaded }, ancUploaded{ uploaded },
     ancRemaining{ remaining }, ancIntEvent{ intEvent },
     recConnBuffer(16), recScrapeBuffer(200), recAncBuffer(320),
-    io_context(), socket_connect(io_context, udp::endpoint(udp::v4(), port)),
-    socket_transmission(io_context, udp::endpoint(udp::v4(), port)),
+    io_context(), socket(io_context, udp::endpoint(udp::v4(), port)),
     remoteEndpoint(), localEndpoint()
 {
     errorAction = { 0x0, 0x0, 0x0, 0x3 };
@@ -40,11 +39,23 @@ UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID,
 
 UDPClient::~UDPClient()
 {
+    close();
 }
 
 void UDPClient::close()
 {
-    socket_connect.close();
+    boost::system::error_code ec;
+    socket.shutdown(udp::socket::shutdown_both, ec);
+
+    if (ec && ec != boost::system::errc::not_connected)
+    {
+        LOG_F(ERROR, "Error shutting down socket: %s.",
+            ec.message().c_str());
+
+        return;
+    }
+
+    socket.close();
     isFail = true;
 
     LOG_F(INFO,
@@ -52,27 +63,46 @@ void UDPClient::close()
         peerHost.c_str(), peerPort.c_str());
 }
 
+void UDPClient::dataTransmission(trackerUrl& parsedUrl, bool isAnnounce)
+{
+    m_isAnnounce = isAnnounce;
+
+    udp::resolver resolver{ io_context };
+    auto results = resolver.resolve(peerHost, peerPort);
+
+    //need to bind object context using "this" for class member functions
+    boost::asio::async_connect(socket, results,
+        boost::bind(&UDPClient::handleConnect, this,
+            boost::asio::placeholders::error));
+
+    //run event processing loop (and block until work has finished/ been stopped)
+    io_context.run();
+}
+
+
+//establish connection acccording to Bittorrent spec after establishing
+//basic network connection
 void UDPClient::handleConnect(const boost::system::error_code& error)
 {
-    //if (endpoint_itr != udp::resolver::iterator())
-    //{
-    //	// That endpoint didn't work, try the next one.
-    //	socket_connect.close();
-    //	udp::endpoint endpoint = *endpoint_itr;
-    //	socket_connect.async_connect(endpoint,
-    //		boost::bind(&UDPClient::handleConnect, this,
-    //			boost::asio::placeholders::error, ++endpoint_itr));
-    //}
     if (!error)
     {
-        /*remoteEndpoint = endpoint_itr->endpoint();*/
-        remoteEndpoint = socket_connect.remote_endpoint();
+        remoteEndpoint = socket.remote_endpoint();
 
         LOG_F(INFO, "Resolved UDP tracker endpoint! Endpoint: %s:%hu (%s:%s).",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str());
 
-        connectRequest();
+        //build connect request buffer
+        const auto connectReqBuffer = buildConnectReq();
+        logBuffer = toHex(connectReqBuffer);
+
+        //udp is a datagram oriented socket so datagram functions need to be used
+        //socket is connected so no need to use async_send_to
+        socket.async_send(boost::asio::buffer(connectReqBuffer,
+            connectReqBuffer.size()),
+            boost::bind(&UDPClient::handleConnectSend, this,
+                boost::asio::placeholders::error,
+                boost::asio::placeholders::bytes_transferred));
     }
     else
     {
@@ -82,23 +112,6 @@ void UDPClient::handleConnect(const boost::system::error_code& error)
 
         close();
     }
-}
-
-//establish connection acccording to Bittorrent spec after establishing
-//basic network connection
-void UDPClient::connectRequest()
-{
-    //build connect request buffer
-    const auto connectReqBuffer = buildConnectReq();
-    logBuffer = toHex(connectReqBuffer);
-
-    //udp is a datagram oriented socket so datagram functions need to be used
-    //socket is connected so no need to use async_send_to
-    socket_connect.async_send(boost::asio::buffer(connectReqBuffer,
-        connectReqBuffer.size()),
-        boost::bind(&UDPClient::handleConnectWrite, this,
-            boost::asio::placeholders::error,
-            boost::asio::placeholders::bytes_transferred));
 }
 
 std::vector<byte> UDPClient::buildConnectReq()
@@ -135,38 +148,38 @@ std::vector<byte> UDPClient::buildConnectReq()
     return connectVec;
 }
 
-void UDPClient::handleConnectWrite(const boost::system::error_code& error,
+void UDPClient::handleConnectSend(const boost::system::error_code& error,
     const size_t& bytesTransferred)
 {
     if (!error)
     {
         LOG_F(INFO, "Sent UDP connect request from %s:%hu to tracker %s:%hu; "
-            "Status: %s; Sent bytes: %llu; Sent payload (hex): %s.",
-            socket_connect.local_endpoint().address().to_string().c_str(),
-            socket_connect.local_endpoint().port(),
+            "Status: %s; Sent bytes: %zu; Sent payload (hex): %s.",
+            socket.local_endpoint().address().to_string().c_str(),
+            socket.local_endpoint().port(),
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             error.message().c_str(), bytesTransferred, logBuffer.c_str());
 
-        socket_connect.async_receive(
+        socket.async_receive(
             boost::asio::buffer(recConnBuffer, recConnBuffer.size()),
-            boost::bind(&UDPClient::handleConnectRead, this,
+            boost::bind(&UDPClient::handleConnectReceive, this,
                 boost::asio::placeholders::error,
                 boost::asio::placeholders::bytes_transferred));
     }
     else
     {
         LOG_F(ERROR,
-            "Failed to send connect request to tracker %s:%hu from %s:%hu! "
+            "Failed to send UDP connect request to tracker %s:%hu from %s:%hu! "
             "Error msg: \"%s\".",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
-            socket_connect.local_endpoint().address().to_string().c_str(),
-            socket_connect.local_endpoint().port(), error.message().c_str());
+            socket.local_endpoint().address().to_string().c_str(),
+            socket.local_endpoint().port(), error.message().c_str());
 
         close();
     }
 }
 
-void UDPClient::handleConnectRead(const boost::system::error_code& error,
+void UDPClient::handleConnectReceive(const boost::system::error_code& error,
     const size_t& bytesTransferred)
 {
     if (!error)
@@ -174,7 +187,7 @@ void UDPClient::handleConnectRead(const boost::system::error_code& error,
         logBuffer = toHex(recConnBuffer);
 
         LOG_F(INFO, "Received UDP connect response from tracker %s:%hu; "
-            "Status: %s; Received bytes: %llu; Received payload (hex): %s.",
+            "Status: %s; Received bytes: %zu; Received payload (hex): %s.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             error.message().c_str(), bytesTransferred, logBuffer.c_str());
 
@@ -183,7 +196,7 @@ void UDPClient::handleConnectRead(const boost::system::error_code& error,
         lastRequestTime = boost::posix_time::second_clock::local_time();
 
         LOG_F(INFO, "Received UDP connect response at %s; "
-            "Updated last request time. Tracker: %s%hu.",
+            "Updated last request time. Tracker: %s:%hu.",
             boost::posix_time::to_simple_string(
                 boost::posix_time::ptime(connIDReceivedTime)).c_str(),
             remoteEndpoint.address().to_string().c_str(),
@@ -195,7 +208,7 @@ void UDPClient::handleConnectRead(const boost::system::error_code& error,
     else
     {
         LOG_F(ERROR,
-            "Failed to receive connect response from tracker %s:%s! "
+            "Failed to receive UDP connect response from tracker %s:%s! "
             "Error msg: \"%s\".",
             peerHost.c_str(), peerPort.c_str(), error.message().c_str());
 
@@ -211,7 +224,7 @@ void UDPClient::handleConnectResp(const std::size_t& connBytesRec)
         isFail = true;
         LOG_F(ERROR,
             "UDP Connect response packet is less than the expected 16 bytes! "
-            "Tracker: %s%hu.",
+            "Tracker: %s:%hu.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port());
         return;
     }
@@ -224,7 +237,7 @@ void UDPClient::handleConnectResp(const std::size_t& connBytesRec)
         isFail = true;
         LOG_F(ERROR,
             "Received UDP connect response action is not \"connect\"! "
-            "Tracker: %s%hu.",
+            "Tracker: %s:%hu.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port());
         return;
     }
@@ -237,7 +250,7 @@ void UDPClient::handleConnectResp(const std::size_t& connBytesRec)
         isFail = true;
         LOG_F(ERROR,
             "UDP connect response transaction ID is not equal to sent "
-            "transaction ID! Tracker: %s%hu.",
+            "transaction ID! Tracker: %s:%hu.",
             remoteEndpoint.address().to_string().c_str(),
             remoteEndpoint.port());
         return;
@@ -272,9 +285,9 @@ void UDPClient::scrapeRequest()
     const auto scrapeReqBuffer = buildScrapeReq();
     logBuffer = toHex(scrapeReqBuffer);
 
-    socket_connect.async_send(
+    socket.async_send(
         boost::asio::buffer(scrapeReqBuffer, scrapeReqBuffer.size()),
-        boost::bind(&UDPClient::handleScrapeWrite, this,
+        boost::bind(&UDPClient::handleScrapeSend, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
 }
@@ -315,38 +328,38 @@ std::vector<byte> UDPClient::buildScrapeReq()
     return scrapeVec;
 }
 
-void UDPClient::handleScrapeWrite(const boost::system::error_code& error,
+void UDPClient::handleScrapeSend(const boost::system::error_code& error,
     const size_t& bytesTransferred)
 {
     if (!error)
     {
         LOG_F(INFO, "Sent UDP scrape request from %s:%hu to tracker %s:%hu; "
-            "Status: %s; Sent bytes: %llu; Sent payload (hex): %s.",
-            socket_connect.local_endpoint().address().to_string().c_str(),
-            socket_connect.local_endpoint().port(),
+            "Status: %s; Sent bytes: %zu; Sent payload (hex): %s.",
+            socket.local_endpoint().address().to_string().c_str(),
+            socket.local_endpoint().port(),
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             error.message().c_str(), bytesTransferred, logBuffer.c_str());
 
-        socket_connect.async_receive(
+        socket.async_receive(
             boost::asio::buffer(recScrapeBuffer, recScrapeBuffer.size()),
-            boost::bind(&UDPClient::handleScrapeRead, this,
+            boost::bind(&UDPClient::handleScrapeReceive, this,
                 boost::asio::placeholders::error,
                 boost::asio::placeholders::bytes_transferred));
     }
     else
     {
         LOG_F(ERROR,
-            "Failed to send scrape request to tracker %s:%hu from %s:%hu! "
+            "Failed to send UDP scrape request to tracker %s:%hu from %s:%hu! "
             "Error msg: \"%s\".",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
-            socket_connect.local_endpoint().address().to_string().c_str(),
-            socket_connect.local_endpoint().port(), error.message().c_str());
+            socket.local_endpoint().address().to_string().c_str(),
+            socket.local_endpoint().port(), error.message().c_str());
 
         close();
     }
 }
 
-void UDPClient::handleScrapeRead(const boost::system::error_code& error,
+void UDPClient::handleScrapeReceive(const boost::system::error_code& error,
     const size_t& bytesTransferred)
 {
     if (!error)
@@ -358,7 +371,7 @@ void UDPClient::handleScrapeRead(const boost::system::error_code& error,
         logBuffer = toHex(recScrapeBuffer);
 
         LOG_F(INFO, "Received UDP scrape response from tracker %s:%hu; "
-            "Status: %s; Received bytes: %llu; Received payload (hex): %s.",
+            "Status: %s; Received bytes: %zu; Received payload (hex): %s.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             error.message().c_str(), bytesTransferred, logBuffer.c_str());
 
@@ -367,7 +380,7 @@ void UDPClient::handleScrapeRead(const boost::system::error_code& error,
         lastRequestTime = boost::posix_time::second_clock::local_time();
 
         LOG_F(INFO, "Received UDP scrape response at %s; "
-            "Updated last request time. Tracker: %s%hu.",
+            "Updated last request time. Tracker: %s:%hu.",
             boost::posix_time::to_simple_string(
                 boost::posix_time::ptime(connIDReceivedTime)).c_str(),
             remoteEndpoint.address().to_string().c_str(),
@@ -379,7 +392,7 @@ void UDPClient::handleScrapeRead(const boost::system::error_code& error,
     else
     {
         LOG_F(ERROR,
-            "Failed to receive scrape response from tracker %s:%s! "
+            "Failed to receive UDP scrape response from tracker %s:%s! "
             "Error msg: \"%s\".",
             peerHost.c_str(), peerPort.c_str(), error.message().c_str());
 
@@ -395,7 +408,7 @@ void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
         isFail = true;
         LOG_F(ERROR,
             "UDP connect response packet is less than the expected 8 bytes! "
-            "Tracker: %s%hu.",
+            "Tracker: %s:%hu.",
             remoteEndpoint.address().to_string().c_str(),
             remoteEndpoint.port());
         return;
@@ -409,7 +422,7 @@ void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
         isFail = true;
         LOG_F(ERROR,
             "UDP scrape response transaction ID is not equal to sent "
-            "transaction ID! Tracker: %s%hu.",
+            "transaction ID! Tracker: %s:%hu.",
             remoteEndpoint.address().to_string().c_str(),
             remoteEndpoint.port());
         return;
@@ -468,9 +481,9 @@ void UDPClient::announceRequest()
     //build connect request buffer
     const auto announceReqBuffer = buildAnnounceReq();
 
-    socket_connect.async_send(
+    socket.async_send(
         boost::asio::buffer(announceReqBuffer, announceReqBuffer.size()),
-        boost::bind(&UDPClient::handleAnnounceWrite, this,
+        boost::bind(&UDPClient::handleAnnounceSend, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
 }
@@ -574,41 +587,41 @@ std::vector<byte> UDPClient::buildAnnounceReq()
     return announceVec;
 }
 
-void UDPClient::handleAnnounceWrite(const boost::system::error_code& error,
+void UDPClient::handleAnnounceSend(const boost::system::error_code& error,
     const size_t& bytesTransferred)
 {
     if (!error)
     {
         LOG_F(INFO, "Sent UDP announce request from %s:%hu to tracker %s:%hu; "
-            "Status: %s; Sent bytes: %llu; Sent payload (hex): %s.",
-            socket_connect.local_endpoint().address().to_string().c_str(),
-            socket_connect.local_endpoint().port(),
+            "Status: %s; Sent bytes: %zu; Sent payload (hex): %s.",
+            socket.local_endpoint().address().to_string().c_str(),
+            socket.local_endpoint().port(),
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             error.message().c_str(), bytesTransferred, logBuffer.c_str());
 
         //set max peers for this client to 50 - more than enough
         //(6 bytes * 50 = 300) + 20 for other info = 320 bytes max
         //size initialised in constructor
-        socket_connect.async_receive(
+        socket.async_receive(
             boost::asio::buffer(recAncBuffer, recScrapeBuffer.size()),
-            boost::bind(&UDPClient::handleScrapeRead, this,
+            boost::bind(&UDPClient::handleScrapeReceive, this,
                 boost::asio::placeholders::error,
                 boost::asio::placeholders::bytes_transferred));
     }
     else
     {
         LOG_F(ERROR,
-            "Failed to send announce request to tracker %s:%hu from %s:%hu! "
+            "Failed to send UDP announce request to tracker %s:%hu from %s:%hu! "
             "Error msg: \"%s\".",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
-            socket_connect.local_endpoint().address().to_string().c_str(),
-            socket_connect.local_endpoint().port(), error.message().c_str());
+            socket.local_endpoint().address().to_string().c_str(),
+            socket.local_endpoint().port(), error.message().c_str());
 
         close();
     }
 }
 
-void UDPClient::handleAnnounceRead(const boost::system::error_code& error,
+void UDPClient::handleAnnounceReceive(const boost::system::error_code& error,
     const size_t& bytesTransferred)
 {
     if (!error)
@@ -620,7 +633,7 @@ void UDPClient::handleAnnounceRead(const boost::system::error_code& error,
         logBuffer = toHex(recAncBuffer);
 
         LOG_F(INFO, "Received UDP announce response from tracker %s:%hu; "
-            "Status: %s; Received bytes: %llu; Received payload (hex): %s.",
+            "Status: %s; Received bytes: %zu; Received payload (hex): %s.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             error.message().c_str(), bytesTransferred, logBuffer.c_str());
 
@@ -628,7 +641,7 @@ void UDPClient::handleAnnounceRead(const boost::system::error_code& error,
         lastRequestTime = boost::posix_time::second_clock::local_time();
 
         LOG_F(INFO, "Received UDP announce response at %s; "
-            "Updated last request time. Tracker: %s%hu.",
+            "Updated last request time. Tracker: %s:%hu.",
             boost::posix_time::to_simple_string(
                 boost::posix_time::ptime(lastRequestTime)).c_str(),
             remoteEndpoint.address().to_string().c_str(),
@@ -640,7 +653,7 @@ void UDPClient::handleAnnounceRead(const boost::system::error_code& error,
     else
     {
         LOG_F(ERROR,
-            "Failed to receive scrape response from tracker %s:%s! "
+            "Failed to receive UDP scrape response from tracker %s:%s! "
             "Error msg: \"%s\".",
             peerHost.c_str(), peerPort.c_str(), error.message().c_str());
 
@@ -656,7 +669,7 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
         isFail = true;
         LOG_F(ERROR,
             "UDP announce response packet is less than the minimum size "
-            "of 20 bytes! Tracker: %s%hu.",
+            "of 20 bytes! Tracker: %s:%hu.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port());
         return;
     }
@@ -669,7 +682,7 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
         isFail = true;
         LOG_F(ERROR,
             "Received UDP announce response action is not \"announce\"! "
-            "Tracker: %s%hu.",
+            "Tracker: %s:%hu.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port());
         return;
     }
@@ -682,7 +695,7 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
         isFail = true;
         LOG_F(ERROR,
             "UDP announce response transaction ID is not equal to sent "
-            "transaction ID! Tracker: %s%hu.",
+            "transaction ID! Tracker: %s:%hu.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port());
         return;
     }
@@ -736,27 +749,6 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
         "Updated peer data.",
         remoteEndpoint.address().to_string().c_str(),
             remoteEndpoint.port());
-}
-
-void UDPClient::dataTransmission(trackerUrl& parsedUrl, bool isAnnounce)
-{
-    m_isAnnounce = isAnnounce;
-
-    boost::system::error_code err;
-
-    udp::resolver resolver{ io_context };
-    auto results = resolver.resolve(peerHost, peerPort);
-
-    //iterate through resolved endpoints
-    //udp::endpoint endpoint = *endpoint_itr;
-
-    //need to bind object context using "this" for class member functions
-    boost::asio::async_connect(socket_connect, results,
-        boost::bind(&UDPClient::handleConnect, this,
-            boost::asio::placeholders::error));
-
-    //run event processing loop (and block until work has finished/ been stopped)
-    io_context.run();
 }
 
 }

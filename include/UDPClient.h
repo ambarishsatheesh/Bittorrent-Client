@@ -71,32 +71,22 @@ namespace Bittorrent
         std::vector<byte> recAncBuffer;
 
         boost::asio::io_context io_context;
-        //Need two sockets since the connect free function will close the
-        //socket and bind to an unspecified port.
-        //Easier to create a separate socket bound to the correct port
-        udp::socket socket_connect;
-        udp::socket socket_transmission;
+        udp::socket socket;
         udp::endpoint remoteEndpoint;
         udp::endpoint localEndpoint;
 
         void handleConnect(const boost::system::error_code& error);
-
-        void handleConnectWrite(const boost::system::error_code& error,
+        void handleConnectSend(const boost::system::error_code& error,
             const size_t& bytesTransferred);
-
-        void handleConnectRead(const boost::system::error_code& error,
+        void handleConnectReceive(const boost::system::error_code& error,
             const size_t& bytesTransferred);
-
-        void handleScrapeWrite(const boost::system::error_code& error,
+        void handleScrapeSend(const boost::system::error_code& error,
             const size_t& bytesTransferred);
-
-        void handleScrapeRead(const boost::system::error_code& error,
+        void handleScrapeReceive(const boost::system::error_code& error,
             const size_t& bytesTransferred);
-
-        void handleAnnounceWrite(const boost::system::error_code& error,
+        void handleAnnounceSend(const boost::system::error_code& error,
             const size_t& bytesTransferred);
-
-        void handleAnnounceRead(const boost::system::error_code& error,
+        void handleAnnounceReceive(const boost::system::error_code& error,
             const size_t& bytesTransferred);
 
         std::vector<byte> buildScrapeReq();
@@ -107,7 +97,6 @@ namespace Bittorrent
         void handleScrapeResp(const std::size_t& scrapeBytesRec);
         void handleAnnounceResp(const std::size_t& AncBytesRec);
 
-        void connectRequest();
         void scrapeRequest();
         void announceRequest();
 
