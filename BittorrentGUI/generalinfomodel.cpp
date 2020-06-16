@@ -148,7 +148,7 @@ QVariant generalInfoModel::generateData(const QModelIndex &index) const
         auto time = entry->generalData.creationDate;
         //no need to delete facet - locale is responsible for this
         auto* facet = new boost::posix_time::time_facet();
-        facet->format("%Y/%m/%d %H:%M");
+        facet->format("%d/%m/%Y %H:%M");
         std::stringstream stream;
         stream.imbue(std::locale(std::locale::classic(), facet));
         stream << time;
