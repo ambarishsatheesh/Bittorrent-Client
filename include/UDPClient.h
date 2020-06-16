@@ -26,7 +26,7 @@ namespace Bittorrent
         int completed;
         std::vector<peer> peerList;
 
-        void dataTransmission(trackerUrl& parsedUrl, bool isAnnounce);
+        void dataTransmission(bool isAnnounce);
 
         //default constructor & destructor
         UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID,

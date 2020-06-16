@@ -34,7 +34,7 @@ UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID,
     remoteEndpoint(), localEndpoint()
 {
     errorAction = { 0x0, 0x0, 0x0, 0x3 };
-    dataTransmission(parsedUrl, isAnnounce);
+    dataTransmission(isAnnounce);
 }
 
 UDPClient::~UDPClient()
@@ -63,7 +63,7 @@ void UDPClient::close()
         peerHost.c_str(), peerPort.c_str());
 }
 
-void UDPClient::dataTransmission(trackerUrl& parsedUrl, bool isAnnounce)
+void UDPClient::dataTransmission(bool isAnnounce)
 {
     m_isAnnounce = isAnnounce;
 
@@ -75,6 +75,11 @@ void UDPClient::dataTransmission(trackerUrl& parsedUrl, bool isAnnounce)
         boost::bind(&UDPClient::handleConnect, this,
             boost::asio::placeholders::error));
 
+    //restart io_context in case there have been previous run invocations
+    if (io_context.stopped())
+    {
+        io_context.restart();
+    }
     //run event processing loop (and block until work has finished/ been stopped)
     io_context.run();
 }
@@ -449,7 +454,7 @@ void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
         }
 
         //convert leechers bytes to int
-        for (size_t i = 12; i < 16; ++i)
+        for (size_t i = 16; i < 20; ++i)
         {
             leechers <<= 8;
             leechers |= recScrapeBuffer.at(i);
@@ -604,7 +609,7 @@ void UDPClient::handleAnnounceSend(const boost::system::error_code& error,
         //size initialised in constructor
         socket.async_receive(
             boost::asio::buffer(recAncBuffer, recScrapeBuffer.size()),
-            boost::bind(&UDPClient::handleScrapeReceive, this,
+            boost::bind(&UDPClient::handleAnnounceReceive, this,
                 boost::asio::placeholders::error,
                 boost::asio::placeholders::bytes_transferred));
     }
@@ -653,7 +658,7 @@ void UDPClient::handleAnnounceReceive(const boost::system::error_code& error,
     else
     {
         LOG_F(ERROR,
-            "Failed to receive UDP scrape response from tracker %s:%s! "
+            "Failed to receive UDP announce response from tracker %s:%s! "
             "Error msg: \"%s\".",
             peerHost.c_str(), peerPort.c_str(), error.message().c_str());
 
@@ -722,6 +727,12 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
         seeders <<= 8;
         seeders |= recAncBuffer.at(i);
     }
+
+    LOG_F(INFO, "Handled UDP scrape response from tracker %s:%hu; "
+        "Updated peer data.",
+        remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port());
+
+    LOG_F(INFO, "seeders: %d, leechers: %d", seeders, leechers);
 
     //convert ip address bytes to int
     std::vector<byte> peerInfo(recAncBuffer.begin() + 20,

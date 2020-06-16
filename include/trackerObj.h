@@ -7,53 +7,56 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/buffers_iterator.hpp>
 #include <boost/signals2.hpp>
-#include <memory>
 
 #include "UDPClient.h"
 #include "HTTPClient.h"
 #include "ValueTypes.h"
 
+#include <memory>
 #include <string>
 
 
 namespace Bittorrent
 {
-	using tcp = boost::asio::ip::tcp;
-	namespace http = boost::beast::http;
+    using tcp = boost::asio::ip::tcp;
+    namespace http = boost::beast::http;
 
-	class trackerObj
-	{
-	public:
-		std::string trackerAddress;
-		//current state of client
-		enum class trackerEvent
-		{
-			started = 1,
-			paused,
-			stopped
-		};
+    class trackerObj
+    {
+    public:
+        std::string trackerAddress;
+        //current state of client
+        enum class trackerEvent
+        {
+            started = 1,
+            paused,
+            stopped
+        };
 
-		boost::posix_time::ptime lastPeerRequest;
-		boost::posix_time::seconds peerRequestInterval;
+        boost::posix_time::ptime lastPeerRequest;
+        boost::posix_time::seconds peerRequestInterval;
 
-		//udp scrape data
-		int seeders;
-		int leechers;
-		int complete;
-		int incomplete;
+        //udp scrape data
+        int seeders;
+        int leechers;
+        int complete;
+        int incomplete;
 
-		//need shared ptr to signal so it can be copyable/movable
-		using sigPeer = boost::signals2::signal<void(std::vector<peer>)>;
-		std::shared_ptr<sigPeer> peerListUpdated;
+        //peer list
+        std::vector<peer> peerList;
 
-		void update(trackerEvent trkEvent, std::vector<byte> clientID,
-			int port, std::string urlEncodedInfoHash, std::vector<byte> infoHash,
-			long long uploaded, long long downloaded, long long remaining);
+        //need shared ptr to signal so it can be copyable/movable
+        using sigPeer = boost::signals2::signal<void(std::vector<peer>)>;
+        std::shared_ptr<sigPeer> peerListUpdated;
 
-		void resetLastRequest();
+        void update(trackerEvent trkEvent, std::vector<byte> clientID,
+            int port, std::string urlEncodedInfoHash, std::vector<byte> infoHash,
+            long long uploaded, long long downloaded, long long remaining);
 
-		//default constructor
-		trackerObj();
-	};
+        void resetLastRequest();
+
+        //default constructor
+        trackerObj();
+    };
 }
 
