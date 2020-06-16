@@ -85,8 +85,6 @@ namespace Bittorrent
                 complete = httpAnnounce.complete;
                 incomplete = httpAnnounce.incomplete;
 
-                LOG_F(INFO, "Complete: %d", complete);
-                LOG_F(INFO, "incomplete: %d", incomplete);
                 //call signal to fire peerListUpdated event
                 //not thread safe?
                 (*peerListUpdated)(httpAnnounce.peerList);

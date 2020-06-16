@@ -43,10 +43,6 @@ void UDPClient::run(std::chrono::steady_clock::duration timeout)
     //restart io_context in case there have been previous run invocations
     io_context.restart();
 
-    // Block until the asynchronous operation has completed, or timed out. If
-    // the pending asynchronous operation is a composed operation, the deadline
-    // applies to the entire operation, rather than individual operations on
-    // the socket.
     io_context.run_for(timeout);
 
     //If not stopped, then the io_context::run_for call must have timed out.
@@ -57,9 +53,6 @@ void UDPClient::run(std::chrono::steady_clock::duration timeout)
 
         // Close the socket to cancel the outstanding asynchronous operation.
         socket.close();
-
-        // Run the io_context again until the operation completes.
-        //io_context.run();
     }
 }
 
@@ -90,17 +83,9 @@ void UDPClient::dataTransmission(bool isAnnounce)
         boost::bind(&UDPClient::handleConnect, this,
             boost::asio::placeholders::error));
 
+    //set 10 second total deadline timer for all asynchronous operations
     run(std::chrono::seconds(10));
-
-    ////restart io_context in case there have been previous run invocations
-    //if (io_context.stopped())
-    //{
-    //	io_context.restart();
-    //}
-    ////run event processing loop (and block until work has finished/ been stopped)
-    //io_context.run();
 }
-
 
 //establish connection acccording to Bittorrent spec after establishing
 //basic network connection
@@ -177,12 +162,13 @@ void UDPClient::handleConnectSend(const boost::system::error_code& error,
     if (!error)
     {
         LOG_F(INFO, "Sent UDP connect request from %s:%hu to tracker %s:%hu "
-            "(%s:%s); Status: %s; Sent bytes: %zu; Sent payload (hex): %s.",
+            "(%s:%s); Status: %s; Sent bytes: %d; Sent payload (hex): %s.",
             socket.local_endpoint().address().to_string().c_str(),
             socket.local_endpoint().port(),
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str(),
-            error.message().c_str(), bytesTransferred, logBuffer.c_str());
+            error.message().c_str(), static_cast<int>(bytesTransferred),
+              logBuffer.c_str());
 
         socket.async_receive(
             boost::asio::buffer(recConnBuffer, recConnBuffer.size()),
@@ -210,10 +196,11 @@ void UDPClient::handleConnectReceive(const boost::system::error_code& error,
         logBuffer = toHex(recConnBuffer);
 
         LOG_F(INFO, "Received UDP connect response from tracker %s:%hu (%s:%s); "
-            "Status: %s; Received bytes: %zu; Received payload (hex): %s.",
+            "Status: %s; Received bytes: %d; Received payload (hex): %s.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str(),
-            error.message().c_str(), bytesTransferred, logBuffer.c_str());
+            error.message().c_str(), static_cast<int>(bytesTransferred),
+              logBuffer.c_str());
 
         //update relevant timekeeping
         connIDReceivedTime = boost::posix_time::second_clock::local_time();
@@ -364,12 +351,13 @@ void UDPClient::handleScrapeSend(const boost::system::error_code& error,
     if (!error)
     {
         LOG_F(INFO, "Sent UDP scrape request from %s:%hu to tracker %s:%hu "
-            "(%s:%s); Status: %s; Sent bytes: %zu; Sent payload (hex): %s.",
+            "(%s:%s); Status: %s; Sent bytes: %d; Sent payload (hex): %s.",
             socket.local_endpoint().address().to_string().c_str(),
             socket.local_endpoint().port(),
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str(),
-            error.message().c_str(), bytesTransferred, logBuffer.c_str());
+            error.message().c_str(), static_cast<int>(bytesTransferred),
+              logBuffer.c_str());
 
         socket.async_receive(
             boost::asio::buffer(recScrapeBuffer, recScrapeBuffer.size()),
@@ -403,10 +391,11 @@ void UDPClient::handleScrapeReceive(const boost::system::error_code& error,
         logBuffer = toHex(recScrapeBuffer);
 
         LOG_F(INFO, "Received UDP scrape response from tracker %s:%hu (%s:%s); "
-            "Status: %s; Received bytes: %zu; Received payload (hex): %s.",
+            "Status: %s; Received bytes: %d; Received payload (hex): %s.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str(),
-            error.message().c_str(), bytesTransferred, logBuffer.c_str());
+            error.message().c_str(), static_cast<int>(bytesTransferred),
+              logBuffer.c_str());
 
         //update relevant timekeeping
         connIDReceivedTime = boost::posix_time::second_clock::local_time();
@@ -628,12 +617,13 @@ void UDPClient::handleAnnounceSend(const boost::system::error_code& error,
     if (!error)
     {
         LOG_F(INFO, "Sent UDP announce request from %s:%hu to tracker %s:%hu "
-            "(%s:%s); Status: %s; Sent bytes: %zu; Sent payload (hex): %s.",
+            "(%s:%s); Status: %s; Sent bytes: %d; Sent payload (hex): %s.",
             socket.local_endpoint().address().to_string().c_str(),
             socket.local_endpoint().port(),
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str(),
-            error.message().c_str(), bytesTransferred, logBuffer.c_str());
+            error.message().c_str(), static_cast<int>(bytesTransferred),
+              logBuffer.c_str());
 
         //set max peers for this client to 50 - more than enough
         //(6 bytes * 50 = 300) + 20 for other info = 320 bytes max
@@ -670,10 +660,11 @@ void UDPClient::handleAnnounceReceive(const boost::system::error_code& error,
         logBuffer = toHex(recAncBuffer);
 
         LOG_F(INFO, "Received UDP announce response from tracker %s:%hu (%s:%s); "
-            "Status: %s; Received bytes: %zu; Received payload (hex): %s.",
+            "Status: %s; Received bytes: %d; Received payload (hex): %s.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str(),
-            error.message().c_str(), bytesTransferred, logBuffer.c_str());
+            error.message().c_str(), static_cast<int>(bytesTransferred),
+              logBuffer.c_str());
 
         //update relevant timekeeping
         lastRequestTime = boost::posix_time::second_clock::local_time();
