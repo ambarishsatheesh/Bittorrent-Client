@@ -31,7 +31,7 @@ HTTPClient::HTTPClient(trackerUrl& parsedUrl, bool isAnnounce)
 
 HTTPClient::~HTTPClient()
 {
-    socket.close();
+    close();
 }
 
 void HTTPClient::close()
@@ -56,6 +56,12 @@ void HTTPClient::close()
 
 void HTTPClient::dataTransmission(bool isAnnounce)
 {
+    //assign new empty http::response for next request (asio methods are additive)
+    http::response<http::dynamic_body> res2;
+    res = res2;
+
+    m_isAnnounce = isAnnounce;
+
     tcp::resolver resolver{ io_context };
     auto results = resolver.resolve(peerHost, peerPort);
 
@@ -64,6 +70,11 @@ void HTTPClient::dataTransmission(bool isAnnounce)
         boost::bind(&HTTPClient::handleConnect, this,
             boost::asio::placeholders::error));
 
+    //restart io_context in case there have been previous run invocations
+    if (io_context.stopped())
+    {
+        io_context.restart();
+    }
     //run event processing loop (and block until work has finished/ been stopped)
     io_context.run();
 }
@@ -108,7 +119,6 @@ void HTTPClient::handleConnect(const boost::system::error_code& error)
                 LOG_F(INFO, "Starting HTTP announce request...");
 
                 announceRequest();
-                close();
             }
         }
     }
@@ -258,7 +268,7 @@ void HTTPClient::handleScrapeResp()
         }
 
         complete = static_cast<int>(boost::get<long long>(hash.at("complete")));
-        incomplete = static_cast<int>(boost::get<long long>(hash.at("complete")));
+        incomplete = static_cast<int>(boost::get<long long>(hash.at("incomplete")));
 
         LOG_F(INFO,
             "Updated peer info using tracker (%s:%hu) scrape response!",
