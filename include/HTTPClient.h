@@ -66,6 +66,7 @@ namespace Bittorrent
         void handleScrapeResp();
         void handleAnnounceResp();
 
+        void run(std::chrono::steady_clock::duration timeout);
     };
 
 

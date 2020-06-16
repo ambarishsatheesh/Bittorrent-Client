@@ -101,5 +101,7 @@ namespace Bittorrent
         void announceRequest();
 
         void close();
+
+        void run(std::chrono::steady_clock::duration timeout);
     };
 }

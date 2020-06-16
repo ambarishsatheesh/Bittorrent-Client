@@ -16,17 +16,34 @@ using namespace utility;
 HTTPClient::HTTPClient(trackerUrl& parsedUrl, bool isAnnounce)
     : peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port },
     target{ parsedUrl.target }, version{ 10 }, m_isAnnounce{ isAnnounce },
-    peerRequestInterval{ 0 },
-    complete{ 0 }, incomplete{ 0 }, io_context(), resolver( io_context ),
-    socket( io_context ), remoteEndpoint()
+    peerRequestInterval{ 0 }, complete{ 0 }, incomplete{ 0 },
+    io_context(), resolver( io_context ), socket( io_context ), remoteEndpoint()
 {
     LOG_F(INFO, "Resolving HTTP tracker (%s:%s)...",
         peerHost.c_str(), peerPort.c_str());
 
-    //socket.close();
-    //socket.open(tcp::v4());
-
     dataTransmission(isAnnounce);
+}
+
+void HTTPClient::run(std::chrono::steady_clock::duration timeout)
+{
+    //restart io_context in case there have been previous run invocations
+    io_context.restart();
+
+    io_context.run_for(timeout);
+
+    //If not stopped, then the io_context::run_for call must have timed out.
+    if (!io_context.stopped())
+    {
+        LOG_F(ERROR, "Asynchronous operation timed out! (Tracker %s:%s).",
+            peerHost.c_str(), peerPort.c_str());
+
+        // Close the socket to cancel the outstanding asynchronous operation.
+        socket.close();
+
+        // Run the io_context again until the operation completes.
+        //io_context.run();
+    }
 }
 
 HTTPClient::~HTTPClient()
@@ -36,17 +53,6 @@ HTTPClient::~HTTPClient()
 
 void HTTPClient::close()
 {
-    boost::system::error_code ec;
-    socket.shutdown(udp::socket::shutdown_both, ec);
-
-    if (ec && ec != boost::system::errc::not_connected)
-    {
-        LOG_F(ERROR, "Error shutting down socket: %s.",
-            ec.message().c_str());
-
-        return;
-    }
-
     socket.close();
 
     LOG_F(INFO,
@@ -70,13 +76,15 @@ void HTTPClient::dataTransmission(bool isAnnounce)
         boost::bind(&HTTPClient::handleConnect, this,
             boost::asio::placeholders::error));
 
-    //restart io_context in case there have been previous run invocations
-    if (io_context.stopped())
-    {
-        io_context.restart();
-    }
-    //run event processing loop (and block until work has finished/ been stopped)
-    io_context.run();
+    run(std::chrono::seconds(10));
+
+    ////restart io_context in case there have been previous run invocations
+    //if (io_context.stopped())
+    //{
+    //	io_context.restart();
+    //}
+    ////run event processing loop (and block until work has finished/ been stopped)
+    //io_context.run();
 }
 
 void HTTPClient::handleConnect(const boost::system::error_code& error)
@@ -259,21 +267,43 @@ void HTTPClient::handleScrapeResp()
     }
     else
     {
-        valueDictionary files = boost::get<valueDictionary>(info.at("files"));
-        valueDictionary hash;
-        for (valueDictionary::iterator it = files.begin(); it != files.end();
-            ++it)
+        if (info.count("files") )
         {
-            hash = boost::get<valueDictionary>(it->second);
+            valueDictionary files = boost::get<valueDictionary>(info.at("files"));
+            valueDictionary hash;
+            for (valueDictionary::iterator it = files.begin(); it != files.end();
+                    ++it)
+            {
+                hash = boost::get<valueDictionary>(it->second);
+            }
+
+            if (hash.count("complete") && hash.count("incomplete"))
+            {
+                complete = static_cast<int>(boost::get<long long>(
+                    hash.at("complete")));
+                incomplete = static_cast<int>(boost::get<long long>(
+                    hash.at("incomplete")));
+
+                LOG_F(ERROR,
+                    "Updated peer info using tracker (%s:%hu - %s%s) scrape response!",
+                    remoteEndpoint.address().to_string().c_str(),
+                    remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
+            }
+            else
+            {
+                LOG_F(ERROR,
+                    "Invalid scrape response from tracker %s:%hu (%s:%s)",
+                    remoteEndpoint.address().to_string().c_str(),
+                    remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
+            }
         }
-
-        complete = static_cast<int>(boost::get<long long>(hash.at("complete")));
-        incomplete = static_cast<int>(boost::get<long long>(hash.at("incomplete")));
-
-        LOG_F(INFO,
-            "Updated peer info using tracker (%s:%hu) scrape response!",
-            remoteEndpoint.address().to_string().c_str(),
-            remoteEndpoint.port());
+        else
+        {
+            LOG_F(ERROR,
+                "Invalid scrape response from tracker %s:%hu (%s:%s)",
+                remoteEndpoint.address().to_string().c_str(),
+                remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
+        }
     }
 }
 
@@ -422,6 +452,7 @@ void HTTPClient::handleAnnounceResp()
         }
         else
         {
+
             //compact version is a string of (multiple) 6 bytes
             //first 4 are IP address, last 2 are port number in network notation
             if (info.at("peers").type() == typeid(std::string))
