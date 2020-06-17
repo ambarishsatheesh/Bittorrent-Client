@@ -17,7 +17,7 @@ int TorrentTableModel::rowCount(const QModelIndex &parent) const
 {
     return parent.isValid() ?
                 0 : ioClientModel->
-                WorkingTorrentList.torrentList.size();
+                WorkingTorrents.torrentList.size();
 }
 
 int TorrentTableModel::columnCount(const QModelIndex &parent) const
@@ -33,7 +33,7 @@ QVariant TorrentTableModel::data(const QModelIndex &index, int role) const
     }
 
     if (index.row() >=
-            ioClientModel->WorkingTorrentList.torrentList.size() ||
+            ioClientModel->WorkingTorrents.torrentList.size() ||
             index.row() < 0)
     {
         return QVariant();
@@ -108,14 +108,14 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
 {
     using namespace utility;
 
-    auto entry = ioClientModel->WorkingTorrentList.torrentList.at(index.row());
+    auto entry = ioClientModel->WorkingTorrents.torrentList.at(index.row());
 
     switch (index.column())
     {
     //Added on
     case 0:
             return ioClientModel->
-                    WorkingTorrentList.addedOnList.at(index.row());
+                    WorkingTorrents.addedOnList.at(index.row());
     //Priority
     case 1:
         //implement priority properly
@@ -195,11 +195,11 @@ void TorrentTableModel::addNewTorrent(const std::string& fileName, const std::st
 {
     //get last row
     const int newRow =
-            ioClientModel->WorkingTorrentList.torrentList.size();
+            ioClientModel->WorkingTorrents.torrentList.size();
 
     //duplicate torrent validation (returns torrent name if duplicate)
     auto duplicateName = QString::fromStdString(ioClientModel->
-                           WorkingTorrentList.isDuplicateTorrent(
+                           WorkingTorrents.isDuplicateTorrent(
                                fileName, buffer));
 
     if (duplicateName.isEmpty())
@@ -208,12 +208,12 @@ void TorrentTableModel::addNewTorrent(const std::string& fileName, const std::st
         beginInsertRows(QModelIndex(), newRow, newRow);
 
         ioClientModel->
-                    WorkingTorrentList.addNewTorrent(fileName, buffer);
+                    WorkingTorrents.addNewTorrent(fileName, buffer);
 
         endInsertRows();
 
         LOG_F(INFO, "Added torrent \"%s\".",
-              ioClientModel->WorkingTorrentList.torrentList.at(newRow)->
+              ioClientModel->WorkingTorrents.torrentList.at(newRow)->
               generalData.fileName.c_str());
     }
     else
@@ -230,13 +230,13 @@ void TorrentTableModel::addNewTorrent(const std::string& fileName, const std::st
 void TorrentTableModel::removeTorrent(int position)
 {
     auto deletedTorName =
-            ioClientModel->WorkingTorrentList.torrentList.at(position)->
+            ioClientModel->WorkingTorrents.torrentList.at(position)->
             generalData.fileName;
 
     beginRemoveRows(QModelIndex(), position, position);
 
     ioClientModel->
-            WorkingTorrentList.removeTorrent(position);
+            WorkingTorrents.removeTorrent(position);
 
     endRemoveRows();
 

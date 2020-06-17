@@ -12,7 +12,7 @@
 
 namespace Bittorrent
 {
-    class WorkingTorrentList
+    class WorkingTorrents
     {
     public:
         //time the torrent was added (string format)
@@ -31,7 +31,7 @@ namespace Bittorrent
 
         void run();
 
-        WorkingTorrentList();
+        WorkingTorrents();
 
     };
 }

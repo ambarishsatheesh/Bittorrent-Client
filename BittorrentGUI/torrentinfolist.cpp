@@ -23,7 +23,7 @@ int TorrentInfoList::rowCount(const QModelIndex &parent) const
     }
 
     //return number of unique trackers
-    return ioClient->WorkingTorrentList.infoTrackerMap.size();
+    return ioClient->WorkingTorrents.infoTrackerMap.size();
 }
 
 QVariant TorrentInfoList::data(const QModelIndex &index,
@@ -35,7 +35,7 @@ QVariant TorrentInfoList::data(const QModelIndex &index,
     }
 
     if (index.row() >= ioClient->
-            WorkingTorrentList.infoTrackerMap.size() ||
+            WorkingTorrents.infoTrackerMap.size() ||
             index.row() < 0)
     {
         return QVariant();
@@ -43,10 +43,10 @@ QVariant TorrentInfoList::data(const QModelIndex &index,
 
     //use list of keys from map
     auto trackerAdd = ioClient->
-            WorkingTorrentList.infoTrackerMap.keys().at(index.row());
+            WorkingTorrents.infoTrackerMap.keys().at(index.row());
 
     return trackerAdd + " (" + QString::number(ioClient->
-                WorkingTorrentList.infoTrackerMap[trackerAdd]) + ")";
+                WorkingTorrents.infoTrackerMap[trackerAdd]) + ")";
 }
 
 void TorrentInfoList::update()

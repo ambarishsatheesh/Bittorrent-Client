@@ -33,7 +33,8 @@ SOURCES += \
     ../src/tokenizer.cpp \
     ../src/trackerObj.cpp \
     ../src/trackerUrl.cpp \
-    ../src/workingTorrentList.cpp \
+    ../src/WorkingTorrents.cpp \
+    ../src/workingTorrents.cpp \
     createtorrent.cpp \
     generalinfomodel.cpp \
     main.cpp \
@@ -66,7 +67,8 @@ HEADERS += \
     ../include/sha1.h \
     ../include/trackerObj.h \
     ../include/trackerUrl.h \
-    ../include/workingTorrentList.h \
+    ../include/WorkingTorrents.h \
+    ../include/workingTorrents.h \
     createtorrent.h \
     generalinfomodel.h \
     mainwindow.h \
