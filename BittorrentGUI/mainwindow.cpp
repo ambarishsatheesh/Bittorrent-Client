@@ -334,7 +334,7 @@ void MainWindow::trackerListItemSelected(const QModelIndex& index)
     {
         //store infoHashes of torrents associated with selected tracker
         //so that they can be used to filter torrent table rows
-        auto torList = ioClient->workingTorrentList;
+        auto torList = ioClient->WorkingTorrentList;
         auto trackerAdd = torList.trackerTorrentMap.keys().at(index.row());
         auto infoHashes = torList.trackerTorrentMap.value(trackerAdd);
         for (auto str : infoHashes)
@@ -348,7 +348,7 @@ void MainWindow::trackerListItemSelected(const QModelIndex& index)
         proxyModel->setFilterRegExp(QRegExp(""));
     }
 
-    for (auto i : ioClient->workingTorrentList.trackerTorrentMap.value(ioClient->workingTorrentList.trackerTorrentMap.keys().at(index.row())))
+    for (auto i : ioClient->WorkingTorrentList.trackerTorrentMap.value(ioClient->WorkingTorrentList.trackerTorrentMap.keys().at(index.row())))
     {
         LOG_F(INFO, "torrent: %s", i.toStdString().c_str());
     }
@@ -521,7 +521,7 @@ void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
 
     using defVec = std::vector<trackerObj>;
     auto ptr_trackerList = std::make_unique<defVec>(
-                ioClient->workingTorrentList.torrentList.back()->
+                ioClient->WorkingTorrentList.torrentList.back()->
                 generalData.trackerList);
     QPointer<TrackerTableModel> trackerModel =
             new TrackerTableModel(std::move(ptr_trackerList), this);

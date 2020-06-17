@@ -12,7 +12,7 @@
 
 namespace Bittorrent
 {
-    class workingTorrentList
+    class WorkingTorrentList
     {
     public:
         //time the torrent was added (string format)
@@ -29,7 +29,9 @@ namespace Bittorrent
         void addNewTorrent(const std::string& fileName, const std::string& buffer);
         void removeTorrent(int position);
 
-        workingTorrentList();
+        void run();
+
+        WorkingTorrentList();
 
     };
 }

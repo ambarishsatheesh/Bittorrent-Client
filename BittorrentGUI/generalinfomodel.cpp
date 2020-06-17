@@ -19,7 +19,7 @@ generalInfoModel::generalInfoModel(Client* client, QPointer<QObject> parent)
 //int generalInfoModel::rowCount(const QModelIndex &parent) const
 //{
 //    return parent.isValid() ?
-//                0 : ioClient->workingTorrentList.torrentList.size();
+//                0 : ioClient->WorkingTorrentList.torrentList.size();
 //}
 
 //int generalInfoModel::columnCount(const QModelIndex &parent) const
@@ -34,7 +34,7 @@ generalInfoModel::generalInfoModel(Client* client, QPointer<QObject> parent)
 //        return QVariant();
 //    }
 
-//    if (index.row() >= ioClient->workingTorrentList.torrentList.size() ||
+//    if (index.row() >= ioClient->WorkingTorrentList.torrentList.size() ||
 //            index.row() < 0)
 //    {
 //        return QVariant();
@@ -88,7 +88,7 @@ int generalInfoModel::rowCount(const QModelIndex &parent) const
 {
     return parent.isValid() ?
                 0 : ioClient->
-                workingTorrentList.torrentList.size();
+                WorkingTorrentList.torrentList.size();
 }
 
 int generalInfoModel::columnCount(const QModelIndex &parent) const
@@ -114,7 +114,7 @@ QVariant generalInfoModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    if (index.row() >= ioClient->workingTorrentList.torrentList.size() ||
+    if (index.row() >= ioClient->WorkingTorrentList.torrentList.size() ||
             index.row() < 0)
     {
         return QVariant();
@@ -125,7 +125,7 @@ QVariant generalInfoModel::data(const QModelIndex &index, int role) const
 
 QVariant generalInfoModel::generateData(const QModelIndex &index) const
 {
-    auto entry = ioClient->workingTorrentList.torrentList.at(index.row());
+    auto entry = ioClient->WorkingTorrentList.torrentList.at(index.row());
 
     //order of columns is arbitrary since this is not for a table
     switch (index.column())
@@ -140,7 +140,7 @@ QVariant generalInfoModel::generateData(const QModelIndex &index) const
     }
     //Added On
     case 1:
-        return ioClient->workingTorrentList.addedOnList.at(index.row());
+        return ioClient->WorkingTorrentList.addedOnList.at(index.row());
     //Created On
     case 2:
         //convert ptime to required string format

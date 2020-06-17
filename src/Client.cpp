@@ -51,7 +51,7 @@ namespace Bittorrent
             //{
                 //create new peer instance
                 auto peerConn = 
-                    std::make_shared<Peer>(workingTorrentList.torrentList[0], localID, io_context);   //temp vector element used, needs to be corrected later
+                    std::make_shared<Peer>(WorkingTorrentList.torrentList[0], localID, io_context);   //temp vector element used, needs to be corrected later
 
                 peerConn->startNew(peer.ipAddress, peer.port);
 
@@ -79,7 +79,7 @@ namespace Bittorrent
                 {
                     //if (!tryAddtoDict socket.endpoint)
                     //{
-                        std::make_shared<Peer>(workingTorrentList.torrentList[0], localID, acc_io_context,
+                        std::make_shared<Peer>(WorkingTorrentList.torrentList[0], localID, acc_io_context,
                             std::move(socket));   //temp vector element used, needs to be corrected later
                     //}
                     //else

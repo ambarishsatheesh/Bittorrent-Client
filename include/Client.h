@@ -3,7 +3,7 @@
 #include "Peer.h"
 #include "Torrent.h"
 #include "ValueTypes.h"
-#include "workingTorrentList.h"
+#include "WorkingTorrentList.h"
 
 #include <boost/asio.hpp>
 
@@ -14,7 +14,7 @@ namespace Bittorrent
 	public:
 		//port to use for listening on tcp
 		int port;
-        workingTorrentList workingTorrentList;
+        WorkingTorrentList WorkingTorrentList;
 		std::vector<byte> localID;
 
 		//context and acceptor for accepting peer connections

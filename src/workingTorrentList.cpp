@@ -1,4 +1,4 @@
-#include "workingTorrentList.h"
+#include "WorkingTorrentList.h"
 #include "Decoder.h"
 #include "TorrentManipulation.h"
 #include "loguru.h"
@@ -9,11 +9,11 @@ namespace Bittorrent
 {
     using namespace torrentManipulation;
 
-    workingTorrentList::workingTorrentList()
+    WorkingTorrentList::WorkingTorrentList()
     {
     }
 
-    std::string workingTorrentList::isDuplicateTorrent(const std::string& fileName,
+    std::string WorkingTorrentList::isDuplicateTorrent(const std::string& fileName,
                                                 const std::string& buffer)
     {
         valueDictionary decodedTorrent =
@@ -35,7 +35,7 @@ namespace Bittorrent
     }
 
 
-    void workingTorrentList::addNewTorrent(const std::string& fileName,
+    void WorkingTorrentList::addNewTorrent(const std::string& fileName,
                                           const std::string& buffer)
     {
         valueDictionary decodedTorrent =
@@ -98,7 +98,7 @@ namespace Bittorrent
               loadedTorrent.generalData.fileName.c_str());
     }
 
-    void workingTorrentList::removeTorrent(int position)
+    void WorkingTorrentList::removeTorrent(int position)
     {
         for (auto trackers : torrentList.at(position)->
              generalData.trackerList)

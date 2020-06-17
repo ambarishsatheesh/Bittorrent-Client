@@ -20,7 +20,7 @@ bool TorrentSortFilterProxyModel::filterAcceptsRow(
         for (auto infoHash : infoHashList)
         {
             if (infoHash.toStdString() == ioClientModel->
-                    workingTorrentList.torrentList.at(sourceRow)->
+                    WorkingTorrentList.torrentList.at(sourceRow)->
                     hashesData.hexStringInfoHash)
             {
                 return true;
