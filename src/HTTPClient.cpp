@@ -425,7 +425,7 @@ void HTTPClient::handleAnnounceResp()
     }
 
     peerRequestInterval =
-        boost::posix_time::seconds(static_cast<int>(boost::get<long long>(
+        std::chrono::seconds(static_cast<int>(boost::get<long long>(
             info.at("interval"))));
 
     if (info.count("failure reason"))

@@ -14,6 +14,7 @@
 #include "TorrentStatus.h"
 
 #include <memory>
+#include <chrono>
 #include <string>
 
 
@@ -26,8 +27,8 @@ namespace Bittorrent
     {
     public:
         std::string trackerAddress;
-        boost::posix_time::ptime lastPeerRequest;
-        boost::posix_time::seconds peerRequestInterval;
+        std::chrono::high_resolution_clock::time_point lastPeerRequest;
+        std::chrono::seconds peerRequestInterval;
 
         //udp scrape data
         int seeders;

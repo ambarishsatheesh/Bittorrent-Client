@@ -26,7 +26,7 @@ namespace Bittorrent
         bool m_isAnnounce;
 
         //response data
-        boost::posix_time::seconds peerRequestInterval;
+        std::chrono::seconds peerRequestInterval;
         int complete;
         int incomplete;
         std::vector<peer> peerList;

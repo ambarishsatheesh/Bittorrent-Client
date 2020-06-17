@@ -30,6 +30,7 @@ SOURCES += \
     ../src/encodeVisitor.cpp \
     ../src/loguru.cpp \
     ../src/sha1.cpp \
+    ../src/timer.cpp \
     ../src/tokenizer.cpp \
     ../src/trackerObj.cpp \
     ../src/trackerUrl.cpp \
@@ -64,6 +65,7 @@ HEADERS += \
     ../include/fileObj.h \
     ../include/loguru.h \
     ../include/sha1.h \
+    ../include/timer.h \
     ../include/trackerObj.h \
     ../include/trackerUrl.h \
     ../include/workingTorrents.h \

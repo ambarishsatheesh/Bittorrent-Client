@@ -743,7 +743,7 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
         intInterval <<= 8;
         intInterval |= recAncBuffer.at(i);
     }
-    peerRequestInterval = boost::posix_time::seconds(intInterval);
+    peerRequestInterval = std::chrono::seconds(intInterval);
 
     //convert leechers bytes to int
     for (size_t i = 12; i < 16; ++i)

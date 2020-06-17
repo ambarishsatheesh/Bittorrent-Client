@@ -20,7 +20,7 @@ namespace Bittorrent
         boost::posix_time::ptime lastRequestTime;
 
         //announce response data
-        boost::posix_time::seconds peerRequestInterval;
+        std::chrono::seconds peerRequestInterval;
         int leechers;
         int seeders;
         int completed;

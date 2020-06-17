@@ -10,7 +10,7 @@ namespace Bittorrent
 
     trackerObj::trackerObj()
         : trackerAddress{ "" },
-        lastPeerRequest{ boost::posix_time::min_date_time },
+        lastPeerRequest{ std::chrono::high_resolution_clock::time_point::min()},
         peerRequestInterval{ 1800 }, seeders(std::numeric_limits<int>::min()),
         leechers(std::numeric_limits<int>::min()),
         complete{ std::numeric_limits<int>::min() },
@@ -56,7 +56,7 @@ namespace Bittorrent
 
         //only requesting new peers if request interval has passed
         if (currentState == TorrentStatus::currentStatus::started &&
-            boost::posix_time::second_clock::local_time() <
+            std::chrono::high_resolution_clock::now() <
             (lastPeerRequest + peerRequestInterval))
         {
             return;
@@ -170,7 +170,7 @@ namespace Bittorrent
         }
 
         //update request time
-        lastPeerRequest = boost::posix_time::second_clock::local_time();
+        lastPeerRequest = std::chrono::high_resolution_clock::now();
 
         std::cout << "\n" << "Received peer information from " << trackerAddress << "\n";
         std::cout << "Peer count:  " << peerList.size() << "\n";
@@ -184,7 +184,7 @@ namespace Bittorrent
 
     void trackerObj::resetLastRequest()
     {
-        lastPeerRequest = boost::posix_time::ptime(
-            boost::posix_time::min_date_time);
+        lastPeerRequest =
+        {std::chrono::high_resolution_clock::time_point::min()};
     }
 }
