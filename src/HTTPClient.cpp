@@ -279,7 +279,7 @@ void HTTPClient::handleScrapeResp()
                 incomplete = static_cast<int>(boost::get<long long>(
                     hash.at("incomplete")));
 
-                LOG_F(ERROR,
+                LOG_F(INFO,
                     "Updated peer info using tracker (%s:%hu - %s%s) scrape response!",
                     remoteEndpoint.address().to_string().c_str(),
                     remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
