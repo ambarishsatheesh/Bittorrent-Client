@@ -19,6 +19,7 @@ namespace Bittorrent
         std::vector<QString> addedOnList;
 
         std::vector<std::shared_ptr<Torrent>> torrentList;
+        std::vector<std::shared_ptr<Torrent>> runningTorrents;
 
         //unique trackers
         QMap<QString, int> infoTrackerMap;
@@ -29,6 +30,7 @@ namespace Bittorrent
         void addNewTorrent(const std::string& fileName, const std::string& buffer);
         void removeTorrent(int position);
 
+        void start(int position);
         void run();
 
         WorkingTorrents();

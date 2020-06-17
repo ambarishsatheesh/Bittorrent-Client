@@ -11,6 +11,7 @@
 #include "UDPClient.h"
 #include "HTTPClient.h"
 #include "ValueTypes.h"
+#include "TorrentStatus.h"
 
 #include <memory>
 #include <string>
@@ -25,14 +26,6 @@ namespace Bittorrent
     {
     public:
         std::string trackerAddress;
-        //current state of client
-        enum class trackerEvent
-        {
-            started = 1,
-            paused,
-            stopped
-        };
-
         boost::posix_time::ptime lastPeerRequest;
         boost::posix_time::seconds peerRequestInterval;
 
@@ -49,9 +42,11 @@ namespace Bittorrent
         using sigPeer = boost::signals2::signal<void(std::vector<peer>)>;
         std::shared_ptr<sigPeer> peerListUpdated;
 
-        void update(trackerEvent trkEvent, std::vector<byte> clientID,
-            int port, std::string urlEncodedInfoHash, std::vector<byte> infoHash,
-            long long uploaded, long long downloaded, long long remaining);
+        void update(TorrentStatus::currentStatus currentState,
+                    std::vector<byte> clientID, int port,
+                    std::string urlEncodedInfoHash, std::vector<byte> infoHash,
+                    long long uploaded, long long downloaded,
+                    long long remaining);
 
         void resetLastRequest();
 

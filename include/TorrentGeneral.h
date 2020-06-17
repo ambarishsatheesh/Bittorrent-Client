@@ -30,7 +30,7 @@ namespace Bittorrent
 		valueDictionary generalDataToDictionary(valueDictionary& dict);
 
 		//tracker processing
-		void updateTrackers(trackerObj::trackerEvent trkEvent, 
+        void updateTrackers(TorrentStatus::currentStatus currentState,
 			std::vector<byte> clientID,
 			int port, std::string urlEncodedInfoHash, std::vector<byte> infoHash,
 			long long uploaded, long long downloaded, long long remaining);

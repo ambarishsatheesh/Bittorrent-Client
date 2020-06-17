@@ -43,8 +43,7 @@ namespace Bittorrent
         Torrent loadedTorrent = toTorrentObj(
                     fileName.c_str(), decodedTorrent);
 
-        auto loadedTorrent_ptr = std::make_shared<Torrent>(loadedTorrent);
-        torrentList.push_back(loadedTorrent_ptr);
+        torrentList.push_back(std::make_shared<Torrent>(loadedTorrent));
 
         //get current time as appropriately formatted string
         addedOnList.push_back(
@@ -170,10 +169,20 @@ namespace Bittorrent
         addedOnList.erase(addedOnList.begin() + position);
     }
 
-    void run()
+    void WorkingTorrents::start(int position)
+    {
+        torrentList.at(position)->statusData.currentState =
+                TorrentStatus::currentStatus::started;
+
+    }
+
+    void WorkingTorrents::run()
     {
 
     }
+
+
+
 
 }
 

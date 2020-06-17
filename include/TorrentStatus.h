@@ -8,7 +8,15 @@ namespace Bittorrent
 	class TorrentStatus
 	{
 	public:
+        //current state of torrent
+        enum class currentStatus
+        {
+            started = 1,
+            paused,
+            stopped
+        };
 
+        currentStatus currentState;
 		std::vector<std::vector<bool>> isBlockAcquired;
 		std::vector<bool> isPieceVerified;
         std::shared_ptr<TorrentPieces> ptr_piecesData;

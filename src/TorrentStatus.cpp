@@ -3,12 +3,12 @@
 namespace Bittorrent
 {
     TorrentStatus::TorrentStatus(std::shared_ptr<TorrentPieces> pieces, const valueDictionary& torrent)
-        : ptr_piecesData(pieces)
+        : currentState{currentStatus::stopped}, ptr_piecesData(pieces)
 	{
 	}
 
     TorrentStatus::TorrentStatus(std::shared_ptr<TorrentPieces> pieces)
-        : ptr_piecesData(pieces)
+        : currentState{currentStatus::stopped}, ptr_piecesData(pieces)
 	{
 
 	}

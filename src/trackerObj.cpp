@@ -20,24 +20,24 @@ namespace Bittorrent
     }
 
     //create required url for GET request
-    void trackerObj::update(trackerEvent trkEvent, std::vector<byte> clientID,
+    void trackerObj::update(TorrentStatus::currentStatus currentState, std::vector<byte> clientID,
         int port, std::string urlEncodedInfoHash, std::vector<byte> infoHash,
         long long uploaded, long long downloaded, long long remaining)
     {
         //switch case to get enumerator string
         std::string stringEvent;
         int intEvent = 0;
-        switch (trkEvent)
+        switch (currentState)
         {
-        case trackerEvent::started:
+        case TorrentStatus::currentStatus::started:
                 stringEvent = "started";
                 intEvent = 1;
                 break;
-        case trackerEvent::paused:
+        case TorrentStatus::currentStatus::paused:
                 stringEvent = "paused";
                 intEvent = 2;
                 break;
-        case trackerEvent::stopped:
+        case TorrentStatus::currentStatus::stopped:
                 stringEvent = "stopped";
                 intEvent = 3;
                 break;
@@ -54,8 +54,8 @@ namespace Bittorrent
             std::to_string(downloaded) + "&left=" + std::to_string(remaining) +
             "&event=" + std::to_string(intEvent) + "&compact=1";
 
-        //wait until time interval has elapsed before requesting new peers
-        if (trkEvent == trackerObj::trackerEvent::started &&
+        //only requesting new peers if request interval has passed
+        if (currentState == TorrentStatus::currentStatus::started &&
             boost::posix_time::second_clock::local_time() <
             (lastPeerRequest + peerRequestInterval))
         {
