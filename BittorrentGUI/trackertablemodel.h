@@ -14,7 +14,7 @@
 namespace Bittorrent
 {
 
-using ptr_vec = std::unique_ptr<std::vector<trackerObj>>;
+using tracker_vec = std::unique_ptr<std::vector<trackerObj>>;
 
 
 class TrackerTableModel : public QAbstractTableModel
@@ -22,7 +22,7 @@ class TrackerTableModel : public QAbstractTableModel
     Q_OBJECT
 
 public:
-    TrackerTableModel(ptr_vec ptr_trackerList,
+    TrackerTableModel(tracker_vec ptr_trackerList,
                       QPointer<QObject> parent = 0);
 
     void populateData(const storedPrevTorrents storedTor);
@@ -45,7 +45,7 @@ signals:
 
 
 private:
-    ptr_vec trackerList;
+    tracker_vec trackerList;
 
 };
 
