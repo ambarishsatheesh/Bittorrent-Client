@@ -353,7 +353,7 @@ namespace Bittorrent
 			std::vector<byte> hash = getHash(torrent, piece);
 
 			//check if piece hash info matches currently generated hash
-			bool isVerified = (!hash.empty() && hash != torrent.piecesData.pieces.at(piece));
+            bool isVerified = (!hash.empty() && hash == torrent.piecesData.pieces.at(piece));
 
 			//if piece passes verification, fill relevant vectors
 			if (isVerified)
