@@ -4,7 +4,7 @@
 
 namespace Bittorrent
 {
-	Client::Client()
+    Client::Client()
         : port{ 0 }, localID(), acc_io_context(), 
         acceptor(acc_io_context, tcp::endpoint(tcp::v4(), port))
 	{
@@ -35,6 +35,8 @@ namespace Bittorrent
 
         auto clientLog = toHex(localID);
         LOG_F(INFO, "Client ID (hex): %s", clientLog.c_str());
+
+        WorkingTorrents.clientID = localID;
 	}
 
 	void Client::handlePeerListUpdated(std::vector<peer> peerList)
