@@ -38,6 +38,8 @@ void HTTPClient::run(std::chrono::steady_clock::duration timeout)
         LOG_F(ERROR, "Asynchronous operation timed out! (Tracker %s:%s).",
             peerHost.c_str(), peerPort.c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         // Close the socket to cancel the outstanding asynchronous operation.
         socket.close();
     }
@@ -125,6 +127,8 @@ void HTTPClient::handleConnect(const boost::system::error_code& error)
             "Failed to resolve HTTP tracker %s:%s! Error msg: \"%s\".",
             peerHost.c_str(), peerPort.c_str(), error.message().c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         close();
     }
 }
@@ -192,6 +196,8 @@ void HTTPClient::handleScrapeReceive(const boost::system::error_code& error,
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str(), error.message().c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         close();
     }
 }
@@ -217,6 +223,8 @@ void HTTPClient::handleScrapeResp()
             remoteEndpoint.address().to_string().c_str(),
             remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str(),
             result.c_str());
+
+        peerRequestInterval = std::chrono::seconds(1800);
 
         return;
     }
@@ -244,6 +252,9 @@ void HTTPClient::handleScrapeResp()
     if (info.empty())
     {
         LOG_F(ERROR, "Unable to decode tracker announce response!");
+
+        peerRequestInterval = std::chrono::seconds(1800);
+
         return;
     }
 
@@ -251,12 +262,14 @@ void HTTPClient::handleScrapeResp()
     {
         auto failReason = boost::get<std::string>(info.at("failure reason"));
 
-        LOG_F(INFO,
+        LOG_F(ERROR,
             "Tracker (%s:%hu - %s:%s) scrape response: "
             "Failure Reason %s.",
             remoteEndpoint.address().to_string().c_str(),
             remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str(),
             failReason.c_str());
+
+        peerRequestInterval = std::chrono::seconds(1800);
 
         return;
     }
@@ -264,6 +277,8 @@ void HTTPClient::handleScrapeResp()
     {
         if (info.count("files") )
         {
+            peerRequestInterval = std::chrono::seconds(1800);
+
             valueDictionary files = boost::get<valueDictionary>(info.at("files"));
             valueDictionary hash;
             for (valueDictionary::iterator it = files.begin(); it != files.end();
@@ -298,6 +313,8 @@ void HTTPClient::handleScrapeResp()
                 "Invalid scrape response from tracker %s:%hu (%s:%s)",
                 remoteEndpoint.address().to_string().c_str(),
                 remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
+
+            peerRequestInterval = std::chrono::seconds(1800);
         }
     }
 }
@@ -341,6 +358,8 @@ void HTTPClient::handleAnnounceSend(const boost::system::error_code& error)
             socket.local_endpoint().address().to_string().c_str(),
             socket.local_endpoint().port(), error.message().c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         close();
     }
 }
@@ -366,6 +385,8 @@ void HTTPClient::handleAnnounceReceive(const boost::system::error_code& error,
             "Error msg: \"%s\".",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str(), error.message().c_str());
+
+        peerRequestInterval = std::chrono::seconds(1800);
 
         close();
     }
@@ -394,6 +415,8 @@ void HTTPClient::handleAnnounceResp()
             remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str(),
             result.c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         return;
     }
 
@@ -421,12 +444,11 @@ void HTTPClient::handleAnnounceResp()
         LOG_F(ERROR, "Unable to decode tracker (%s:%hu - %s:%s) announce response!",
               remoteEndpoint.address().to_string().c_str(),
               remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
+
+        peerRequestInterval = std::chrono::seconds(1800);
+
         return;
     }
-
-    peerRequestInterval =
-        std::chrono::seconds(static_cast<int>(boost::get<long long>(
-            info.at("interval"))));
 
     if (info.count("failure reason"))
     {
@@ -439,10 +461,16 @@ void HTTPClient::handleAnnounceResp()
             remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str(),
             failReason.c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         return;
     }
     else
     {
+        peerRequestInterval =
+            std::chrono::seconds(static_cast<int>(boost::get<long long>(
+                info.at("interval"))));
+
         complete = static_cast<int>(
             boost::get<long long>(info.at("complete")));
         incomplete = static_cast<int>(

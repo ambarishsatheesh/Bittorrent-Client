@@ -51,6 +51,8 @@ void UDPClient::run(std::chrono::steady_clock::duration timeout)
         LOG_F(ERROR, "Asynchronous operation timed out! (Tracker %s:%s).",
             peerHost.c_str(), peerPort.c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         // Close the socket to cancel the outstanding asynchronous operation.
         socket.close();
     }
@@ -116,6 +118,8 @@ void UDPClient::handleConnect(const boost::system::error_code& error)
         LOG_F(ERROR,
             "Failed to resolve UDP tracker %s:%s! Error msg: \"%s\".",
             peerHost.c_str(), peerPort.c_str(), error.message().c_str());
+
+        peerRequestInterval = std::chrono::seconds(1800);
 
         close();
     }
@@ -184,6 +188,8 @@ void UDPClient::handleConnectSend(const boost::system::error_code& error,
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str(), error.message().c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         close();
     }
 }
@@ -224,6 +230,8 @@ void UDPClient::handleConnectReceive(const boost::system::error_code& error,
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str(), error.message().c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         close();
     }
 }
@@ -255,6 +263,8 @@ void UDPClient::handleConnectResp(const std::size_t& connBytesRec)
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         return;
     }
 
@@ -269,6 +279,8 @@ void UDPClient::handleConnectResp(const std::size_t& connBytesRec)
             "transaction ID! Tracker: %s:%hu (%s:%s).",
             remoteEndpoint.address().to_string().c_str(),
             remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
+
+        peerRequestInterval = std::chrono::seconds(1800);
 
         return;
     }
@@ -375,6 +387,8 @@ void UDPClient::handleScrapeSend(const boost::system::error_code& error,
             socket.local_endpoint().address().to_string().c_str(),
             socket.local_endpoint().port(), error.message().c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         close();
     }
 }
@@ -419,6 +433,8 @@ void UDPClient::handleScrapeReceive(const boost::system::error_code& error,
             peerHost.c_str(), peerPort.c_str(), error.message().c_str(),
             peerHost.c_str(), peerPort.c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         close();
     }
 }
@@ -434,6 +450,9 @@ void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
             "Tracker: %s:%hu (%s:%s).",
             remoteEndpoint.address().to_string().c_str(),
             remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
+
+        peerRequestInterval = std::chrono::seconds(1800);
+
         return;
     }
 
@@ -448,6 +467,9 @@ void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
             "transaction ID! Tracker: %s:%hu (%s:%s).",
             remoteEndpoint.address().to_string().c_str(),
             remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
+
+        peerRequestInterval = std::chrono::seconds(1800);
+
         return;
     }
 
@@ -478,6 +500,8 @@ void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
             leechers |= recScrapeBuffer.at(i);
         }
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         LOG_F(INFO, "Handled UDP scrape response from tracker %s:%hu (%s:%s); "
             "Updated peer data.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
@@ -496,6 +520,8 @@ void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str(),
             scrapeErrorMsg.c_str());
+
+        peerRequestInterval = std::chrono::seconds(1800);
     }
 }
 
@@ -644,6 +670,8 @@ void UDPClient::handleAnnounceSend(const boost::system::error_code& error,
             socket.local_endpoint().address().to_string().c_str(),
             socket.local_endpoint().port(), error.message().c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         close();
     }
 }
@@ -687,6 +715,8 @@ void UDPClient::handleAnnounceReceive(const boost::system::error_code& error,
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str(), error.message().c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         close();
     }
 }
@@ -703,6 +733,8 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         return;
     }
 
@@ -718,6 +750,8 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str());
 
+        peerRequestInterval = std::chrono::seconds(1800);
+
         return;
     }
 
@@ -732,6 +766,8 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
             "transaction ID! Tracker: %s:%hu (%s:%s).",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str());
+
+        peerRequestInterval = std::chrono::seconds(1800);
 
         return;
     }
@@ -758,11 +794,6 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
         seeders <<= 8;
         seeders |= recAncBuffer.at(i);
     }
-
-    LOG_F(INFO, "Handled UDP scrape response from tracker %s:%hu (%s:%s); "
-        "Updated peer data.",
-        remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
-        peerHost.c_str(), peerPort.c_str());
 
     //convert ip address bytes to int
     std::vector<byte> peerInfo(recAncBuffer.begin() + 20,

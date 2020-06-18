@@ -85,6 +85,8 @@ namespace Bittorrent
                 complete = httpAnnounce.complete;
                 incomplete = httpAnnounce.incomplete;
 
+                peerRequestInterval = httpAnnounce.peerRequestInterval;
+
                 //call signal to fire peerListUpdated event
                 //not thread safe?
                 (*peerListUpdated)(httpAnnounce.peerList);
@@ -110,6 +112,9 @@ namespace Bittorrent
                     httpGen.dataTransmission(1);
                     complete = httpGen.complete;
                     incomplete = httpGen.incomplete;
+
+                    peerRequestInterval = httpGen.peerRequestInterval;
+
                     //call signal to fire peerListUpdated event
                     //not thread safe?
                     (*peerListUpdated)(httpGen.peerList);
