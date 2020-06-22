@@ -81,6 +81,10 @@ private slots:
     void torrentSelected(const QItemSelection &selected,
                          const QItemSelection &deselected);
 
+    void on_actionResume_triggered();
+
+    void on_actionPause_triggered();
+
 private:
     Ui::MainWindow* ui;
     Ui::generalInfo* generalInfoTab;
@@ -162,6 +166,8 @@ private:
     //table main menu
     QPointer<QAction> a_addTorrent;
     QPointer<QAction> a_deleteTorrent;
+    QPointer<QAction> a_resumeTorrent;
+    QPointer<QAction> a_pauseTorrent;
 
     //Box
     QPointer<QVBoxLayout> trackerBox;

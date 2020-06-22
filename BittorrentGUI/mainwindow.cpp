@@ -11,6 +11,7 @@
 
 #include <QAbstractItemModelTester>
 #include <QMessageBox>
+#include <QtConcurrent>
 
 namespace Bittorrent
 {
@@ -395,6 +396,20 @@ void MainWindow::customTorrentSelectRequested(const QPoint& pos)
         {
             torrentTableMainMenuData = new QMenu(this);
 
+            a_resumeTorrent = new QAction("Resume", this);
+            connect(a_resumeTorrent, &QAction::triggered, this,
+                    &MainWindow::on_actionResume_triggered);
+            a_resumeTorrent->setIcon(QIcon(":/imgs/Icons/resume.png"));
+            torrentTableMainMenuData->addAction(a_resumeTorrent);
+
+            a_pauseTorrent = new QAction("Pause", this);
+            connect(a_pauseTorrent, &QAction::triggered, this,
+                    &MainWindow::on_actionPause_triggered);
+            a_pauseTorrent->setIcon(QIcon(":/imgs/Icons/pause.png"));
+            torrentTableMainMenuData->addAction(a_pauseTorrent);
+
+            torrentTableMainMenuData->addSeparator();
+
             a_deleteTorrent = new QAction("Delete", this);
             connect(a_deleteTorrent, &QAction::triggered, this,
                     &MainWindow::on_actionDelete_triggered);
@@ -646,6 +661,45 @@ void MainWindow::on_actionDelete_triggered()
 }
 
 
+void Bittorrent::MainWindow::on_actionResume_triggered()
+{
+    //map proxy selection to source
+    auto mappedSelection = proxyModel->mapSelectionToSource(
+                torrentTable->selectionModel()->selection());
+
+    //get selected indices
+    QModelIndexList selectedViewIdxList =
+            mappedSelection.indexes();
+
+    //map selected view indices to source torrentModel rows
+    //use QSet to remove duplicates (since multiple indices will share a row)
+    QSet<int> selectedSourceRowSet;
+    for (auto selectedViewIndex : selectedViewIdxList)
+    {
+        selectedSourceRowSet.insert(selectedViewIndex.row());
+    }
+
+    //transform to QList for simpler sort and iteration
+    QList<int> selectedSourceRowList(selectedSourceRowSet.begin(),
+                                     selectedSourceRowSet.end());
+
+    //update all relevant data models
+    if (!selectedSourceRowList.isEmpty())
+    {
+        for (auto row : selectedSourceRowList)
+        {
+            //new thread to run in background
+            QFuture<void> t1 =
+                    QtConcurrent::run(&this->ioClient->WorkingTorrents, &WorkingTorrents::start, row);
+        }
+    }
+}
+
+void Bittorrent::MainWindow::on_actionPause_triggered()
+{
+
+}
+
 void MainWindow::on_actionTorrent_Creator_triggered()
 {
     createTorDialog = new CreateTorrent(this);
@@ -682,3 +736,4 @@ void MainWindow::textFilterChanged()
 
 
 }
+
