@@ -76,7 +76,7 @@ void HTTPClient::dataTransmission(bool isAnnounce)
             boost::asio::placeholders::error));
 
     //set 10 second total deadline timer for all asynchronous operations
-    run(std::chrono::seconds(10));
+    run(std::chrono::seconds(3));
 }
 
 void HTTPClient::handleConnect(const boost::system::error_code& error)
@@ -260,14 +260,14 @@ void HTTPClient::handleScrapeResp()
 
     if (info.count("failure reason"))
     {
-        auto failReason = boost::get<std::string>(info.at("failure reason"));
+        errMessage = boost::get<std::string>(info.at("failure reason"));
 
         LOG_F(ERROR,
             "Tracker (%s:%hu - %s:%s) scrape response: "
             "Failure Reason %s.",
             remoteEndpoint.address().to_string().c_str(),
             remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str(),
-            failReason.c_str());
+            errMessage.c_str());
 
         peerRequestInterval = std::chrono::seconds(1800);
 

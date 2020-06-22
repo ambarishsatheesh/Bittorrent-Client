@@ -86,7 +86,7 @@ void UDPClient::dataTransmission(bool isAnnounce)
             boost::asio::placeholders::error));
 
     //set 10 second total deadline timer for all asynchronous operations
-    run(std::chrono::seconds(10));
+    run(std::chrono::seconds(3));
 }
 
 //establish connection acccording to Bittorrent spec after establishing
