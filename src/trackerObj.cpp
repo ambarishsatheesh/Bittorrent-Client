@@ -47,8 +47,15 @@ namespace Bittorrent
         std::string clientIDString(clientID.begin(), clientID.end());
         auto urlEncodedClientID = urlEncode(clientIDString);
 
+        //handle tracker url without announce
+        std::string sep = "";
+        if (trackerAddress.find("announce") == std::string::npos)
+        {
+            sep = "/";
+        }
+
         //compact will be 1 but client will also support non-compact response
-        std::string url = trackerAddress + "?info_hash=" + urlEncodedInfoHash +
+        std::string url = trackerAddress + sep + "?info_hash=" + urlEncodedInfoHash +
             "&peer_id=" + urlEncodedClientID + "&port=" + std::to_string(port)
             + "&uploaded=" + std::to_string(uploaded) + "&downloaded=" +
             std::to_string(downloaded) + "&left=" + std::to_string(remaining) +
@@ -81,25 +88,29 @@ namespace Bittorrent
             if (complete == std::numeric_limits<int>::min() &&
                 incomplete == std::numeric_limits<int>::min())
             {
-                HTTPClient httpAnnounce(parsedUrl, 0);
-                complete = httpAnnounce.complete;
-                incomplete = httpAnnounce.incomplete;
+                HTTPClient httpAnnounce(parsedUrl, 1);
 
-                peerRequestInterval = httpAnnounce.peerRequestInterval;
+                if (!httpAnnounce.errMessage.empty())
+                {
+                    complete = httpAnnounce.complete;
+                    incomplete = httpAnnounce.incomplete;
 
-                //call signal to fire peerListUpdated event
-                //not thread safe?
-                (*peerListUpdated)(httpAnnounce.peerList);
-                //replace peer vector with new vector
-                peerList = httpAnnounce.peerList;
+                    peerRequestInterval = httpAnnounce.peerRequestInterval;
+
+                    //call signal to fire peerListUpdated event
+                    //not thread safe?
+                    (*peerListUpdated)(httpAnnounce.peerList);
+                    //replace peer vector with new vector
+                    peerList = httpAnnounce.peerList;
+                }
             }
             else
             {
                 //scrape
                 HTTPClient httpGen(parsedUrl, 0);
                 //announce and update if seeders/leechers values change
-                if (httpGen.complete != complete ||
-                    httpGen.incomplete != incomplete)
+                if (!httpGen.errMessage.empty() || httpGen.complete != complete
+                        || httpGen.incomplete != incomplete)
                 {
                     LOG_F(INFO,
                         "Tracker (%s:%s) info changed since last scrape. "
@@ -132,7 +143,7 @@ namespace Bittorrent
                 leechers == std::numeric_limits<int>::min())
             {
                 UDPClient udpAnnounce(parsedUrl, clientID, infoHash, uploaded,
-                    downloaded, remaining, intEvent, port, 0);
+                    downloaded, remaining, intEvent, port, 1);
                 seeders = udpAnnounce.seeders;
                 leechers = udpAnnounce.leechers;
                 peerRequestInterval = udpAnnounce.peerRequestInterval;
@@ -144,10 +155,12 @@ namespace Bittorrent
             }
             else
             {
+                //scrape
                 UDPClient udpGen(parsedUrl, clientID, infoHash, uploaded,
                     downloaded, remaining, intEvent, port, 0);
                 //announce and update if seeders/leechers values change
-                if (udpGen.seeders != seeders || udpGen.leechers != leechers)
+                if (!udpGen.errMessage.empty() || udpGen.seeders != seeders ||
+                        udpGen.leechers != leechers)
                 {
                     LOG_F(INFO,
                         "Tracker (%s:%s) info changed since last scrape. "
