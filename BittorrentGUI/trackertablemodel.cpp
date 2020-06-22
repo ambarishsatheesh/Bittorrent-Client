@@ -3,14 +3,14 @@
 #include "Utility.h"
 
 #include <QString>
+#include <memory>
 
 namespace Bittorrent
 {
 
 TrackerTableModel::TrackerTableModel(tracker_vec ptr_trackerList,
         QPointer<QObject> parent)
-    : QAbstractTableModel(parent),
-      trackerList(std::move(ptr_trackerList))
+    : QAbstractTableModel(parent), trackerList(std::move(ptr_trackerList))
 {
 }
 
@@ -94,7 +94,16 @@ QVariant TrackerTableModel::generateData(const QModelIndex &index) const
                     trackerList->at(index.row()).trackerAddress);
     //Status
     case 1:
-        return 0;
+    {
+        if (trackerList->at(index.row()).isWorking)
+        {
+            return "Working";
+        }
+        else
+        {
+            return "Not Working";
+        }
+    }
     //Received Peers
     case 2:
     {

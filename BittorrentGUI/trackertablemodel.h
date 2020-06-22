@@ -14,8 +14,7 @@
 namespace Bittorrent
 {
 
-using tracker_vec = std::unique_ptr<std::vector<trackerObj>>;
-
+using tracker_vec = std::shared_ptr<std::vector<trackerObj>>;
 
 class TrackerTableModel : public QAbstractTableModel
 {
