@@ -37,16 +37,16 @@ public:
     TrackerTimer(std::vector<byte> clientID);
     ~TrackerTimer();
 
-    void startTimer(pSet* trackerSet);
+    void start(pSet* trackerSet);
+    void stop();
     bool isRunning();
 
 private:
     std::mutex mtx;
     std::condition_variable cv{};
     std::thread wait_thread;
-
     std::vector<byte> clientID;
-    std::chrono::seconds tempTime;
+    std::atomic_bool stopThread;
 
     void wait_then_call(pSet* trackerSet);
 };
