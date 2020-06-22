@@ -23,9 +23,9 @@ UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID,
     std::vector<byte>& infoHash, long long& uploaded, long long& downloaded,
     long long& remaining, int& intEvent, int& port, bool isAnnounce)
     : connIDReceivedTime{}, lastRequestTime{}, peerRequestInterval{ 0 },
-    leechers{ 0 }, seeders{ 0 }, completed{ 0 }, errMessage{""},
+    leechers{ 0 }, seeders{ 0 }, completed{ 0 }, errMessage{""}, isFail{true},
     peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port },
-    localPort{port}, isFail{ 0 }, logBuffer{""}, m_isAnnounce{isAnnounce},
+    localPort{port}, logBuffer{""}, m_isAnnounce{isAnnounce},
     byteInfoHash{ infoHash }, ancClientID{ clientID },
     ancDownloaded{ downloaded }, ancUploaded{ uploaded },
     ancRemaining{ remaining }, ancIntEvent{ intEvent },
@@ -66,7 +66,6 @@ UDPClient::~UDPClient()
 void UDPClient::close()
 {
     socket.close();
-    isFail = true;
 
     LOG_F(INFO,
         "Closed UDP socket used for tracker update (%s:%s).",
@@ -241,7 +240,6 @@ void UDPClient::handleConnectResp(const std::size_t& connBytesRec)
     //validate size
     if (connBytesRec < 16)
     {
-        isFail = true;
         LOG_F(ERROR,
             "UDP Connect response packet is less than the expected 16 bytes! "
             "Tracker: %s:%hu (%s:%s).",
@@ -256,7 +254,6 @@ void UDPClient::handleConnectResp(const std::size_t& connBytesRec)
         recConnBuffer.begin() + 4 };
     if (receivedAction != connectAction)
     {
-        isFail = true;
         LOG_F(ERROR,
             "Received UDP connect response action is not \"connect\"! "
             "Tracker: %s:%hu (%s:%s).",
@@ -273,7 +270,6 @@ void UDPClient::handleConnectResp(const std::size_t& connBytesRec)
         recConnBuffer.begin() + 8 };
     if (receivedTransactionID != sentTransactionID)
     {
-        isFail = true;
         LOG_F(ERROR,
             "UDP connect response transaction ID is not equal to sent "
             "transaction ID! Tracker: %s:%hu (%s:%s).",
@@ -298,11 +294,11 @@ void UDPClient::handleConnectResp(const std::size_t& connBytesRec)
         ConnIDStr.c_str());
 
     //check if we have announced before and if connect has failed
-    if (m_isAnnounce && !isFail)
+    if (m_isAnnounce)
     {
         announceRequest();
     }
-    else if (!isFail)
+    else
     {
         scrapeRequest();
     }
@@ -444,7 +440,6 @@ void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
     //validate size
     if (scrapeBytesRec < 8)
     {
-        isFail = true;
         LOG_F(ERROR,
             "UDP connect response packet is less than the expected 8 bytes! "
             "Tracker: %s:%hu (%s:%s).",
@@ -461,7 +456,6 @@ void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
         recScrapeBuffer.begin() + 8 };
     if (receivedTransactionID != receivedTransactionID)
     {
-        isFail = true;
         LOG_F(ERROR,
             "UDP scrape response transaction ID is not equal to sent "
             "transaction ID! Tracker: %s:%hu (%s:%s).",
@@ -502,6 +496,9 @@ void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
 
         peerRequestInterval = std::chrono::seconds(1800);
 
+        //set flag
+        isFail = false;
+
         LOG_F(INFO, "Handled UDP scrape response from tracker %s:%hu (%s:%s); "
             "Updated peer data.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
@@ -514,7 +511,6 @@ void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
         errMessage = {recScrapeBuffer.begin() + 8,
             recScrapeBuffer.begin() + scrapeBytesRec};
 
-        isFail = true;
         LOG_F(ERROR,
             "Tracker UDP scrape error (tracker %s:%hu - %s:%s): %s.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
@@ -726,7 +722,6 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
     //validate size
     if (AncBytesRec < 20)
     {
-        isFail = true;
         LOG_F(ERROR,
             "UDP announce response packet is less than the minimum size "
             "of 20 bytes! Tracker: %s:%hu (%s:%s).",
@@ -743,7 +738,6 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
         recAncBuffer.begin() + 4 };
     if (receivedAction != ancAction)
     {
-        isFail = true;
         LOG_F(ERROR,
             "Received UDP announce response action is not \"announce\"! "
             "Tracker: %s:%hu (%s:%s).",
@@ -760,7 +754,6 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
         recAncBuffer.begin() + 8 };
     if (receivedTransactionID != sentTransactionID)
     {
-        isFail = true;
         LOG_F(ERROR,
             "UDP announce response transaction ID is not equal to sent "
             "transaction ID! Tracker: %s:%hu (%s:%s).",
@@ -816,6 +809,9 @@ void UDPClient::handleAnnounceResp(const std::size_t& AncBytesRec)
         singlePeer.port = peerPort;
         peerList.push_back(singlePeer);
     }
+
+    //set flag
+    isFail = false;
 
     LOG_F(INFO, "Handled UDP announce response from tracker %s:%hu (%s:%s); "
         "Updated peer data.",

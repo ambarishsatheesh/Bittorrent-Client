@@ -30,6 +30,7 @@ namespace Bittorrent
         int complete;
         int incomplete;
         std::string errMessage;
+        bool isFail;
         std::vector<peer> peerList;
 
         void dataTransmission(bool isAnnounce);

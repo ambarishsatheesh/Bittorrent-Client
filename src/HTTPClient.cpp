@@ -17,6 +17,7 @@ HTTPClient::HTTPClient(trackerUrl& parsedUrl, bool isAnnounce)
     : peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port },
     target{ parsedUrl.target }, version{ 10 }, m_isAnnounce{ isAnnounce },
     peerRequestInterval{ 0 }, complete{ 0 }, incomplete{ 0 }, errMessage{""},
+    isFail{true},
     io_context(), resolver( io_context ), socket( io_context ), remoteEndpoint()
 {
     LOG_F(INFO, "Resolving HTTP tracker (%s:%s)...",
@@ -287,25 +288,24 @@ void HTTPClient::handleScrapeResp()
                 hash = boost::get<valueDictionary>(it->second);
             }
 
-            if (hash.count("complete") && hash.count("incomplete"))
+            if (hash.count("complete"))
             {
                 complete = static_cast<int>(boost::get<long long>(
                     hash.at("complete")));
+            }
+            if (hash.count("incomplete"))
+            {
                 incomplete = static_cast<int>(boost::get<long long>(
                     hash.at("incomplete")));
+            }
 
-                LOG_F(INFO,
-                    "Updated peer info using tracker (%s:%hu - %s%s) scrape response!",
-                    remoteEndpoint.address().to_string().c_str(),
-                    remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
-            }
-            else
-            {
-                LOG_F(ERROR,
-                    "Invalid scrape response from tracker %s:%hu (%s:%s)",
-                    remoteEndpoint.address().to_string().c_str(),
-                    remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
-            }
+            //set flag
+            isFail = false;
+
+            LOG_F(INFO,
+                "Updated peer info using tracker (%s:%hu - %s%s) scrape response!",
+                remoteEndpoint.address().to_string().c_str(),
+                remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
         }
         else
         {
@@ -525,6 +525,10 @@ void HTTPClient::handleAnnounceResp()
 
                     peerList.push_back(singlePeer);
                 }
+
+                //set flag
+                isFail = false;
+
                 LOG_F(INFO,
                     "Updated peer info using tracker (%s:%hu - %s:%s) announce "
                     "response (compact)!",
@@ -557,6 +561,10 @@ void HTTPClient::handleAnnounceResp()
 
                     peerList.push_back(singlePeer);
                 }
+
+                //set flag
+                isFail = false;
+
                 LOG_F(INFO,
                     "Updated peer info using tracker (%s:%hu - %s:%s) announce "
                     "response (non-compact)!",

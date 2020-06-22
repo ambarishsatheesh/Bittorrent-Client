@@ -25,6 +25,7 @@ namespace Bittorrent
         int seeders;
         int completed;
         std::string errMessage;
+        bool isFail;
         std::vector<peer> peerList;
 
         void dataTransmission(bool isAnnounce);
@@ -42,7 +43,6 @@ namespace Bittorrent
         std::string peerPort;
         int localPort;
         std::vector<byte> errorAction;
-        bool isFail;
         std::string logBuffer;
         bool m_isAnnounce;
 
