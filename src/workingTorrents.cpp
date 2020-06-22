@@ -3,8 +3,10 @@
 #include "TorrentManipulation.h"
 #include "loguru.h"
 
+
 #include <QDateTime>
 #include <QtConcurrent>
+#include <memory>
 
 namespace Bittorrent
 {
@@ -182,6 +184,8 @@ namespace Bittorrent
 
             std::vector<std::thread> threadVector;
 
+            LOG_F(INFO, "PTR ADDRESS: %p", std::addressof(runningTorrents.back()->generalData.trackerList));
+
             //run initial tracker updates in separate threads
             //if tracker list has more than 5 torrents,
             //process 5 trackers at a time
@@ -261,15 +265,15 @@ namespace Bittorrent
                 }
             }
 
-            LOG_F(INFO, "Processed trackers for torrent %s!",
-                  torrentList.at(position)->generalData.fileName.c_str());
-
             for (auto& tracker : runningTorrents.back()->generalData.trackerList)
             {
                 trackerUpdateSet.emplace(std::make_pair(
                                              &tracker,
                                              runningTorrents.back().get()));
             }
+
+            LOG_F(INFO, "Processed trackers for torrent %s!",
+                  torrentList.at(position)->generalData.fileName.c_str());
         }
     }
 

@@ -13,7 +13,6 @@
 namespace Bittorrent
 {
 
-
 class WorkingTorrents
 {
 public:
@@ -41,6 +40,6 @@ public:
     void run();
 
     WorkingTorrents();
-
 };
+
 }
