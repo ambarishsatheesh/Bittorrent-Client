@@ -471,10 +471,16 @@ void HTTPClient::handleAnnounceResp()
             std::chrono::seconds(static_cast<int>(boost::get<long long>(
                 info.at("interval"))));
 
-        complete = static_cast<int>(
-            boost::get<long long>(info.at("complete")));
-        incomplete = static_cast<int>(
-            boost::get<long long>(info.at("incomplete")));
+        if (info.count("complete"))
+        {
+            complete = static_cast<int>(
+                boost::get<long long>(info.at("complete")));
+        }
+        if (info.count("complete"))
+        {
+            incomplete = static_cast<int>(
+                boost::get<long long>(info.at("incomplete")));
+        }
 
         if (!info.count("peers"))
         {
