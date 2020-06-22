@@ -252,8 +252,9 @@ void MainWindow::initTrackersTable()
 
     //set up initial empty model
     std::vector<trackerObj> initVec;
-    auto ptr_init = std::make_unique<std::vector<trackerObj>>(initVec);
-    initTrackerModel = new TrackerTableModel(std::move(ptr_init), this);
+    //auto ptr_init = std::make_unique<std::vector<trackerObj>>(initVec);
+    //initTrackerModel = new TrackerTableModel(std::move(ptr_init), this);
+    initTrackerModel = new TrackerTableModel(&initVec, this);
 
     initTrackerTable->setModel(initTrackerModel);
 
@@ -384,6 +385,8 @@ void MainWindow::torrentSelected(const QItemSelection &selected,
         //set general info mapper to relevant row
         generalInfoMapper->setCurrentIndex(row);
         LOG_F(INFO, "current idx: %d", generalInfoMapper->currentIndex());
+
+        //emit trackerTableVec.at(row).trackerModel->dataChanged(QModelIndex(), QModelIndex());
     }
 }
 
@@ -534,12 +537,9 @@ void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
     //and add to tableview stack
     QPointer<QTableView> trackerTableView = new QTableView;
 
-    using defVec = std::vector<trackerObj>;
-    auto ptr_trackerList = std::make_unique<defVec>(
-                ioClient->WorkingTorrents.torrentList.back()->
-                generalData.trackerList);
     QPointer<TrackerTableModel> trackerModel =
-            new TrackerTableModel(std::move(ptr_trackerList), this);
+            new TrackerTableModel(&ioClient->WorkingTorrents.torrentList.back()->
+                                  generalData.trackerList, this);
 
     //configure new table
     trackerTableView->setModel(trackerModel);
@@ -683,14 +683,16 @@ void Bittorrent::MainWindow::on_actionResume_triggered()
     QList<int> selectedSourceRowList(selectedSourceRowSet.begin(),
                                      selectedSourceRowSet.end());
 
-    //update all relevant data models
+    //start threads for tracker updates and send signal to update model when done
     if (!selectedSourceRowList.isEmpty())
     {
         for (auto row : selectedSourceRowList)
         {
             //new thread to run in background
             QFuture<void> t1 =
-                    QtConcurrent::run(&this->ioClient->WorkingTorrents, &WorkingTorrents::start, row);
+                    QtConcurrent::run(&this->ioClient->WorkingTorrents,
+                                      &WorkingTorrents::start,
+                                      row);
         }
     }
 }
@@ -699,6 +701,7 @@ void Bittorrent::MainWindow::on_actionPause_triggered()
 {
 
 }
+
 
 void MainWindow::on_actionTorrent_Creator_triggered()
 {

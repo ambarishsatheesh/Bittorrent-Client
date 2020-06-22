@@ -21,7 +21,7 @@ class TrackerTableModel : public QAbstractTableModel
     Q_OBJECT
 
 public:
-    TrackerTableModel(tracker_vec ptr_trackerList,
+    TrackerTableModel(std::vector<trackerObj>* ptr_trackerList,
                       QPointer<QObject> parent = 0);
 
     void populateData(const storedPrevTorrents storedTor);
@@ -44,8 +44,7 @@ signals:
 
 
 private:
-    tracker_vec trackerList;
-
+    std::vector<trackerObj>* trackerList;
 };
 
 }

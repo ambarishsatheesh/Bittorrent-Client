@@ -8,9 +8,9 @@
 namespace Bittorrent
 {
 
-TrackerTableModel::TrackerTableModel(tracker_vec ptr_trackerList,
+TrackerTableModel::TrackerTableModel(std::vector<trackerObj>* ptr_trackerList,
         QPointer<QObject> parent)
-    : QAbstractTableModel(parent), trackerList(std::move(ptr_trackerList))
+    : QAbstractTableModel(parent), trackerList(ptr_trackerList)
 {
 }
 
