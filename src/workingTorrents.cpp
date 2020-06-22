@@ -291,7 +291,7 @@ namespace Bittorrent
             //set has some trackers in it
             if (!trackerTimer->isRunning() && !trackerUpdateSet.empty())
             {
-                trackerTimer->startTimer(&trackerUpdateSet);
+                trackerTimer->start(&trackerUpdateSet);
             }
 
             //begin remaining process
@@ -322,6 +322,11 @@ namespace Bittorrent
                     ++it;
                 }
             }
+        }
+
+        if (trackerUpdateSet.empty())
+        {
+            trackerTimer->stop();
         }
     }
 
