@@ -33,8 +33,6 @@ namespace Bittorrent
         //udp scrape data
         int seeders;
         int leechers;
-        int complete;
-        int incomplete;
         std::string errMessage;
         bool isWorking;
 

@@ -16,7 +16,7 @@ using namespace utility;
 HTTPClient::HTTPClient(trackerUrl& parsedUrl, bool isAnnounce)
     : peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port },
     target{ parsedUrl.target }, version{ 10 }, m_isAnnounce{ isAnnounce },
-    peerRequestInterval{ 0 }, complete{ 0 }, incomplete{ 0 }, errMessage{""},
+    peerRequestInterval{ 0 }, seeders{ 0 }, leechers{ 0 }, errMessage{""},
     isFail{true},
     io_context(), resolver( io_context ), socket( io_context ), remoteEndpoint()
 {
@@ -290,12 +290,12 @@ void HTTPClient::handleScrapeResp()
 
             if (hash.count("complete"))
             {
-                complete = static_cast<int>(boost::get<long long>(
+                seeders = static_cast<int>(boost::get<long long>(
                     hash.at("complete")));
             }
             if (hash.count("incomplete"))
             {
-                incomplete = static_cast<int>(boost::get<long long>(
+                leechers = static_cast<int>(boost::get<long long>(
                     hash.at("incomplete")));
             }
 
@@ -473,12 +473,12 @@ void HTTPClient::handleAnnounceResp()
 
         if (info.count("complete"))
         {
-            complete = static_cast<int>(
+            seeders = static_cast<int>(
                 boost::get<long long>(info.at("complete")));
         }
-        if (info.count("complete"))
+        if (info.count("incomplete"))
         {
-            incomplete = static_cast<int>(
+            leechers = static_cast<int>(
                 boost::get<long long>(info.at("incomplete")));
         }
 

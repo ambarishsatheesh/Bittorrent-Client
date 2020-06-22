@@ -27,8 +27,8 @@ namespace Bittorrent
 
         //response data
         std::chrono::seconds peerRequestInterval;
-        int complete;
-        int incomplete;
+        int seeders;
+        int leechers;
         std::string errMessage;
         bool isFail;
         std::vector<peer> peerList;

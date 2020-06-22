@@ -12,9 +12,7 @@ namespace Bittorrent
         : trackerAddress{ "" },
         lastPeerRequest{ std::chrono::high_resolution_clock::time_point::min()},
         peerRequestInterval{ 1800 }, seeders(std::numeric_limits<int>::min()),
-        leechers(std::numeric_limits<int>::min()),
-        complete{ std::numeric_limits<int>::min() },
-        incomplete{ std::numeric_limits<int>::min() }, errMessage{""},
+        leechers(std::numeric_limits<int>::min()), errMessage{""},
         isWorking{false}, peerListUpdated{ std::make_shared<sigPeer>() }
     {
     }
@@ -85,8 +83,8 @@ namespace Bittorrent
         //request url using appropriate protocol
         if (parsedUrl.protocol == trackerUrl::protocolType::http)
         {
-            if (complete == std::numeric_limits<int>::min() &&
-                incomplete == std::numeric_limits<int>::min())
+            if (seeders == std::numeric_limits<int>::min() &&
+                leechers == std::numeric_limits<int>::min())
             {
                 HTTPClient httpAnnounce(parsedUrl, 1);
                 isWorking = !httpAnnounce.isFail;
@@ -94,8 +92,8 @@ namespace Bittorrent
 
                 if (isWorking)
                 {
-                    complete = httpAnnounce.complete;
-                    incomplete = httpAnnounce.incomplete;
+                    seeders = httpAnnounce.seeders;
+                    leechers = httpAnnounce.leechers;
                     peerRequestInterval = httpAnnounce.peerRequestInterval;
 
                     //call signal to fire peerListUpdated event
@@ -114,8 +112,8 @@ namespace Bittorrent
                 errMessage = httpGen.errMessage;
 
                 //announce and update if seeders/leechers values change
-                if (httpGen.complete != complete ||
-                        httpGen.incomplete != incomplete)
+                if (httpGen.seeders != seeders ||
+                        httpGen.leechers != leechers)
                 {
                     LOG_F(INFO,
                         "Tracker (%s:%s) info changed since last scrape. "
@@ -131,8 +129,8 @@ namespace Bittorrent
 
                     if (errMessage.empty())
                     {
-                        complete = httpGen.complete;
-                        incomplete = httpGen.incomplete;
+                        seeders = httpGen.seeders;
+                        leechers = httpGen.leechers;
                         peerRequestInterval = httpGen.peerRequestInterval;
 
                         //call signal to fire peerListUpdated event
