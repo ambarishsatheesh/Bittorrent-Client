@@ -182,10 +182,16 @@ namespace Bittorrent
 
             std::vector<std::thread> threadVector;
 
-            //run initial tracker updates in thread pool
-            for (auto& tracker : runningTorrents.back()->generalData.trackerList)
+            //run initial tracker updates in separate threads
+            //if tracker list has more than 5 torrents,
+            //process 5 trackers at a time
+            if (runningTorrents.back()->generalData.trackerList.size() > 5)
             {
-                threadVector.emplace_back([&]()
+                int count = 0;
+                for (auto& tracker :
+                     runningTorrents.back()->generalData.trackerList)
+                {
+                    threadVector.emplace_back([&]()
                     {
                         tracker.update(
                         runningTorrents.back().get()->statusData.currentState,
@@ -198,23 +204,71 @@ namespace Bittorrent
                         runningTorrents.back().get()->statusData.uploaded(),
                         runningTorrents.back().get()->statusData.downloaded(),
                         runningTorrents.back().get()->statusData.remaining());
+
+                        LOG_F(INFO, "Processed tracker %s",
+                              tracker.trackerAddress.c_str());
                     });
+
+                    count++;
+
+                    //every 5 threads, join threads and clear thread vector to
+                    //limit number of concurrent threads
+                    if (count == 4 ||
+                            &tracker == &runningTorrents.back()->
+                            generalData.trackerList.back())
+                    {
+                        for (auto& thread : threadVector)
+                        {
+                            if (thread.joinable())
+                            {
+                                thread.join();
+                            }
+                        }
+                        threadVector.clear();
+                        count = 0;
+                    }
+                }
             }
-
-            LOG_F(INFO, "number of threads: %d", threadVector.size());
-
-            for (auto& thread : threadVector)
+            else
             {
-                if (thread.joinable())
+                for (auto& tracker :
+                     runningTorrents.back()->generalData.trackerList)
                 {
-                    thread.join();
+                    threadVector.emplace_back([&]()
+                    {
+                        tracker.update(
+                        runningTorrents.back().get()->statusData.currentState,
+                        clientID,
+                        0,
+                        runningTorrents.back().get()->
+                        hashesData.urlEncodedInfoHash,
+                        runningTorrents.back().get()->
+                        hashesData.infoHash,
+                        runningTorrents.back().get()->statusData.uploaded(),
+                        runningTorrents.back().get()->statusData.downloaded(),
+                        runningTorrents.back().get()->statusData.remaining());
+
+                        LOG_F(INFO, "Processed tracker %s",
+                              tracker.trackerAddress.c_str());
+                    });
+                }
+                for (auto& thread : threadVector)
+                {
+                    if (thread.joinable())
+                    {
+                        thread.join();
+                    }
                 }
             }
 
+            LOG_F(INFO, "Processed trackers for torrent %s!",
+                  torrentList.at(position)->generalData.fileName.c_str());
+
             for (auto& tracker : runningTorrents.back()->generalData.trackerList)
             {
-                trackerUpdateSet.emplace(std::make_pair(&tracker,
-                                                        runningTorrents.back().get()));
+                trackerUpdateSet.emplace(std::make_pair(
+                                             &tracker,
+                                             runningTorrents.back().get()));
             }
         }
     }
