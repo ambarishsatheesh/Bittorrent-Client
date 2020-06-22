@@ -336,9 +336,11 @@ void MainWindow::trackerListItemSelected(const QModelIndex& index)
     {
         //store infoHashes of torrents associated with selected tracker
         //so that they can be used to filter torrent table rows
-        auto torList = ioClient->WorkingTorrents;
-        auto trackerAdd = torList.trackerTorrentMap.keys().at(index.row());
-        auto infoHashes = torList.trackerTorrentMap.value(trackerAdd);
+        auto trackerAdd = ioClient->WorkingTorrents.trackerTorrentMap.keys().
+                at(index.row());
+        auto infoHashes = ioClient->WorkingTorrents.trackerTorrentMap.
+                value(trackerAdd);
+
         for (auto str : infoHashes)
         {
             proxyModel->infoHashList.push_back(str);
@@ -699,7 +701,38 @@ void Bittorrent::MainWindow::on_actionResume_triggered()
 
 void Bittorrent::MainWindow::on_actionPause_triggered()
 {
+    //map proxy selection to source
+    auto mappedSelection = proxyModel->mapSelectionToSource(
+                torrentTable->selectionModel()->selection());
 
+    //get selected indices
+    QModelIndexList selectedViewIdxList =
+            mappedSelection.indexes();
+
+    //map selected view indices to source torrentModel rows
+    //use QSet to remove duplicates (since multiple indices will share a row)
+    QSet<int> selectedSourceRowSet;
+    for (auto selectedViewIndex : selectedViewIdxList)
+    {
+        selectedSourceRowSet.insert(selectedViewIndex.row());
+    }
+
+    //transform to QList for simpler sort and iteration
+    QList<int> selectedSourceRowList(selectedSourceRowSet.begin(),
+                                     selectedSourceRowSet.end());
+
+    //start threads for tracker updates and send signal to update model when done
+    if (!selectedSourceRowList.isEmpty())
+    {
+        for (auto row : selectedSourceRowList)
+        {
+            //new thread to run in background
+            QFuture<void> t1 =
+                    QtConcurrent::run(&this->ioClient->WorkingTorrents,
+                                      &WorkingTorrents::stop,
+                                      row);
+        }
+    }
 }
 
 
