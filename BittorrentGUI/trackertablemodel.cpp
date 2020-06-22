@@ -137,7 +137,7 @@ QVariant TrackerTableModel::generateData(const QModelIndex &index) const
         }
     //Message
     case 5:
-        return 0;
+        return QString::fromStdString(trackerList->at(index.row()).errMessage);
     default:
         break;
     }
