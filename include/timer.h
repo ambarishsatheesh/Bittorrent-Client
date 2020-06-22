@@ -34,8 +34,11 @@ using pSet = std::multiset<pair, compare>;
 class TrackerTimer
 {
 public:
-    TrackerTimer(pSet* set, std::vector<byte> clientID);
+    TrackerTimer(std::vector<byte> clientID);
     ~TrackerTimer();
+
+    void startTimer(pSet* trackerSet);
+    bool isRunning();
 
 private:
     std::mutex mtx;
@@ -44,6 +47,7 @@ private:
 
     std::vector<byte> clientID;
     std::chrono::seconds tempTime;
+
     void wait_then_call(pSet* trackerSet);
 };
 

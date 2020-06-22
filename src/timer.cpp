@@ -3,10 +3,9 @@
 namespace Bittorrent {
 
 
-TrackerTimer::TrackerTimer(pSet* trackerSet, std::vector<byte> clientID)
+TrackerTimer::TrackerTimer(std::vector<byte> clientID)
     : clientID{clientID}, tempTime{0}
 {
-     wait_thread = std::thread(&TrackerTimer::wait_then_call, this, trackerSet);
 }
 
 TrackerTimer::~TrackerTimer()
@@ -15,6 +14,16 @@ TrackerTimer::~TrackerTimer()
     {
         wait_thread.join();
     }
+}
+
+void TrackerTimer::startTimer(pSet* trackerSet)
+{
+    wait_thread = std::thread(&TrackerTimer::wait_then_call, this, trackerSet);
+}
+
+bool TrackerTimer::isRunning()
+{
+    return wait_thread.joinable();
 }
 
 void TrackerTimer::wait_then_call(pSet* trackerSet)
@@ -45,6 +54,12 @@ void TrackerTimer::wait_then_call(pSet* trackerSet)
 
         //remove first element so next tracker can update
         trackerSet->erase(trackerSet->begin());
+    }
+
+    //join thread if set becomes empty
+    if (wait_thread.joinable())
+    {
+        wait_thread.join();
     }
 }
 
