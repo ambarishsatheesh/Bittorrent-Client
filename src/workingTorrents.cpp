@@ -4,6 +4,7 @@
 #include "loguru.h"
 
 #include <QDateTime>
+#include <QtConcurrent>
 
 namespace Bittorrent
 {
@@ -171,17 +172,51 @@ namespace Bittorrent
 
     void WorkingTorrents::start(int position)
     {
-        torrentList.at(position)->statusData.currentState =
-                TorrentStatus::currentStatus::started;
-
-        runningTorrents.push_back(torrentList.at(position));
-
-        for (auto& tracker : runningTorrents.back()->generalData.trackerList)
+        if (torrentList.at(position)->statusData.currentState !=
+                TorrentStatus::currentStatus::started)
         {
-            trackerUpdateSet.emplace(std::make_pair(&tracker,
-                                                    runningTorrents.back().get()));
-        }
+            torrentList.at(position)->statusData.currentState =
+                    TorrentStatus::currentStatus::started;
 
+            runningTorrents.push_back(torrentList.at(position));
+
+            std::vector<std::thread> threadVector;
+
+            //run initial tracker updates in thread pool
+            for (auto& tracker : runningTorrents.back()->generalData.trackerList)
+            {
+                threadVector.emplace_back([&]()
+                    {
+                        tracker.update(
+                        runningTorrents.back().get()->statusData.currentState,
+                        clientID,
+                        0,
+                        runningTorrents.back().get()->
+                        hashesData.urlEncodedInfoHash,
+                        runningTorrents.back().get()->
+                        hashesData.infoHash,
+                        runningTorrents.back().get()->statusData.uploaded(),
+                        runningTorrents.back().get()->statusData.downloaded(),
+                        runningTorrents.back().get()->statusData.remaining());
+                    });
+            }
+
+            LOG_F(INFO, "number of threads: %d", threadVector.size());
+
+            for (auto& thread : threadVector)
+            {
+                if (thread.joinable())
+                {
+                    thread.join();
+                }
+            }
+
+            for (auto& tracker : runningTorrents.back()->generalData.trackerList)
+            {
+                trackerUpdateSet.emplace(std::make_pair(&tracker,
+                                                        runningTorrents.back().get()));
+            }
+        }
     }
 
     void WorkingTorrents::stop(int position)
