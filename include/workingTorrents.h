@@ -23,6 +23,8 @@ public:
 
     pSet trackerUpdateSet;
 
+    std::unique_ptr<TrackerTimer> trackerTimer;
+
     std::vector<std::shared_ptr<Torrent>> torrentList;
     std::vector<std::shared_ptr<Torrent>> runningTorrents;
 

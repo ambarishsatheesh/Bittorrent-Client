@@ -13,6 +13,7 @@ namespace Bittorrent
     using namespace torrentManipulation;
 
     WorkingTorrents::WorkingTorrents()
+        : trackerTimer{std::make_unique<TrackerTimer>(clientID)}
     {
     }
 
@@ -84,7 +85,6 @@ namespace Bittorrent
             {
                 mainHost = fullTrackerAdd;
             }
-
 
             // and increment if already exists
             infoTrackerMap[QString::fromStdString(mainHost)]++;;
@@ -180,34 +180,39 @@ namespace Bittorrent
             torrentList.at(position)->statusData.currentState =
                     TorrentStatus::currentStatus::started;
 
+            //not needed?
             runningTorrents.push_back(torrentList.at(position));
 
             std::vector<std::thread> threadVector;
 
-            LOG_F(INFO, "PTR ADDRESS: %p", std::addressof(runningTorrents.back()->generalData.trackerList));
-
             //run initial tracker updates in separate threads
             //if tracker list has more than 5 torrents,
             //process 5 trackers at a time
-            if (runningTorrents.back()->generalData.trackerList.size() > 5)
+            if (torrentList.at(position)->generalData.trackerList.size() > 5)
             {
                 int count = 0;
                 for (auto& tracker :
-                     runningTorrents.back()->generalData.trackerList)
+                     torrentList.at(position)->generalData.trackerList)
                 {
+                    if (std::chrono::high_resolution_clock::now() <
+                            tracker.lastPeerRequest + std::chrono::minutes{5})
+                    {
+                        continue;
+                    }
+
                     threadVector.emplace_back([&]()
                     {
                         tracker.update(
-                        runningTorrents.back().get()->statusData.currentState,
+                        torrentList.at(position).get()->statusData.currentState,
                         clientID,
                         0,
-                        runningTorrents.back().get()->
+                        torrentList.at(position).get()->
                         hashesData.urlEncodedInfoHash,
-                        runningTorrents.back().get()->
+                        torrentList.at(position).get()->
                         hashesData.infoHash,
-                        runningTorrents.back().get()->statusData.uploaded(),
-                        runningTorrents.back().get()->statusData.downloaded(),
-                        runningTorrents.back().get()->statusData.remaining());
+                        torrentList.at(position).get()->statusData.uploaded(),
+                        torrentList.at(position).get()->statusData.downloaded(),
+                        torrentList.at(position).get()->statusData.remaining());
 
                         LOG_F(INFO, "Processed tracker %s",
                               tracker.trackerAddress.c_str());
@@ -238,19 +243,25 @@ namespace Bittorrent
                 for (auto& tracker :
                      runningTorrents.back()->generalData.trackerList)
                 {
+                    if (std::chrono::high_resolution_clock::now() <
+                            tracker.lastPeerRequest + std::chrono::minutes{5})
+                    {
+                        continue;
+                    }
+
                     threadVector.emplace_back([&]()
                     {
                         tracker.update(
-                        runningTorrents.back().get()->statusData.currentState,
+                        torrentList.at(position).get()->statusData.currentState,
                         clientID,
                         0,
-                        runningTorrents.back().get()->
+                        torrentList.at(position).get()->
                         hashesData.urlEncodedInfoHash,
-                        runningTorrents.back().get()->
+                        torrentList.at(position).get()->
                         hashesData.infoHash,
-                        runningTorrents.back().get()->statusData.uploaded(),
-                        runningTorrents.back().get()->statusData.downloaded(),
-                        runningTorrents.back().get()->statusData.remaining());
+                        torrentList.at(position).get()->statusData.uploaded(),
+                        torrentList.at(position).get()->statusData.downloaded(),
+                        torrentList.at(position).get()->statusData.remaining());
 
                         LOG_F(INFO, "Processed tracker %s",
                               tracker.trackerAddress.c_str());
@@ -265,23 +276,53 @@ namespace Bittorrent
                 }
             }
 
-            for (auto& tracker : runningTorrents.back()->generalData.trackerList)
+            for (auto& tracker : torrentList.at(position)->
+                 generalData.trackerList)
             {
                 trackerUpdateSet.emplace(std::make_pair(
                                              &tracker,
-                                             runningTorrents.back().get()));
+                                             torrentList.at(position).get()));
             }
 
             LOG_F(INFO, "Processed trackers for torrent %s!",
                   torrentList.at(position)->generalData.fileName.c_str());
+
+            //only start new timer if timer is not already running and
+            //set has some trackers in it
+            if (!trackerTimer->isRunning() && !trackerUpdateSet.empty())
+            {
+                trackerTimer->startTimer(&trackerUpdateSet);
+            }
+
+            //begin remaining process
+            run();
         }
     }
 
     void WorkingTorrents::stop(int position)
     {
-        torrentList.at(position)->statusData.currentState =
-                TorrentStatus::currentStatus::stopped;
+        if (torrentList.at(position)->statusData.currentState ==
+                TorrentStatus::currentStatus::started)
+        {
+            torrentList.at(position)->statusData.currentState =
+                    TorrentStatus::currentStatus::stopped;
 
+            //remove entry from update set using infohash as identifier
+            for (auto it = trackerUpdateSet.begin();
+                 it != trackerUpdateSet.end();)
+            {
+                if (it->second->hashesData.hexStringInfoHash ==
+                        torrentList.at(position).get()->
+                        hashesData.hexStringInfoHash)
+                {
+                    it = trackerUpdateSet.erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
+            }
+        }
     }
 
     void WorkingTorrents::run()
