@@ -119,11 +119,12 @@ void MainWindow::initToolbar()
 
     toolbar_addTorrent = new QAction(QIcon(":/imgs/Icons/addTorrent.png"), "");
     toolbar_addTorrent->setToolTip("Add Torrent");
-    toolbar_deleteTorrent = new QAction(QIcon(":/imgs/Icons/deleteTorrent.png"), "");
-    toolbar_deleteTorrent->setToolTip("Delete Torrent");
     connect(toolbar_addTorrent, &QAction::triggered, this,
             &MainWindow::on_actionAdd_Torrent_triggered);
     toolbar->addAction(toolbar_addTorrent);
+
+    toolbar_deleteTorrent = new QAction(QIcon(":/imgs/Icons/deleteTorrent.png"), "");
+    toolbar_deleteTorrent->setToolTip("Delete Torrent");
     connect(toolbar_deleteTorrent, &QAction::triggered, this,
             &MainWindow::on_actionDelete_triggered);
     toolbar->addAction(toolbar_deleteTorrent);
@@ -132,9 +133,14 @@ void MainWindow::initToolbar()
 
     toolbar_resume = new QAction(QIcon(":/imgs/Icons/resume.png"), "");
     toolbar_resume->setToolTip("Resume");
+    connect(toolbar_resume, &QAction::triggered, this,
+            &MainWindow::on_actionResume_triggered);
+    toolbar->addAction(toolbar_resume);
+
     toolbar_pause = new QAction(QIcon(":/imgs/Icons/pause.png"), "");
     toolbar_pause->setToolTip("Pause");
-    toolbar->addAction(toolbar_resume);
+    connect(toolbar_pause, &QAction::triggered, this,
+            &MainWindow::on_actionPause_triggered);
     toolbar->addAction(toolbar_pause);
 
     toolbar->addSeparator();
