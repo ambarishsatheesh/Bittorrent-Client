@@ -13,8 +13,6 @@
 
 namespace Bittorrent {
 
-using ptr_vec = std::shared_ptr<std::vector<std::shared_ptr<Torrent>>>;
-
 using pair = std::pair<trackerObj*, Torrent*>;
 
 //set comparator to order by ascending peer request interval

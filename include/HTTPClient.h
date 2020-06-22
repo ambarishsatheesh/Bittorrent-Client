@@ -29,6 +29,7 @@ namespace Bittorrent
         std::chrono::seconds peerRequestInterval;
         int complete;
         int incomplete;
+        std::string errMessage;
         std::vector<peer> peerList;
 
         void dataTransmission(bool isAnnounce);

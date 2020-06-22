@@ -174,6 +174,21 @@ namespace Bittorrent
         torrentList.at(position)->statusData.currentState =
                 TorrentStatus::currentStatus::started;
 
+        runningTorrents.push_back(torrentList.at(position));
+
+        for (auto& tracker : runningTorrents.back()->generalData.trackerList)
+        {
+            trackerUpdateSet.emplace(std::make_pair(&tracker,
+                                                    runningTorrents.back().get()));
+        }
+
+    }
+
+    void WorkingTorrents::stop(int position)
+    {
+        torrentList.at(position)->statusData.currentState =
+                TorrentStatus::currentStatus::stopped;
+
     }
 
     void WorkingTorrents::run()

@@ -24,6 +24,7 @@ namespace Bittorrent
         int leechers;
         int seeders;
         int completed;
+        std::string errMessage;
         std::vector<peer> peerList;
 
         void dataTransmission(bool isAnnounce);

@@ -35,6 +35,7 @@ namespace Bittorrent
         int leechers;
         int complete;
         int incomplete;
+        std::string errMessage;
 
         //peer list
         std::vector<peer> peerList;

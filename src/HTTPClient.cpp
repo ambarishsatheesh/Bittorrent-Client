@@ -16,7 +16,7 @@ using namespace utility;
 HTTPClient::HTTPClient(trackerUrl& parsedUrl, bool isAnnounce)
     : peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port },
     target{ parsedUrl.target }, version{ 10 }, m_isAnnounce{ isAnnounce },
-    peerRequestInterval{ 0 }, complete{ 0 }, incomplete{ 0 },
+    peerRequestInterval{ 0 }, complete{ 0 }, incomplete{ 0 }, errMessage{""},
     io_context(), resolver( io_context ), socket( io_context ), remoteEndpoint()
 {
     LOG_F(INFO, "Resolving HTTP tracker (%s:%s)...",
@@ -452,14 +452,14 @@ void HTTPClient::handleAnnounceResp()
 
     if (info.count("failure reason"))
     {
-        auto failReason = boost::get<std::string>(info.at("failure reason"));
+        errMessage = boost::get<std::string>(info.at("failure reason"));
 
         LOG_F(ERROR,
             "Tracker (%s:%hu - %s:%s) announce response: "
             "Failure Reason %s.",
             remoteEndpoint.address().to_string().c_str(),
             remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str(),
-            failReason.c_str());
+            errMessage.c_str());
 
         peerRequestInterval = std::chrono::seconds(1800);
 

@@ -23,7 +23,7 @@ UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID,
     std::vector<byte>& infoHash, long long& uploaded, long long& downloaded,
     long long& remaining, int& intEvent, int& port, bool isAnnounce)
     : connIDReceivedTime{}, lastRequestTime{}, peerRequestInterval{ 0 },
-    leechers{ 0 }, seeders{ 0 }, completed{ 0 },
+    leechers{ 0 }, seeders{ 0 }, completed{ 0 }, errMessage{""},
     peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port },
     localPort{port}, isFail{ 0 }, logBuffer{""}, m_isAnnounce{isAnnounce},
     byteInfoHash{ infoHash }, ancClientID{ clientID },
@@ -511,15 +511,15 @@ void UDPClient::handleScrapeResp(const std::size_t& scrapeBytesRec)
     else if (receivedAction == errorAction)
     {
         //get error message
-        std::string scrapeErrorMsg(recScrapeBuffer.begin() + 8,
-            recScrapeBuffer.begin() + scrapeBytesRec);
+        errMessage = {recScrapeBuffer.begin() + 8,
+            recScrapeBuffer.begin() + scrapeBytesRec};
 
         isFail = true;
         LOG_F(ERROR,
             "Tracker UDP scrape error (tracker %s:%hu - %s:%s): %s.",
             remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
             peerHost.c_str(), peerPort.c_str(),
-            scrapeErrorMsg.c_str());
+            errMessage.c_str());
 
         peerRequestInterval = std::chrono::seconds(1800);
     }

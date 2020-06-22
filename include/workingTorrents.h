@@ -37,6 +37,7 @@ public:
     void removeTorrent(int position);
 
     void start(int position);
+    void stop(int position);
     void run();
 
     WorkingTorrents();
