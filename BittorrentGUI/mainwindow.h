@@ -25,6 +25,7 @@
 #include <QPushButton>
 #include <QStackedWidget>
 #include <QDataWidgetMapper>
+#include <QTreeView>
 
 #include "ui_generalInfoTab.h"
 #include "Client.h"
@@ -35,6 +36,8 @@
 #include "torrentinfolist.h"
 #include "trackertablemodel.h"
 #include "generalinfomodel.h"
+#include "contenttreemodel.h"
+//#include "addtorrentdialog.h"
 
 namespace Ui {
 class MainWindow;
@@ -131,6 +134,11 @@ private:
     void initGeneralInfo();
     QPointer<generalInfoModel> generalDataModel;
     QPointer<QDataWidgetMapper> generalInfoMapper;
+
+    //content tree
+    void initContentTree();
+    QPointer<ContentTreeModel> contentTreeModel;
+    QPointer<QTreeView> contentTreeView;
 
     //transfers tab
     void initTransfersTab();

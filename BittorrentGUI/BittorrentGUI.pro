@@ -35,6 +35,8 @@ SOURCES += \
     ../src/trackerObj.cpp \
     ../src/trackerUrl.cpp \
     ../src/workingTorrents.cpp \
+    contenttree.cpp \
+    contenttreemodel.cpp \
     createtorrent.cpp \
     generalinfomodel.cpp \
     main.cpp \
@@ -69,6 +71,8 @@ HEADERS += \
     ../include/trackerObj.h \
     ../include/trackerUrl.h \
     ../include/workingTorrents.h \
+    contenttree.h \
+    contenttreemodel.h \
     createtorrent.h \
     generalinfomodel.h \
     mainwindow.h \

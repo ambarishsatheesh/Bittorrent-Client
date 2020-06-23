@@ -45,6 +45,9 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     //initialise general info
     initGeneralInfo();
 
+    //initialise content tree
+    initContentTree();
+
     //initialise tabs
     initTransfersTab();
 
@@ -301,6 +304,15 @@ void MainWindow::initGeneralInfo()
     generalInfoMapper->addMapping(generalInfoTab->peers_val, 17, "text");
 
     m_dockWidget2->setWidget(generalInfoTab->generalBox);
+}
+
+void MainWindow::initContentTree()
+{
+    QVector<std::string> initVec;
+    contentTreeView = new QTreeView(this);
+    contentTreeModel = new ContentTreeModel(initVec, this);
+    contentTreeView->setModel(contentTreeModel);
+    m_dockWidget4->setWidget(contentTreeView);
 }
 
 void MainWindow::initTransfersTab()
