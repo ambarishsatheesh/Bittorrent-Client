@@ -1,10 +1,8 @@
 #ifndef WORKINGTORRENTLIST_H
 #define WORKINGTORRENTLIST_H
 
-#endif // WORKINGTORRENTLIST_H
-
-#include "Torrent.h"
 #include "timer.h"
+#include "TorrentManipulation.h"
 
 #include <vector>
 #include <QString>
@@ -32,9 +30,8 @@ public:
     QMap<QString, int> infoTrackerMap;
     QMap<QString, std::set<QString>> trackerTorrentMap;
 
-    std::string isDuplicateTorrent(const std::string& fileName,
-                            const std::string& buffer);
-    void addNewTorrent(const std::string& fileName, const std::string& buffer);
+    std::string isDuplicateTorrent(const Torrent& modifiedtorrent);
+    void addNewTorrent(const Torrent& modifiedtorrent);
     void removeTorrent(int position);
 
     void start(int position);
@@ -45,3 +42,6 @@ public:
 };
 
 }
+
+
+#endif // WORKINGTORRENTLIST_H
