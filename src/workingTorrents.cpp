@@ -167,6 +167,27 @@ namespace Bittorrent
             }
         }
 
+        //remove entry from update set using infohash as identifier
+        for (auto it = trackerUpdateSet.begin();
+             it != trackerUpdateSet.end();)
+        {
+            if (it->second->hashesData.hexStringInfoHash ==
+                    torrentList.at(position).get()->
+                    hashesData.hexStringInfoHash)
+            {
+                it = trackerUpdateSet.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        if (trackerUpdateSet.empty())
+        {
+            trackerTimer->stop();
+        }
+
         //remove torrent info from list
         torrentList.erase(torrentList.begin() + position);
         addedOnList.erase(addedOnList.begin() + position);
@@ -306,27 +327,6 @@ namespace Bittorrent
         {
             torrentList.at(position)->statusData.currentState =
                     TorrentStatus::currentStatus::stopped;
-
-            //remove entry from update set using infohash as identifier
-            for (auto it = trackerUpdateSet.begin();
-                 it != trackerUpdateSet.end();)
-            {
-                if (it->second->hashesData.hexStringInfoHash ==
-                        torrentList.at(position).get()->
-                        hashesData.hexStringInfoHash)
-                {
-                    it = trackerUpdateSet.erase(it);
-                }
-                else
-                {
-                    ++it;
-                }
-            }
-        }
-
-        if (trackerUpdateSet.empty())
-        {
-            trackerTimer->stop();
         }
     }
 
