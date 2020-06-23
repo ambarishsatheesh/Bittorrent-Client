@@ -2,15 +2,21 @@
 #define CONTENTTREEMODEL_H
 
 #include "contenttree.h"
+#include "Torrent.h"
 
 #include <QAbstractItemModel>
+
+namespace Bittorrent {
 
 class ContentTreeModel : public QAbstractItemModel
 {
     Q_OBJECT
 
 public:
-    explicit ContentTreeModel(const QVector<std::string>& data, QObject *parent = nullptr);
+    explicit ContentTreeModel(const QVector<std::string>& data,
+                              QObject *parent = nullptr);
+    explicit ContentTreeModel(const Torrent& modifiedTorrent,
+                              QObject *parent = nullptr);
     ~ContentTreeModel();
 
     QVariant data(const QModelIndex &index, int role) const override;
@@ -27,10 +33,14 @@ public:
 private:
     void setupModelData(const QVector<std::string>& data,
                         ContentTree *parent);
+    void setupModelData(const Torrent& modifiedTorrent,
+                        ContentTree *parent);
       int findNode(unsigned int& hash,
                    const QList<ContentTree*>& tList);
 
     ContentTree *rootItem;
 };
+
+}
 
 #endif // CONTENTTREEMODEL_H

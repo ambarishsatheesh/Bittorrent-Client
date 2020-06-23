@@ -2,12 +2,22 @@
 
 #include <QHashFunctions>
 
+namespace Bittorrent {
+
 ContentTreeModel::ContentTreeModel(const QVector<std::string>& data,
                                    QObject *parent)
     : QAbstractItemModel(parent)
 {
     rootItem = new ContentTree({tr("Name"), tr("Size")}, 0);
     setupModelData(data, rootItem);
+}
+
+ContentTreeModel::ContentTreeModel(const Torrent& modifiedTorrent,
+                                   QObject *parent)
+    : QAbstractItemModel(parent)
+{
+    rootItem = new ContentTree({tr("Name"), tr("Size")}, 0);
+    setupModelData(modifiedTorrent, rootItem);
 }
 
 ContentTreeModel::~ContentTreeModel()
@@ -123,7 +133,7 @@ void ContentTreeModel::setupModelData(const QVector<std::string>& data,
     {
         QString name = QString::fromStdString(data.at(i));
 
-       QStringList nodeString = name.split("/", QString::SkipEmptyParts);
+       QStringList nodeString = name.split("/");
 
        QString temppath = "";
 
@@ -161,4 +171,57 @@ void ContentTreeModel::setupModelData(const QVector<std::string>& data,
            }
        }
     }
+}
+
+void ContentTreeModel::setupModelData(const Torrent& modifiedTorrent,
+                                      ContentTree *parent)
+{
+    QList<ContentTree*> parents;
+    parents << parent;
+
+    for (int i = 0; i < modifiedTorrent.fileList.size(); ++i)
+    {
+        QString name = QString::fromStdString(
+                    modifiedTorrent.fileList.at(i).filePath);
+
+       QStringList nodeString = name.split("/");
+
+       QString temppath = "";
+
+       int lastidx = 0;
+       for(int node = 0; node < nodeString.count(); ++node)
+       {
+           temppath += nodeString.at(node);
+           if(node != nodeString.count() - 1)
+               temppath += "/";
+
+           unsigned int hash = qHash(temppath);
+           QList<QVariant> columnData;
+
+           columnData << nodeString.at(node);
+
+           int idx = findNode(hash, parents);
+
+           if(idx != -1)
+           {
+                lastidx = idx;
+           }
+           else
+           {
+               if(lastidx != -1)
+               {
+                   parents.at(lastidx)->appendChild(new ContentTree(columnData, hash, parents.at(lastidx)));
+                   parents <<  parents.at(lastidx)->child( parents.at(lastidx)->childCount()-1);
+                   lastidx = -1;
+               }
+               else
+               {
+                   parents.last()->appendChild(new ContentTree(columnData, hash, parents.last()));
+                   parents <<  parents.last()->child( parents.last()->childCount()-1);
+               }
+           }
+       }
+    }
+}
+
 }
