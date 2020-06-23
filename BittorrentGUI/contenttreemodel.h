@@ -13,7 +13,7 @@ class ContentTreeModel : public QAbstractItemModel
     Q_OBJECT
 
 public:
-    explicit ContentTreeModel(const QVector<std::string>& data,
+    explicit ContentTreeModel(std::vector<fileObj>* ptr_trackerList,
                               QObject *parent = nullptr);
     explicit ContentTreeModel(const Torrent& modifiedTorrent,
                               QObject *parent = nullptr);
@@ -31,12 +31,13 @@ public:
 
 
 private:
-    void setupModelData(const QVector<std::string>& data,
-                        ContentTree *parent);
+    void setupModelData(ContentTree *parent);
     void setupModelData(const Torrent& modifiedTorrent,
                         ContentTree *parent);
-      int findNode(unsigned int& hash,
+    int findNode(unsigned int& hash,
                    const QList<ContentTree*>& tList);
+
+    std::vector<fileObj>* fileList;
 
     ContentTree *rootItem;
 };

@@ -4,14 +4,15 @@
 
 namespace Bittorrent {
 
-ContentTreeModel::ContentTreeModel(const QVector<std::string>& data,
+ContentTreeModel::ContentTreeModel(std::vector<fileObj>* ptr_fileList,
                                    QObject *parent)
-    : QAbstractItemModel(parent)
+    : QAbstractItemModel(parent), fileList{ptr_fileList}
 {
     rootItem = new ContentTree({tr("Name"), tr("Size")}, 0);
-    setupModelData(data, rootItem);
+    setupModelData(rootItem);
 }
 
+//only for add torrent dialog
 ContentTreeModel::ContentTreeModel(const Torrent& modifiedTorrent,
                                    QObject *parent)
     : QAbstractItemModel(parent)
@@ -123,15 +124,14 @@ int ContentTreeModel::findNode(unsigned int& hash,
     return -1;
 }
 
-void ContentTreeModel::setupModelData(const QVector<std::string>& data,
-                                      ContentTree *parent)
+void ContentTreeModel::setupModelData(ContentTree *parent)
 {
     QList<ContentTree*> parents;
     parents << parent;
 
-    for (int i = 0; i < data.size(); ++i)
+    for (int i = 0; i < fileList->size(); ++i)
     {
-        QString name = QString::fromStdString(data.at(i));
+        QString name = QString::fromStdString(fileList->at(i).filePath);
 
        QStringList nodeString = name.split("/");
 
