@@ -11,8 +11,8 @@ namespace Bittorrent
         //current state of torrent
         enum class currentStatus
         {
-            started = 1,
-            paused,
+            completed = 1,
+            started,
             stopped
         };
 

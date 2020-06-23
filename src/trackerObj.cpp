@@ -27,12 +27,12 @@ namespace Bittorrent
         int intEvent = 0;
         switch (currentState)
         {
-        case TorrentStatus::currentStatus::started:
-                stringEvent = "started";
+        case TorrentStatus::currentStatus::completed:
+                stringEvent = "completed";
                 intEvent = 1;
                 break;
-        case TorrentStatus::currentStatus::paused:
-                stringEvent = "paused";
+        case TorrentStatus::currentStatus::started:
+                stringEvent = "started";
                 intEvent = 2;
                 break;
         case TorrentStatus::currentStatus::stopped:
@@ -57,7 +57,7 @@ namespace Bittorrent
             "&peer_id=" + urlEncodedClientID + "&port=" + std::to_string(port)
             + "&uploaded=" + std::to_string(uploaded) + "&downloaded=" +
             std::to_string(downloaded) + "&left=" + std::to_string(remaining) +
-            "&event=" + std::to_string(intEvent) + "&compact=1";
+            "&event=" + stringEvent + "&compact=1";
 
         //only requesting new peers if request interval has passed
         if (currentState == TorrentStatus::currentStatus::started &&
