@@ -22,9 +22,6 @@ namespace Bittorrent
         std::shared_ptr<TorrentPieces> ptr_piecesData;
 
 		//constructor
-        TorrentStatus(std::shared_ptr<TorrentPieces> pieces,
-                      const valueDictionary& torrent);
-		//temp
         TorrentStatus(const std::shared_ptr<TorrentPieces> pieces);
 		//no default constructor - requires parameter
 		TorrentStatus() = delete;
