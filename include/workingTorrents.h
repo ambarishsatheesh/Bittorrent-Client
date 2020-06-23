@@ -30,8 +30,8 @@ public:
     QMap<QString, int> infoTrackerMap;
     QMap<QString, std::set<QString>> trackerTorrentMap;
 
-    std::string isDuplicateTorrent(const Torrent& modifiedtorrent);
-    void addNewTorrent(const Torrent& modifiedtorrent);
+    std::string isDuplicateTorrent(Torrent* modifiedtorrent);
+    void addNewTorrent(Torrent* modifiedtorrent);
     void removeTorrent(int position);
 
     void start(int position);

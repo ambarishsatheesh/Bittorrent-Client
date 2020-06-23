@@ -37,7 +37,7 @@ public:
 
     QVariant generateData(const QModelIndex &index) const;
 
-    void addNewTorrent(const Torrent& modifiedTorrent);
+    void addNewTorrent(Torrent* modifiedTorrent);
     void removeTorrent(int position);
 
 signals:

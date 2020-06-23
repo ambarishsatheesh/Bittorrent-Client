@@ -89,7 +89,7 @@ private slots:
 
     void on_actionPause_triggered();
 
-    void handleNewTorrent(const Torrent& modifiedTorrent);
+    void handleNewTorrent(Torrent modifiedTorrent);
 
 private:
     Ui::MainWindow* ui;

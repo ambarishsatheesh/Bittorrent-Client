@@ -191,7 +191,7 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
     }
 }
 
-void TorrentTableModel::addNewTorrent(const Torrent& modifiedTorrent)
+void TorrentTableModel::addNewTorrent(Torrent* modifiedTorrent)
 {
     //get last row
     const int newRow =

@@ -16,12 +16,12 @@ WorkingTorrents::WorkingTorrents()
 {
 }
 
-std::string WorkingTorrents::isDuplicateTorrent(const Torrent& modifiedTorrent)
+std::string WorkingTorrents::isDuplicateTorrent(Torrent* modifiedTorrent)
 {
     //check if torrent already exists in list
     for (auto torrent : torrentList)
     {
-        if (modifiedTorrent.hashesData.hexStringInfoHash ==
+        if (modifiedTorrent->hashesData.hexStringInfoHash ==
                 torrent->hashesData.hexStringInfoHash)
         {
             return torrent->generalData.fileName;
@@ -32,9 +32,9 @@ std::string WorkingTorrents::isDuplicateTorrent(const Torrent& modifiedTorrent)
 }
 
 
-void WorkingTorrents::addNewTorrent(const Torrent& modifiedTorrent)
+void WorkingTorrents::addNewTorrent(Torrent* modifiedTorrent)
 {
-    torrentList.push_back(std::make_shared<Torrent>(modifiedTorrent));
+    torrentList.push_back(std::make_shared<Torrent>(*modifiedTorrent));
 
     //get current time as appropriately formatted string
     addedOnList.push_back(
@@ -42,7 +42,7 @@ void WorkingTorrents::addNewTorrent(const Torrent& modifiedTorrent)
                 toString("yyyy/MM/dd HH:mm"));
 
     //store map of unique trackers and how many torrents use them
-    for (auto trackers : modifiedTorrent.generalData.trackerList)
+    for (auto trackers : modifiedTorrent->generalData.trackerList)
     {
         //get only main host portion of address
         std::string fullTrackerAdd = trackers.trackerAddress;
@@ -80,11 +80,11 @@ void WorkingTorrents::addNewTorrent(const Torrent& modifiedTorrent)
         //mapped to each tracker for use in filtering via tracker list
         trackerTorrentMap[QString::fromStdString(mainHost)].insert(
                     QString::fromStdString(
-                        modifiedTorrent.hashesData.hexStringInfoHash));
+                        modifiedTorrent->hashesData.hexStringInfoHash));
     }
 
     LOG_F(INFO, "Added Torrent %s to client!",
-          modifiedTorrent.generalData.fileName.c_str());
+          modifiedTorrent->generalData.fileName.c_str());
 }
 
 void WorkingTorrents::removeTorrent(int position)

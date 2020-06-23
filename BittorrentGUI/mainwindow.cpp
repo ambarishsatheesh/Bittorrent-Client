@@ -566,15 +566,15 @@ void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
     //back to MainWindow and then pass its bencoded data
     //via the loadCreatedTorrent slot
     connect(addTorInfoDialog, &AddTorrentDialog::sendModifiedTorrent, this,
-            [this](const Torrent& modifiedTorrent){
+            [this](Torrent modifiedTorrent){
         MainWindow::handleNewTorrent(modifiedTorrent);}
     );
 }
 
-void MainWindow::handleNewTorrent(const Torrent& modifiedTorrent)
+void MainWindow::handleNewTorrent(Torrent modifiedTorrent)
 {
     //update relevant data models
-    torrentModel->addNewTorrent(modifiedTorrent);
+    torrentModel->addNewTorrent(&modifiedTorrent);
     infoListModel->update();
 
     //create new trackerTableview and associated model
