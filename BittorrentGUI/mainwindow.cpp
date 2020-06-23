@@ -261,15 +261,12 @@ void MainWindow::initTrackersTable()
 
     //set up initial empty model
     std::vector<trackerObj> initVec;
-    //auto ptr_init = std::make_unique<std::vector<trackerObj>>(initVec);
-    //initTrackerModel = new TrackerTableModel(std::move(ptr_init), this);
     initTrackerModel = new TrackerTableModel(&initVec, this);
 
     initTrackerTable->setModel(initTrackerModel);
 
     trackerTableStack = new QStackedWidget(m_dockWidget3);
     trackerTableStack->addWidget(initTrackerTable);
-    //trackerTableStack->setCurrentWidget(initTrackerTable);
 
     m_dockWidget3->setWidget(trackerTableStack);
 }
@@ -308,12 +305,16 @@ void MainWindow::initGeneralInfo()
 
 void MainWindow::initContentTree()
 {
-    QVector<std::string> initVec;
-    contentTreeView = new QTreeView(this);
-    contentTreeModel = new ContentTreeModel(initVec, this);
-    contentTreeView->setModel(contentTreeModel);
-    contentTreeView->setColumnWidth(0, 500);
-    m_dockWidget4->setWidget(contentTreeView);
+    std::vector<fileObj> initVec;
+    initContentTreeView = new QTreeView(this);
+    initContentTreeModel = new ContentTreeModel(&initVec, this);
+    initContentTreeView->setModel(initContentTreeModel);
+    initContentTreeView->setColumnWidth(0, 500);
+
+    contentTreeStack = new QStackedWidget(m_dockWidget4);
+    contentTreeStack->addWidget(initContentTreeView);
+
+    m_dockWidget4->setWidget(contentTreeStack);
 }
 
 void MainWindow::initTransfersTab()
@@ -397,11 +398,14 @@ void MainWindow::torrentSelected(const QItemSelection &selected,
 
     for (auto row : selectedSourceRowSet)
     {
-        auto ptr_struct = std::make_unique<trackerTableData>(
+        auto ptr_trackerStruct = std::make_unique<trackerTableData>(
                     trackerTableVec.at(row));
-        //ptr_struct->trackerTable->setModel(ptr_struct->trackerModel);
-        //ptr_struct->trackerTable->resizeColumnsToContents();
-        trackerTableStack->setCurrentWidget(ptr_struct->trackerTable);
+        auto ptr_contentStruct = std::make_unique<contentTreeData>(
+                    contentTreeVec.at(row));
+
+        //set current stack widgets to appropriate view
+        trackerTableStack->setCurrentWidget(ptr_trackerStruct->trackerTable);
+        contentTreeStack->setCurrentWidget(ptr_contentStruct->contentTreeView);
 
         //set general info mapper to relevant row
         generalInfoMapper->setCurrentIndex(row);
@@ -579,34 +583,58 @@ void MainWindow::handleNewTorrent(Torrent modifiedTorrent)
 
     //create new trackerTableview and associated model
     //and add to tableview stack
-    QPointer<QTableView> trackerTableView = new QTableView;
-
-    QPointer<TrackerTableModel> trackerModel =
+    QPointer<QTableView> dynTrackerTableView = new QTableView;
+    QPointer<TrackerTableModel> dynTrackerModel =
             new TrackerTableModel(&ioClient->WorkingTorrents.torrentList.back()->
                                   generalData.trackerList, this);
 
     //configure new table
-    trackerTableView->setModel(trackerModel);
-    trackerTableView->resizeColumnsToContents();
-    trackerTableView->verticalHeader()->setVisible(false);
-    trackerTableView->setShowGrid(false);
-    trackerTableView->setAlternatingRowColors(true);
-    trackerTableView->setStyleSheet("alternate-background-color: #F0F0F0;");
-    trackerTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    trackerTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    dynTrackerTableView->setModel(dynTrackerModel);
+    dynTrackerTableView->resizeColumnsToContents();
+    dynTrackerTableView->verticalHeader()->setVisible(false);
+    dynTrackerTableView->setShowGrid(false);
+    dynTrackerTableView->setAlternatingRowColors(true);
+    dynTrackerTableView->setStyleSheet("alternate-background-color: #F0F0F0;");
+    dynTrackerTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    dynTrackerTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     //disable bold header text when data is selected
-    trackerTableView->horizontalHeader()->setHighlightSections(false);
+    dynTrackerTableView->horizontalHeader()->setHighlightSections(false);
     //right click menus
-    trackerTableView->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
-    trackerTableView->setContextMenuPolicy(Qt::CustomContextMenu);
+    dynTrackerTableView->horizontalHeader()->
+            setContextMenuPolicy(Qt::CustomContextMenu);
+    dynTrackerTableView->setContextMenuPolicy(Qt::CustomContextMenu);
 
     //add to struct
-    trackerTableData singleTrackerTable{std::move(trackerTableView),
-                std::move(trackerModel)};
+    trackerTableData dynTrackerTable{std::move(dynTrackerTableView),
+                std::move(dynTrackerModel)};
 
     //add struct to vector and stack
-    trackerTableVec.push_back(singleTrackerTable);
-    trackerTableStack->addWidget(singleTrackerTable.trackerTable);
+    trackerTableVec.push_back(dynTrackerTable);
+    trackerTableStack->addWidget(dynTrackerTable.trackerTable);
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    //create new QTreeView and associated model
+    //and add to contentTreeStack
+    QPointer<QTreeView> dynContentTreeView = new QTreeView;
+    QPointer<ContentTreeModel> dynContentTreeModel = new ContentTreeModel(
+                &ioClient->WorkingTorrents.torrentList.back()->fileList, this);
+
+    //configure new QTreeView
+    dynContentTreeView->setModel(dynContentTreeModel);
+    dynContentTreeView->resizeColumnToContents(0);
+    dynContentTreeView->resizeColumnToContents(1);
+    dynContentTreeView->setAlternatingRowColors(true);
+    dynContentTreeView->setStyleSheet("alternate-background-color: #F0F0F0;");
+    dynContentTreeView->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+    //add to struct
+    contentTreeData dynContentTree{std::move(dynContentTreeView),
+                std::move(dynContentTreeModel)};
+
+    //add struct to vector and stack
+    contentTreeVec.push_back(dynContentTree);
+    contentTreeStack->addWidget(dynContentTree.contentTreeView);
 }
 
 void MainWindow::duplicateTorrentSlot(QString torrentName)

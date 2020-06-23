@@ -114,6 +114,11 @@ private:
     QPointer<QTableView> torrentTable;
     QPointer<TorrentTableModel> torrentModel;
 
+    //general info
+    void initGeneralInfo();
+    QPointer<generalInfoModel> generalDataModel;
+    QPointer<QDataWidgetMapper> generalInfoMapper;
+
     //trackers tables
     void initTrackersTable();
     QPointer<QTableView> initTrackerTable;
@@ -132,15 +137,23 @@ private:
     };
     QVector<trackerTableData> trackerTableVec;
 
-    //general info
-    void initGeneralInfo();
-    QPointer<generalInfoModel> generalDataModel;
-    QPointer<QDataWidgetMapper> generalInfoMapper;
-
     //content tree
     void initContentTree();
-    QPointer<ContentTreeModel> contentTreeModel;
-    QPointer<QTreeView> contentTreeView;
+    QPointer<QTreeView> initContentTreeView;
+    QPointer<ContentTreeModel> initContentTreeModel;
+    QPointer<QStackedWidget> contentTreeStack;
+    struct contentTreeData
+    {
+        QPointer<QTreeView> contentTreeView;
+        QPointer<ContentTreeModel> contentTreeModel;
+
+        contentTreeData(QPointer<QTreeView> tree,
+                         QPointer<ContentTreeModel> model)
+            : contentTreeView(std::move(tree)),
+              contentTreeModel(std::move(model))
+        {}
+    };
+    QVector<contentTreeData> contentTreeVec;
 
     //transfers tab
     void initTransfersTab();
