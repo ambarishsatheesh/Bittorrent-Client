@@ -190,9 +190,9 @@ void CreateTorrent::on_buttonCancel_clicked()
     this->close();
 }
 
-}
-
-void Bittorrent::CreateTorrent::on_startSeedingCheckBox_stateChanged(int arg1)
+void CreateTorrent::on_startSeedingCheckBox_stateChanged(int arg1)
 {
     isStartSeeding = ui->startSeedingCheckBox->isChecked() ? true : false;
+}
+
 }
