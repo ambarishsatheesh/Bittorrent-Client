@@ -3,6 +3,7 @@
 
 #include "storedPrevTorrents.h"
 #include "Client.h"
+#include "TorrentManipulation.h"
 
 #include <QAbstractTableModel>
 #include <QVector>
@@ -36,7 +37,7 @@ public:
 
     QVariant generateData(const QModelIndex &index) const;
 
-    void addNewTorrent(const std::string& fileName, const std::string& buffer);
+    void addNewTorrent(const Torrent& modifiedTorrent);
     void removeTorrent(int position);
 
 signals:

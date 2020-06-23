@@ -312,6 +312,7 @@ void MainWindow::initContentTree()
     contentTreeView = new QTreeView(this);
     contentTreeModel = new ContentTreeModel(initVec, this);
     contentTreeView->setModel(contentTreeModel);
+    contentTreeView->setColumnWidth(0, 500);
     m_dockWidget4->setWidget(contentTreeView);
 }
 
@@ -543,14 +544,37 @@ void MainWindow::toggleColumnDisplay()
 
 void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
 {
+    using namespace torrentManipulation;
+
     if (buffer.empty())
     {
         LOG_F(ERROR, "Torrent is empty!");
         return;
     }
 
+    //create dialog
+    addTorInfoDialog = new AddTorrentDialog(filePath, buffer, this);
+
+    //remove question mark from dialog
+    addTorInfoDialog->setWindowFlags(
+                addTorInfoDialog->windowFlags() &
+                ~Qt::WindowContextHelpButtonHint);
+
+    addTorInfoDialog->show();
+
+    //connect custom signal from AddTorrentDialog to send modified torrent
+    //back to MainWindow and then pass its bencoded data
+    //via the loadCreatedTorrent slot
+    connect(addTorInfoDialog, &AddTorrentDialog::sendModifiedTorrent, this,
+            [this](const Torrent& modifiedTorrent){
+        MainWindow::handleNewTorrent(modifiedTorrent);}
+    );
+}
+
+void MainWindow::handleNewTorrent(const Torrent& modifiedTorrent)
+{
     //update relevant data models
-    torrentModel->addNewTorrent(filePath, buffer);
+    torrentModel->addNewTorrent(modifiedTorrent);
     infoListModel->update();
 
     //create new trackerTableview and associated model

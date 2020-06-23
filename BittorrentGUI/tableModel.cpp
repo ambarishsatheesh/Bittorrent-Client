@@ -191,7 +191,7 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
     }
 }
 
-void TorrentTableModel::addNewTorrent(const std::string& fileName, const std::string& buffer)
+void TorrentTableModel::addNewTorrent(const Torrent& modifiedTorrent)
 {
     //get last row
     const int newRow =
@@ -199,8 +199,7 @@ void TorrentTableModel::addNewTorrent(const std::string& fileName, const std::st
 
     //duplicate torrent validation (returns torrent name if duplicate)
     auto duplicateName = QString::fromStdString(ioClientModel->
-                           WorkingTorrents.isDuplicateTorrent(
-                               fileName, buffer));
+                           WorkingTorrents.isDuplicateTorrent(modifiedTorrent));
 
     if (duplicateName.isEmpty())
     {
@@ -208,13 +207,12 @@ void TorrentTableModel::addNewTorrent(const std::string& fileName, const std::st
         beginInsertRows(QModelIndex(), newRow, newRow);
 
         ioClientModel->
-                    WorkingTorrents.addNewTorrent(fileName, buffer);
+                    WorkingTorrents.addNewTorrent(modifiedTorrent);
 
         endInsertRows();
 
-        LOG_F(INFO, "Added torrent \"%s\".",
-              ioClientModel->WorkingTorrents.torrentList.at(newRow)->
-              generalData.fileName.c_str());
+        LOG_F(INFO, "Duplicate torrent \"%s\"!",
+                      duplicateName.toStdString().c_str());
     }
     else
     {

@@ -37,7 +37,8 @@
 #include "trackertablemodel.h"
 #include "generalinfomodel.h"
 #include "contenttreemodel.h"
-//#include "addtorrentdialog.h"
+#include "addtorrentdialog.h"
+#include "TorrentManipulation.h"
 
 namespace Ui {
 class MainWindow;
@@ -88,11 +89,12 @@ private slots:
 
     void on_actionPause_triggered();
 
+    void handleNewTorrent(const Torrent& modifiedTorrent);
+
 private:
     Ui::MainWindow* ui;
     Ui::generalInfo* generalInfoTab;
     Client* ioClient;
-    QPointer<CreateTorrent> createTorDialog;
 
     //Windows
     void initWindows();
@@ -183,8 +185,12 @@ private:
     //label
     QPointer<QLabel> trackersHeader;
 
-    //file dialog
+    //add new torrent
     QPointer<QFileDialog> addTorrentDialog;
+    QPointer<AddTorrentDialog> addTorInfoDialog;
+
+    //create new torrent
+    QPointer<CreateTorrent> createTorDialog;
 
     //table header menu
     QList<QPair<QString, QPointer<TorrentHeaderCheckbox>>> actionList;
