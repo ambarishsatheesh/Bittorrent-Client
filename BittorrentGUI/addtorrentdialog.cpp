@@ -10,8 +10,7 @@ using namespace torrentManipulation;
 
 AddTorrentDialog::AddTorrentDialog(std::string filePath, std::string& buffer,
                                    QPointer<QWidget> parent)
-    : QDialog(parent), ui(new Ui::AddTorrentDialog), storedTorrentPath{""},
-      modifiedTorrent{modifiedTorrent}
+    : QDialog(parent), ui(new Ui::AddTorrentDialog), storedTorrentPath{""}
 {
     ui->setupUi(this);
 
@@ -31,22 +30,21 @@ AddTorrentDialog::AddTorrentDialog(std::string filePath, std::string& buffer,
         }
     }
 
-    initContentTree();
-
     valueDictionary decodedTorrent =
             boost::get<valueDictionary>(Decoder::decode(buffer));
-    *modifiedTorrent = toTorrentObj(filePath.c_str(), decodedTorrent);
+    modifiedTorrent = toTorrentObj(filePath.c_str(), decodedTorrent);
 
     //set label values
     ui->sizeVal->setText(
                 QString::fromStdString(
-                    humanReadableBytes(modifiedTorrent->piecesData.totalSize)));
+                    humanReadableBytes(modifiedTorrent.piecesData.totalSize)));
     ui->commentVal->setText(
-                QString::fromStdString(modifiedTorrent->generalData.comment));
+                QString::fromStdString(modifiedTorrent.generalData.comment));
     ui->hashVal->setText(
                 QString::fromStdString(
-                    modifiedTorrent->hashesData.hexStringInfoHash));
+                    modifiedTorrent.hashesData.hexStringInfoHash));
 
+    initContentTree();
 }
 
 AddTorrentDialog::~AddTorrentDialog()
@@ -56,10 +54,12 @@ AddTorrentDialog::~AddTorrentDialog()
 
 void AddTorrentDialog::initContentTree()
 {
-    contentTreeView = new QTreeView(this);
-    contentTreeModel = new ContentTreeModel(*modifiedTorrent, ui->contentTree);
-    contentTreeView->setModel(contentTreeModel);
-    contentTreeView->setColumnWidth(0, 500);
+//    contentTreeView = new QTreeView(this);
+    contentTreeModel = new ContentTreeModel(modifiedTorrent, this);
+    ui->contentTreeView->setModel(contentTreeModel);
+    ui->contentTreeView->setColumnWidth(0, 500);
+    ui->contentTreeView->resizeColumnToContents(0);
+    ui->contentTreeView->resizeColumnToContents(1);
 }
 
 void AddTorrentDialog::on_buttonCreate_clicked()
@@ -77,12 +77,15 @@ void AddTorrentDialog::on_buttonCreate_clicked()
     //actual torrent file creation
     if (!storedTorrentPath.isEmpty())
     {
-        //set download directory using input value
-        modifiedTorrent->generalData.downloadDirectory =
-                storedTorrentPath.toStdString();
+        //set download directory using input value (and filename)
+        modifiedTorrent.generalData.downloadDirectory =
+                storedTorrentPath.toStdString() + "/" +
+                modifiedTorrent.generalData.fileName;
 
         //send back to MainWindow
-        emit sendModifiedTorrent(*modifiedTorrent);
+        emit sendModifiedTorrent(modifiedTorrent);
+
+        this->close();
     }
 }
 

@@ -34,20 +34,20 @@ private slots:
     void on_browse_clicked();
 
 signals:
-    void sendModifiedTorrent(Torrent& modifiedTorrent);
+    void sendModifiedTorrent(Torrent modifiedTorrent);
 
 private:
     Ui::AddTorrentDialog *ui;
 
     QString storedTorrentPath;
 
-    Torrent* modifiedTorrent;
+    Torrent modifiedTorrent;
 
     QPointer<QFileDialog> selectFolderDialog;
 
     //file content tree
     void initContentTree();
-    QPointer<QTreeView> contentTreeView;
+    //QPointer<QTreeView> contentTreeView;
     QPointer<ContentTreeModel> contentTreeModel;
 };
 
