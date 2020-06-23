@@ -19,7 +19,7 @@ namespace Bittorrent
 		//forward declare
         std::string encode(const value& torrent);
         Torrent toTorrentObj(const char* fullFilePath,
-            const valueDictionary& torrent);
+            const valueDictionary& torrentDict);
         value toBencodingObj(Torrent& torrent);
         void createNewTorrent(std::string fileName, const char* path,
             std::string targetPath, bool isPrivate, const std::string& comment,
@@ -54,26 +54,24 @@ namespace Bittorrent
 				throw std::invalid_argument("Error: missing info section in torrent!");
 			}
 
-			//create torrent
-			Torrent newTorrent(fullFilePath, torrentDict);
+            //create torrent
+            Torrent newTorrent;
 			//fill file list data
-			newTorrent.setFileList(torrentDict);
-			//fill general data
-			newTorrent.generalData.torrentToGeneralData(fullFilePath, torrentDict);
-			//fill pieces data
-			newTorrent.piecesData.torrentToPiecesData(newTorrent.fileList, torrentDict);
-			newTorrent.hashesData.torrentToHashesData(torrentDict);
+            newTorrent.setFileList(torrentDict);
+            //fill general data
+            newTorrent.generalData.torrentToGeneralData(fullFilePath, torrentDict);
+            //fill pieces data
+            newTorrent.piecesData.torrentToPiecesData(newTorrent.fileList, torrentDict);
+            newTorrent.hashesData.torrentToHashesData(torrentDict);
 
-			//encode and create info section for use in new torrent
-			valueDictionary bencodingObjInfo;
-			//if multi files, use input filename as name
-			bencodingObjInfo = newTorrent.filesToDictionary(bencodingObjInfo);
-			bencodingObjInfo.emplace("name", newTorrent.generalData.fileName);
-			bencodingObjInfo =
-				newTorrent.piecesData.piecesDataToDictionary(bencodingObjInfo);
-			newTorrent.hashesData.torrentToHashesData(bencodingObjInfo);
-
-
+            //encode and create info section for use in new torrent
+            valueDictionary bencodingObjInfo;
+            //if multi files, use input filename as name
+            bencodingObjInfo = newTorrent.filesToDictionary(bencodingObjInfo);
+            bencodingObjInfo.emplace("name", newTorrent.generalData.fileName);
+            bencodingObjInfo =
+                newTorrent.piecesData.piecesDataToDictionary(bencodingObjInfo);
+            newTorrent.hashesData.torrentToHashesData(bencodingObjInfo);
 
 			return newTorrent;
 		}
@@ -104,7 +102,7 @@ namespace Bittorrent
 			std::string targetPath, bool isPrivate, const std::string& comment,
 			std::vector<std::string> trackerList)
 		{
-			Torrent createdTorrent(path);
+            Torrent createdTorrent;
 
 			// General data
 			createdTorrent.generalData.fileName = fileName;

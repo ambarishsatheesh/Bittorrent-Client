@@ -32,15 +32,11 @@ namespace Bittorrent
 		//Status
 		TorrentStatus statusData;
 
-		//construct using torrent info
-		Torrent(const char* fullFilePath, const valueDictionary& torrent);
-		//construct without any info
-		Torrent(const char* fullFilePath);
-		//no default constructor - requires parameter
-		Torrent() = delete;
+        //constructor
+        Torrent();
 
 		//set file info
-		void setFileList(const valueDictionary& torrent);
+        void setFileList(const valueDictionary& torrent);
 		valueDictionary filesToDictionary(valueDictionary& dict);
 
 		std::shared_ptr<Torrent> getPtr();

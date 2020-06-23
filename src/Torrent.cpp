@@ -1,5 +1,4 @@
 #include "Torrent.h"
-#include "Decoder.h"
 #include <iostream>
 #include <boost/variant/get.hpp>
 #include <boost/variant/get.hpp>
@@ -8,20 +7,12 @@
 namespace Bittorrent
 {
 	//add tracker processing
-
-	Torrent::Torrent(const char* fullFilePath, const valueDictionary& torrent)
-        : generalData(), fileList{ }, piecesData(), hashesData(),
-        statusData(std::make_shared<TorrentPieces>(piecesData), torrent)
-	{
-
-	}
-
-	Torrent::Torrent(const char* fullFilePath)
-        : generalData(), fileList{ }, piecesData(), hashesData(),
+    Torrent::Torrent()
+        : generalData(), piecesData(), hashesData(),
         statusData(std::make_shared<TorrentPieces>(piecesData))
-	{
+    {
 
-	}
+    }
 
 	valueDictionary Torrent::filesToDictionary(valueDictionary& dict)
 	{
@@ -79,7 +70,7 @@ namespace Bittorrent
 		return dict;
 	}
 
-	void Torrent::setFileList(const valueDictionary& torrent)
+    void Torrent::setFileList(const valueDictionary& torrent)
 	{
 		valueDictionary info = boost::get<valueDictionary>(torrent.at("info"));
 		fileObj resObj;
