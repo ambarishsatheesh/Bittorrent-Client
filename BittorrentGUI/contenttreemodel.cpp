@@ -4,9 +4,10 @@
 
 namespace Bittorrent {
 
-ContentTreeModel::ContentTreeModel(std::vector<fileObj>* ptr_fileList,
+ContentTreeModel::ContentTreeModel(Client* client,
+                                   std::vector<fileObj>* ptr_fileList,
                                    QObject *parent)
-    : QAbstractItemModel(parent), fileList{ptr_fileList}
+    : QAbstractItemModel(parent), fileList{ptr_fileList}, ioClient{client}
 {
     rootItem = new ContentTree({tr("Name"), tr("Size")}, 0);
     setupModelData(rootItem);
@@ -129,9 +130,19 @@ void ContentTreeModel::setupModelData(ContentTree *parent)
     QList<ContentTree*> parents;
     parents << parent;
 
-    for (int i = 0; i < fileList->size(); ++i)
+    //copy to new vector to allow modification of file names
+    auto fileListCopy = *fileList;
+
+    //add top level parent folder to each file name
+    for (auto& file : fileListCopy)
     {
-        QString name = QString::fromStdString(fileList->at(i).filePath);
+        file.filePath.insert(0, ioClient->WorkingTorrents.torrentList.back()->
+                             generalData.fileName + "/");
+    }
+
+    for (int i = 0; i < fileListCopy.size(); ++i)
+    {
+        QString name = QString::fromStdString(fileListCopy.at(i).filePath);
 
        QStringList nodeString = name.split("/");
 
@@ -159,14 +170,28 @@ void ContentTreeModel::setupModelData(ContentTree *parent)
            {
                if(lastidx != -1)
                {
-                   parents.at(lastidx)->appendChild(new ContentTree(columnData, hash, parents.at(lastidx)));
-                   parents <<  parents.at(lastidx)->child( parents.at(lastidx)->childCount()-1);
+                   //if not a parent, get file size
+                   if (temppath.lastIndexOf('/') != temppath.size() - 1)
+                   {
+                       columnData << QString::fromStdString(
+                                        humanReadableBytes(
+                                            fileListCopy.at(i).fileSize));
+                   }
+
+                   parents.at(lastidx)->appendChild(
+                               new ContentTree(columnData,
+                                               hash, parents.at(lastidx)));
+                   parents <<  parents.at(lastidx)->child(
+                                   parents.at(lastidx)->childCount()-1);
                    lastidx = -1;
                }
                else
                {
-                   parents.last()->appendChild(new ContentTree(columnData, hash, parents.last()));
-                   parents <<  parents.last()->child( parents.last()->childCount()-1);
+                   parents.last()->appendChild(
+                               new ContentTree(columnData,
+                                               hash, parents.last()));
+                   parents <<  parents.last()->child(
+                                   parents.last()->childCount()-1);
                }
            }
        }
@@ -179,48 +204,73 @@ void ContentTreeModel::setupModelData(const Torrent& modifiedTorrent,
     QList<ContentTree*> parents;
     parents << parent;
 
-    for (int i = 0; i < modifiedTorrent.fileList.size(); ++i)
+    //copy to new vector to allow modification of file names
+    auto fileListCopy = modifiedTorrent.fileList;
+
+    //add top level parent folder to each file name
+    for (auto& file : fileListCopy)
+    {
+        file.filePath.insert(0, modifiedTorrent.generalData.fileName + "/");
+    }
+
+    for (int i = 0; i < fileListCopy.size(); ++i)
     {
         QString name = QString::fromStdString(
-                    modifiedTorrent.fileList.at(i).filePath);
+                    fileListCopy.at(i).filePath);
 
-       QStringList nodeString = name.split("/");
+        QStringList nodeString = name.split("/");
 
-       QString temppath = "";
+        QString temppath = "";
 
-       int lastidx = 0;
-       for(int node = 0; node < nodeString.count(); ++node)
-       {
-           temppath += nodeString.at(node);
-           if(node != nodeString.count() - 1)
-               temppath += "/";
+        int lastidx = 0;
+        for(int node = 0; node < nodeString.count(); ++node)
+        {
+            temppath += nodeString.at(node);
+            if(node != nodeString.count() - 1)
+            {
+                temppath += "/";
+            }
 
-           unsigned int hash = qHash(temppath);
-           QList<QVariant> columnData;
+            unsigned int hash = qHash(temppath);
 
-           columnData << nodeString.at(node);
+            QList<QVariant> columnData;
+            columnData << nodeString.at(node);
 
-           int idx = findNode(hash, parents);
+            int idx = findNode(hash, parents);
 
-           if(idx != -1)
-           {
+            if(idx != -1)
+            {
                 lastidx = idx;
-           }
-           else
-           {
+            }
+            else
+            {
                if(lastidx != -1)
                {
-                   parents.at(lastidx)->appendChild(new ContentTree(columnData, hash, parents.at(lastidx)));
-                   parents <<  parents.at(lastidx)->child( parents.at(lastidx)->childCount()-1);
+                   //if not a parent, get file size
+                   if (temppath.lastIndexOf('/') != temppath.size() - 1)
+                   {
+                       columnData << QString::fromStdString(
+                                        humanReadableBytes(
+                                            fileListCopy.at(i).fileSize));
+                   }
+
+                   parents.at(lastidx)->appendChild(
+                               new ContentTree(columnData,
+                                               hash, parents.at(lastidx)));
+                   parents <<  parents.at(lastidx)->child(
+                                   parents.at(lastidx)->childCount()-1);
                    lastidx = -1;
                }
                else
                {
-                   parents.last()->appendChild(new ContentTree(columnData, hash, parents.last()));
-                   parents <<  parents.last()->child( parents.last()->childCount()-1);
+                   parents.last()->appendChild(
+                               new ContentTree(columnData,
+                                               hash, parents.last()));
+                   parents <<  parents.last()->child(
+                                   parents.last()->childCount()-1);
                }
-           }
-       }
+            }
+        }
     }
 }
 

@@ -3,6 +3,7 @@
 
 #include "contenttree.h"
 #include "Torrent.h"
+#include "Client.h"
 
 #include <QAbstractItemModel>
 
@@ -13,7 +14,8 @@ class ContentTreeModel : public QAbstractItemModel
     Q_OBJECT
 
 public:
-    explicit ContentTreeModel(std::vector<fileObj>* ptr_trackerList,
+    explicit ContentTreeModel(Client* client,
+                              std::vector<fileObj>* ptr_trackerList,
                               QObject *parent = nullptr);
     explicit ContentTreeModel(const Torrent& modifiedTorrent,
                               QObject *parent = nullptr);
@@ -38,6 +40,7 @@ private:
                    const QList<ContentTree*>& tList);
 
     std::vector<fileObj>* fileList;
+    Client* ioClient;
 
     ContentTree *rootItem;
 };
