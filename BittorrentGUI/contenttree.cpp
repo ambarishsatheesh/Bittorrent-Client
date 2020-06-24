@@ -1,4 +1,5 @@
 #include "contenttree.h"
+#include "loguru.h"
 
 
 ContentTree::ContentTree(const QList<QVariant> &data,
@@ -41,13 +42,14 @@ int ContentTree::row() const
 
 int ContentTree::columnCount() const
 {
-    return m_itemData.count();
+    return 2;
 }
 
 QVariant ContentTree::data(int column) const
 {
     if (column < 0 || column >= m_itemData.size())
         return QVariant();
+
     return m_itemData.at(column);
 }
 

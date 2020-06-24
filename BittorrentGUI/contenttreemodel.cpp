@@ -187,6 +187,14 @@ void ContentTreeModel::setupModelData(ContentTree *parent)
                }
                else
                {
+                   //if not a parent, get file size
+                   if (temppath.lastIndexOf('/') != temppath.size() - 1)
+                   {
+                       columnData << QString::fromStdString(
+                                        humanReadableBytes(
+                                            fileListCopy.at(i).fileSize));
+                   }
+
                    parents.last()->appendChild(
                                new ContentTree(columnData,
                                                hash, parents.last()));
@@ -263,6 +271,14 @@ void ContentTreeModel::setupModelData(const Torrent& modifiedTorrent,
                }
                else
                {
+                   //if not a parent, get file size
+                   if (temppath.lastIndexOf('/') != temppath.size() - 1)
+                   {
+                       columnData << QString::fromStdString(
+                                        humanReadableBytes(
+                                            fileListCopy.at(i).fileSize));
+                   }
+
                    parents.last()->appendChild(
                                new ContentTree(columnData,
                                                hash, parents.last()));
