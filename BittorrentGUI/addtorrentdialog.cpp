@@ -57,8 +57,7 @@ void AddTorrentDialog::initContentTree()
 //    contentTreeView = new QTreeView(this);
     contentTreeModel = new ContentTreeModel(modifiedTorrent, this);
     ui->contentTreeView->setModel(contentTreeModel);
-    ui->contentTreeView->setColumnWidth(0, 500);
-    ui->contentTreeView->resizeColumnToContents(0);
+    ui->contentTreeView->setColumnWidth(0, 400);
     ui->contentTreeView->resizeColumnToContents(1);
 
     //expand top parent

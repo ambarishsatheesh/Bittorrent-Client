@@ -564,6 +564,7 @@ void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
                 addTorInfoDialog->windowFlags() &
                 ~Qt::WindowContextHelpButtonHint);
 
+    addTorInfoDialog->setMinimumWidth(700);
     addTorInfoDialog->show();
 
     //connect custom signal from AddTorrentDialog to send modified torrent
@@ -623,7 +624,7 @@ void MainWindow::handleNewTorrent(Torrent modifiedTorrent)
 
     //configure new QTreeView
     dynContentTreeView->setModel(dynContentTreeModel);
-    dynContentTreeView->resizeColumnToContents(0);
+    dynContentTreeView->setColumnWidth(0, 500);
     dynContentTreeView->resizeColumnToContents(1);
     dynContentTreeView->setAlternatingRowColors(true);
     dynContentTreeView->setStyleSheet("alternate-background-color: #F0F0F0;");
