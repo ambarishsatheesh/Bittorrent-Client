@@ -181,7 +181,7 @@ void WorkingTorrents::removeTorrent(int position)
     torrentList.erase(torrentList.begin() + position);
     addedOnList.erase(addedOnList.begin() + position);
 
-    LOG_F(INFO, "Removed Torrent '%s' to client!",
+    LOG_F(INFO, "Removed Torrent '%s' from client!",
           logName.c_str());
 }
 

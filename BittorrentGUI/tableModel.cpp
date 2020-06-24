@@ -216,7 +216,7 @@ void TorrentTableModel::addNewTorrent(Torrent* modifiedTorrent)
         //send signal notifying of torrent duplication
         emit duplicateTorrentSig(duplicateName);
 
-        LOG_F(INFO, "Duplicate torrent \"%s\"!",
+        LOG_F(INFO, "Duplicate torrent '%s'!",
               duplicateName.toStdString().c_str());
     }
 }
@@ -235,7 +235,7 @@ void TorrentTableModel::removeTorrent(int position)
 
     endRemoveRows();
 
-    LOG_F(INFO, "Removed torrent \"%s\"", deletedTorName.c_str());
+    LOG_F(INFO, "Removed torrent '%s' from client!", deletedTorName.c_str());
 
 }
 
