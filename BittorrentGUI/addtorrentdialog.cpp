@@ -60,6 +60,9 @@ void AddTorrentDialog::initContentTree()
     ui->contentTreeView->setColumnWidth(0, 500);
     ui->contentTreeView->resizeColumnToContents(0);
     ui->contentTreeView->resizeColumnToContents(1);
+
+    //expand top parent
+    ui->contentTreeView->expand(contentTreeModel->index(0,0));
 }
 
 void AddTorrentDialog::on_buttonCreate_clicked()
