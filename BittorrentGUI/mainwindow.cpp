@@ -15,31 +15,24 @@
 
 namespace Bittorrent
 {
+using namespace utility;
 
-//function to display log messages within main application GUI (logTab)
 void logCallback(void* user_data, const loguru::Message& message)
 {
-    auto ptr_logOutput = reinterpret_cast<QTextEdit*>(user_data);
-
     if (message.verbosity == loguru::Verbosity_WARNING)
     {
         //orange
-        ptr_logOutput->setTextColor(QColor("#FF9933"));
-        ptr_logOutput->append(QString(message.preamble) + QString(message.message));
+        reinterpret_cast<QTextEdit*>(user_data)->setTextColor(QColor("#FF9933"));
+        reinterpret_cast<QTextEdit*>(user_data)->append(
+                    QString(message.preamble) + QString(message.message));
     }
     else if (message.verbosity == loguru::Verbosity_ERROR)
     {
-        ptr_logOutput->setTextColor(Qt::red);
-        ptr_logOutput->append(QString(message.preamble) + QString(message.message));
-    }
-    else
-    {
-        ptr_logOutput->setTextColor(Qt::blue);
-        ptr_logOutput->append(QString(message.preamble) + QString(message.message));
+        reinterpret_cast<QTextEdit*>(user_data)->setTextColor(Qt::red);
+        reinterpret_cast<QTextEdit*>(user_data)->append(
+                    QString(message.preamble) + QString(message.message));
     }
 }
-
-using namespace utility;
 
 MainWindow::MainWindow(Client* client, QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow),
@@ -77,6 +70,7 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     initTransfersTab();
 
     LOG_F(INFO, "Client ready!");
+    textEdit->append("Client Ready!");
 
 //    auto tester =
 //            new QAbstractItemModelTester(
@@ -86,7 +80,8 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
-    loguru::remove_callback("logToWidget");
+    loguru::remove_callback("logToWidget_WAR");
+    loguru::remove_callback("logToWidget_ERR");
 }
 
 void MainWindow::initWindows()
@@ -155,8 +150,10 @@ void MainWindow::initLogTab()
     logTab->setLayout(logLayout);
 
     //add callback for logging so any logs are displayed in logTab
-    loguru::add_callback("logToWidget", logCallback, textEdit,
-                         loguru::Verbosity_MAX);
+    loguru::add_callback("logToWidget_WAR", logCallback, textEdit,
+                         loguru::Verbosity_WARNING);
+    loguru::add_callback("logToWidget_ERR", logCallback, textEdit,
+                         loguru::Verbosity_ERROR);
 }
 
 void MainWindow::initToolbar()

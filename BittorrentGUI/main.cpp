@@ -30,10 +30,10 @@ using namespace Bittorrent;
 int main(int argc, char* argv[])
 {
     //start logging to file
-    const char* orderByTimeLog = "timeLog.log";
+    const char* logFile = "log.log";
     //const char* orderByThreadLog = "threadLog.log";
     loguru::init(argc, argv);
-    loguru::add_file(orderByTimeLog, loguru::Append, loguru::Verbosity_MAX);
+    loguru::add_file(logFile, loguru::Append, loguru::Verbosity_MAX);
 
     auto client = std::make_unique<Client>();
 
@@ -116,14 +116,14 @@ int main(int argc, char* argv[])
     pixmap = pixmap.scaled(screen->geometry().size()*0.4, Qt::KeepAspectRatio);
     QPointer<QSplashScreen> splash =
             new QSplashScreen(pixmap, Qt::WindowStaysOnTopHint);
-    splash->show();
-    //update spash with messages
-    splash->showMessage("Setting up client...");
+//    splash->show();
+//    //update spash with messages
+//    splash->showMessage("Setting up client...");
 
     //main window
     MainWindow w(client.get());
     w.show();
-    splash->finish(&w);
+    //splash->finish(&w);
 
     return a.exec();
 }
