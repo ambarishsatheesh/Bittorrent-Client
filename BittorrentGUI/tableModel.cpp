@@ -210,9 +210,6 @@ void TorrentTableModel::addNewTorrent(Torrent* modifiedTorrent)
                     WorkingTorrents.addNewTorrent(modifiedTorrent);
 
         endInsertRows();
-
-        LOG_F(INFO, "Duplicate torrent \"%s\"!",
-                      duplicateName.toStdString().c_str());
     }
     else
     {

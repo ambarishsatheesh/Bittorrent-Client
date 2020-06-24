@@ -83,12 +83,14 @@ void WorkingTorrents::addNewTorrent(Torrent* modifiedTorrent)
                         modifiedTorrent->hashesData.hexStringInfoHash));
     }
 
-    LOG_F(INFO, "Added Torrent %s to client!",
+    LOG_F(INFO, "Added Torrent '%s' to client!",
           modifiedTorrent->generalData.fileName.c_str());
 }
 
 void WorkingTorrents::removeTorrent(int position)
 {
+    auto logName = torrentList.at(position)->generalData.fileName;
+
     for (auto trackers : torrentList.at(position)->
          generalData.trackerList)
     {
@@ -178,6 +180,9 @@ void WorkingTorrents::removeTorrent(int position)
     //remove torrent info from list
     torrentList.erase(torrentList.begin() + position);
     addedOnList.erase(addedOnList.begin() + position);
+
+    LOG_F(INFO, "Removed Torrent '%s' to client!",
+          logName.c_str());
 }
 
 void WorkingTorrents::start(int position)
@@ -292,7 +297,7 @@ void WorkingTorrents::start(int position)
                                          torrentList.at(position).get()));
         }
 
-        LOG_F(INFO, "Processed trackers for torrent %s!",
+        LOG_F(INFO, "Processed trackers for torrent '%s'!",
               torrentList.at(position)->generalData.fileName.c_str());
 
         //only start new timer if timer is not already running and
