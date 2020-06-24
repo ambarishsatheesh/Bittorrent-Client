@@ -307,7 +307,7 @@ void MainWindow::initContentTree()
 {
     std::vector<fileObj> initVec;
     initContentTreeView = new QTreeView(this);
-    initContentTreeModel = new ContentTreeModel(&initVec, this);
+    initContentTreeModel = new ContentTreeModel(ioClient, &initVec, this);
     initContentTreeView->setModel(initContentTreeModel);
     initContentTreeView->setColumnWidth(0, 500);
 
@@ -618,7 +618,8 @@ void MainWindow::handleNewTorrent(Torrent modifiedTorrent)
     //and add to contentTreeStack
     QPointer<QTreeView> dynContentTreeView = new QTreeView;
     QPointer<ContentTreeModel> dynContentTreeModel = new ContentTreeModel(
-                &ioClient->WorkingTorrents.torrentList.back()->fileList, this);
+                ioClient, &ioClient->WorkingTorrents.torrentList.back()->fileList,
+                this);
 
     //configure new QTreeView
     dynContentTreeView->setModel(dynContentTreeModel);
@@ -627,6 +628,8 @@ void MainWindow::handleNewTorrent(Torrent modifiedTorrent)
     dynContentTreeView->setAlternatingRowColors(true);
     dynContentTreeView->setStyleSheet("alternate-background-color: #F0F0F0;");
     dynContentTreeView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    //expand top parent
+    dynContentTreeView->expand(dynContentTreeModel->index(0,0));
 
     //add to struct
     contentTreeData dynContentTree{std::move(dynContentTreeView),
@@ -725,7 +728,10 @@ void MainWindow::on_actionDelete_triggered()
         for (auto row : selectedSourceRowList)
         {
             torrentModel->removeTorrent(row);
+
+            //erase from relevant vectors used for QStackedWidget
             trackerTableVec.erase(trackerTableVec.begin() + row);
+            contentTreeVec.erase(contentTreeVec.begin() + row);
         }
     }
 
