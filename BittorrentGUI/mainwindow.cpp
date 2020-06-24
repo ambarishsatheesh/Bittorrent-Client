@@ -16,6 +16,28 @@
 namespace Bittorrent
 {
 
+//function to display log messages within main application GUI (logTab)
+void logCallback(void* user_data, const loguru::Message& message)
+{
+    auto ptr_logOutput = reinterpret_cast<QTextEdit*>(user_data);
+
+    if (message.verbosity == loguru::Verbosity_WARNING)
+    {
+        //orange
+        ptr_logOutput->setTextColor(QColor("#FF9933"));
+        ptr_logOutput->append(QString(message.preamble) + QString(message.message));
+    }
+    else if (message.verbosity == loguru::Verbosity_ERROR)
+    {
+        ptr_logOutput->setTextColor(Qt::red);
+        ptr_logOutput->append(QString(message.preamble) + QString(message.message));
+    }
+    else
+    {
+        ptr_logOutput->setTextColor(Qt::blue);
+        ptr_logOutput->append(QString(message.preamble) + QString(message.message));
+    }
+}
 
 using namespace utility;
 
@@ -35,6 +57,9 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     //initialise windows
     initWindows();
 
+    //initialise log tab
+    initLogTab();
+
     //Initialise toolbar
     initToolbar();
 
@@ -51,6 +76,8 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     //initialise tabs
     initTransfersTab();
 
+    LOG_F(INFO, "Client ready!");
+
 //    auto tester =
 //            new QAbstractItemModelTester(
 //                torrentModel, QAbstractItemModelTester::FailureReportingMode::Fatal, this);
@@ -59,7 +86,7 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
-    delete m_rightSideWindow;
+    loguru::remove_callback("logToWidget");
 }
 
 void MainWindow::initWindows()
@@ -86,8 +113,8 @@ void MainWindow::initWindows()
     //sub windows
     m_dockWidget1 = new QDockWidget("Torrents", this);
     m_rightSideWindow->addDockWidget(Qt::TopDockWidgetArea, m_dockWidget1);
-    m_dockWidget1->setTitleBarWidget(new QWidget()); // remove title bar
-    m_dockWidget1->setAllowedAreas(Qt::NoDockWidgetArea); // do not allow to dock
+    m_dockWidget1->setTitleBarWidget(new QWidget());
+    m_dockWidget1->setAllowedAreas(Qt::NoDockWidgetArea);
 
     m_dockWidget2 = new QDockWidget("General", this);
     m_rightSideWindow->addDockWidget(Qt::BottomDockWidgetArea, m_dockWidget2);
@@ -112,6 +139,24 @@ void MainWindow::initWindows()
     //set as default tab
     m_dockWidget2->show();
     m_dockWidget2->raise();
+}
+
+void MainWindow::initLogTab()
+{
+    //add QTextEdit widget to log tab
+    textEdit = new QTextEdit(this);
+    textEdit->setReadOnly(true);
+    textEdit->setLineWrapMode(QTextEdit::NoWrap);
+
+    //add layout
+    logLayout = new QVBoxLayout(this);
+    logLayout->addWidget(textEdit);
+
+    logTab->setLayout(logLayout);
+
+    //add callback for logging so any logs are displayed in logTab
+    loguru::add_callback("logToWidget", logCallback, textEdit,
+                         loguru::Verbosity_MAX);
 }
 
 void MainWindow::initToolbar()
@@ -372,12 +417,6 @@ void MainWindow::trackerListItemSelected(const QModelIndex& index)
         proxyModel->setFilterRegExp(QRegExp(""));
     }
 
-    for (auto i : ioClient->WorkingTorrents.trackerTorrentMap.value(ioClient->WorkingTorrents.trackerTorrentMap.keys().at(index.row())))
-    {
-        LOG_F(INFO, "torrent: %s", i.toStdString().c_str());
-    }
-
-
     //clear so that future search filter calls can be safely made
     proxyModel->infoHashList.clear();
 }
@@ -409,7 +448,6 @@ void MainWindow::torrentSelected(const QItemSelection &selected,
 
         //set general info mapper to relevant row
         generalInfoMapper->setCurrentIndex(row);
-        LOG_F(INFO, "current idx: %d", generalInfoMapper->currentIndex());
 
         //emit trackerTableVec.at(row).trackerModel->dataChanged(QModelIndex(), QModelIndex());
     }
@@ -643,14 +681,10 @@ void MainWindow::handleNewTorrent(Torrent modifiedTorrent)
 
 void MainWindow::duplicateTorrentSlot(QString torrentName)
 {
-    LOG_F(INFO, "duplicate test1");
-
     QMessageBox::information(this, "Torrent is already present",
                              QString("Torrent '%1' is already in the transfer "
                              "list. Trackers have been merged").arg(torrentName),
                              QMessageBox::Ok);
-
-    LOG_F(INFO, "duplicate test2");
 }
 
 void MainWindow::on_actionAdd_Torrent_triggered()

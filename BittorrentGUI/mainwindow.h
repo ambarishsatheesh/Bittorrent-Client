@@ -26,6 +26,7 @@
 #include <QStackedWidget>
 #include <QDataWidgetMapper>
 #include <QTreeView>
+#include <QTextBrowser>
 
 #include "ui_generalInfoTab.h"
 #include "Client.h"
@@ -158,6 +159,11 @@ private:
     //transfers tab
     void initTransfersTab();
     QPointer<QListView> infoList;
+
+    //log tab
+    void initLogTab();
+    QPointer<QTextEdit> textEdit;
+    QPointer<QVBoxLayout> logLayout;
 
     //toolbar
     void initToolbar();
