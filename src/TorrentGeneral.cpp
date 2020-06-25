@@ -143,4 +143,36 @@ namespace Bittorrent
 			tracker.resetLastRequest();
 		}
 	}
+
+    void TorrentGeneral::getPeerList()
+    {
+        for (auto& tracker : trackerList)
+        {
+            for (auto singlePeer : tracker.peerList)
+            {
+                uniquePeerList.insert(singlePeer);
+            }
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
