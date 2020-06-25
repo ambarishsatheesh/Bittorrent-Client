@@ -78,7 +78,7 @@ void WorkingTorrents::addNewTorrent(Torrent* modifiedTorrent)
 
         //use hex string as torrent identifier and store as vector of torrents
         //mapped to each tracker for use in filtering via tracker list
-        trackerTorrentMap[QString::fromStdString(mainHost)].insert(
+        trackerTorrentMap[QString::fromStdString(mainHost)].emplace(
                     QString::fromStdString(
                         modifiedTorrent->hashesData.hexStringInfoHash));
     }
@@ -292,9 +292,7 @@ void WorkingTorrents::start(int position)
         for (auto& tracker : torrentList.at(position)->
              generalData.trackerList)
         {
-            trackerUpdateSet.emplace(std::make_pair(
-                                         &tracker,
-                                         torrentList.at(position).get()));
+            trackerUpdateSet.emplace(&tracker,torrentList.at(position).get());
         }
 
         LOG_F(INFO, "Processed trackers for torrent '%s'!",
@@ -306,6 +304,8 @@ void WorkingTorrents::start(int position)
         {
             trackerTimer->start(&trackerUpdateSet);
         }
+
+
 
         //begin remaining process
         run();

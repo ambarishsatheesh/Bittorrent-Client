@@ -74,7 +74,7 @@ void TrackerTimer::wait_then_call(pSet* trackerSet)
                            trackerSet->begin()->second->statusData.remaining());
 
             //re-insert element (with updated peer interval)
-            trackerSet->emplace(std::make_pair(trackerSet->begin()->first, trackerSet->begin()->second));
+            trackerSet->emplace(trackerSet->begin()->first, trackerSet->begin()->second);
 
             //set temp time for use in next set element
             tempTime = trackerSet->begin()->first->peerRequestInterval;
