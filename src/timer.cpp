@@ -73,8 +73,12 @@ void TrackerTimer::wait_then_call(pSet* trackerSet)
                            trackerSet->begin()->second->statusData.downloaded(),
                            trackerSet->begin()->second->statusData.remaining());
 
+            //update peer list
+            trackerSet->begin()->second->generalData.getPeerList();
+
             //re-insert element (with updated peer interval)
-            trackerSet->emplace(trackerSet->begin()->first, trackerSet->begin()->second);
+            trackerSet->emplace(trackerSet->begin()->first,
+                                trackerSet->begin()->second);
 
             //set temp time for use in next set element
             tempTime = trackerSet->begin()->first->peerRequestInterval;
@@ -86,7 +90,7 @@ void TrackerTimer::wait_then_call(pSet* trackerSet)
         {
             //update temp time
             tempTime = nextInterval;
-        }
+        }        
     }
 
     LOG_F(INFO, "Ended tracker timer.");
