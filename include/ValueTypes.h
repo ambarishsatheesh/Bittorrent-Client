@@ -30,18 +30,17 @@ namespace Bittorrent
 	using valueDictionary = std::map<std::string, value>;
 	using valueList = std::vector<value>;
 
-	struct peer
-	{
-		std::string ipAddress;
-		std::string port;
-		//not used for anything yet
-		std::vector<byte> peerID;
+    struct peer
+    {
+        std::string ipAddress;
+        std::string port;
+        //not used for anything yet
+        std::vector<byte> peerID;
 
-		//overload == operator to allow comparison
-		bool operator==(const peer& a) const {
-			return a.ipAddress == ipAddress && a.port == port && 
-				a.peerID == peerID;
-		}
-	};
-
+        //overload == operator to allow comparison
+        bool operator==(const peer& a) const {
+            return a.ipAddress == this->ipAddress && a.port == this->port &&
+                a.peerID == this->peerID;
+        }
+    };
 }
