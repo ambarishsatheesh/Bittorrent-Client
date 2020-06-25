@@ -305,8 +305,6 @@ void WorkingTorrents::start(int position)
             trackerTimer->start(&trackerUpdateSet);
         }
 
-
-
         //begin remaining process
         run();
     }
