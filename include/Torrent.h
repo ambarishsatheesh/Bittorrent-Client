@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <QtConcurrent>
 
 #include "fileObj.h"
 #include "TorrentGeneral.h"
@@ -38,6 +39,12 @@ namespace Bittorrent
 		//set file info
         void setFileList(const valueDictionary& torrent);
 		valueDictionary filesToDictionary(valueDictionary& dict);
+
+        void handlePeerListUpdated(peer* singlePeer);
+
+        //signals
+        std::shared_ptr<boost::signals2::signal<void(peer*, Torrent*)>> sig_addPeer;
+        void addPeer(peer* singlePeer, Torrent* torrent);
 
 		std::shared_ptr<Torrent> getPtr();
 

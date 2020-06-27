@@ -2,16 +2,21 @@
 #include <iostream>
 #include <boost/variant/get.hpp>
 #include <boost/variant/get.hpp>
-
+#include <boost/bind.hpp>
 
 namespace Bittorrent
 {
 	//add tracker processing
     Torrent::Torrent()
         : generalData(), piecesData(), hashesData(),
+          sig_addPeer{
+              std::make_shared<boost::signals2::signal<void(peer*, Torrent*)>>()},
         statusData(std::make_shared<TorrentPieces>(piecesData))
     {
-
+        //connect peer-list-updated signal
+        generalData.sig_peersUpdated->connect(
+                    boost::bind(&Torrent::handlePeerListUpdated,
+                                this, _1));
     }
 
 	valueDictionary Torrent::filesToDictionary(valueDictionary& dict)
@@ -127,6 +132,14 @@ namespace Bittorrent
 		//std::string test = boost::get<std::string>(decodedTorrent.at("info"));
 		//std::cout << test << std::endl;
 	}
+
+    void Torrent::handlePeerListUpdated(peer* singlePeer)
+    {
+        if (sig_addPeer->empty())
+        {
+            sig_addPeer->operator()(singlePeer, this);
+        }
+    }
 
 	std::shared_ptr<Torrent> Torrent::getPtr()
 	{
