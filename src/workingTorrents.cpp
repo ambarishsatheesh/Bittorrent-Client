@@ -305,6 +305,12 @@ void WorkingTorrents::start(int position)
             trackerTimer->start(&trackerUpdateSet);
         }
 
+        //if peer list is empty, fill it with peers from trackers
+        if (torrentList.at(position)->generalData.uniquePeerList.empty())
+        {
+            torrentList.at(position)->generalData.getPeerList();
+        }
+
         //begin remaining process
         run();
     }
