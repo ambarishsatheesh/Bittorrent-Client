@@ -18,34 +18,19 @@ namespace Bittorrent
 		: public std::enable_shared_from_this<Peer>
 	{
 	public:
-		struct dataRequest
-		{
-			int piece;
-			int offset;
-			int dataSize;
-			bool isCancelled;
-		};
-
-		struct dataPackage
-		{
-			int piece;
-			int block;
-			std::vector<byte> data;
-		};
-
         //signals
-        std::shared_ptr<boost::signals2::signal<void(Peer& peer)>> disconnected;
+        std::shared_ptr<boost::signals2::signal<void(Peer* peer)>> disconnected;
 
-        std::shared_ptr<boost::signals2::signal<void(Peer& peer)>> stateChanged;
-
-        std::shared_ptr<boost::signals2::signal<void(
-            Peer& peer, dataRequest newDataRequest)>> blockRequested;
+        std::shared_ptr<boost::signals2::signal<void(Peer* peer)>> stateChanged;
 
         std::shared_ptr<boost::signals2::signal<void(
-            Peer& peer, dataRequest newDataRequest)>> blockCancelled;
+            Peer* peer, dataRequest newDataRequest)>> blockRequested;
 
         std::shared_ptr<boost::signals2::signal<void(
-            Peer& peer, dataPackage newPackage)>> blockReceived;
+            Peer* peer, dataRequest newDataRequest)>> blockCancelled;
+
+        std::shared_ptr<boost::signals2::signal<void(
+            Peer* peer, dataPackage newPackage)>> blockReceived;
 
         //general variables
 		boost::bimap<std::string, int> messageType;
@@ -80,11 +65,11 @@ namespace Bittorrent
 		//delete default constructor
 		Peer() = delete;
 		//client-opened connection constructors
-		Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
+        Peer(Torrent* torrent, std::vector<byte>& localID,
 			boost::asio::io_context& io_context);
 		//peer-opened connection constructor
 		//need io_context here to initialise timers
-		Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
+        Peer(Torrent* torrent, std::vector<byte>& localID,
 			boost::asio::io_context& io_context, tcp::socket tcpClient);
 
 		//new connection called from client

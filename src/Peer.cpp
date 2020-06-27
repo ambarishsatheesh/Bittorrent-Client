@@ -10,18 +10,18 @@ namespace Bittorrent
 {
 	using namespace utility;
 
-	Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
+    Peer::Peer(Torrent* torrent, std::vector<byte>& localID,
 		boost::asio::io_context& io_context)
         : disconnected{std::make_shared<boost::signals2::signal<void(
-                           Peer& peer)>>()},
+                           Peer* peer)>>()},
         stateChanged{std::make_shared<boost::signals2::signal<void(
-                           Peer& peer)>>()},
+                           Peer* peer)>>()},
         blockRequested{std::make_shared<boost::signals2::signal<void(
-                           Peer& peer, dataRequest newDataRequest)>>()},
+                           Peer* peer, dataRequest newDataRequest)>>()},
         blockCancelled{std::make_shared<boost::signals2::signal<void(
-                           Peer& peer, dataRequest newDataRequest)>>()},
+                           Peer* peer, dataRequest newDataRequest)>>()},
         blockReceived{std::make_shared<boost::signals2::signal<void(
-                           Peer& peer, dataPackage newPackage)>>()},
+                           Peer* peer, dataPackage newPackage)>>()},
         localID{ localID }, peerID{ "" },
 		torrent{ torrent->getPtr() }, endpointKey(),
 		isPieceDownloaded(torrent->piecesData.pieceCount),
@@ -42,7 +42,7 @@ namespace Bittorrent
 		//add message types to map
 		messageType.insert({ "unknown", -3 });
 		messageType.insert({ "handshake", -2 });
-		messageType.insert({ "keepAlive", -1 });
+        messageType.insert({ "keepAlive", -1 });
 		messageType.insert({ "choke", 0 });
 		messageType.insert({ "unchoke", 0 });
 		messageType.insert({ "interested", 2 });
@@ -53,21 +53,22 @@ namespace Bittorrent
 		messageType.insert({ "piece", 7 });
 		messageType.insert({ "cancel", 8 });
 		messageType.insert({ "port", 9 });
+
 	}
 
 	//construct peer from accepted connection started by another peer
-	Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
+    Peer::Peer(Torrent* torrent, std::vector<byte>& localID,
 		boost::asio::io_context& io_context, tcp::socket tcpClient)
         : disconnected{std::make_shared<boost::signals2::signal<void(
-                           Peer& peer)>>()},
+                           Peer* peer)>>()},
         stateChanged{std::make_shared<boost::signals2::signal<void(
-                           Peer& peer)>>()},
+                           Peer* peer)>>()},
         blockRequested{std::make_shared<boost::signals2::signal<void(
-                           Peer& peer, dataRequest newDataRequest)>>()},
+                           Peer* peer, dataRequest newDataRequest)>>()},
         blockCancelled{std::make_shared<boost::signals2::signal<void(
-                           Peer& peer, dataRequest newDataRequest)>>()},
+                           Peer* peer, dataRequest newDataRequest)>>()},
         blockReceived{std::make_shared<boost::signals2::signal<void(
-                           Peer& peer, dataPackage newPackage)>>()},
+                           Peer* peer, dataPackage newPackage)>>()},
         localID{ localID }, peerID{ "" },
 		torrent{ torrent->getPtr() }, endpointKey(),
 		isPieceDownloaded(torrent->piecesData.pieceCount), 
@@ -435,7 +436,7 @@ namespace Bittorrent
 			<< ", uploaded: " << uploaded << "\n";
 
 		//call slot
-        disconnected->operator()(*this);
+        disconnected->operator()(this);
 	}
 
 	void Peer::handleMessage()
@@ -1375,7 +1376,7 @@ namespace Bittorrent
 		//call slot
         if (!stateChanged->empty())
 		{
-            stateChanged->operator()(*this);
+            stateChanged->operator()(this);
 		}
 	}
 
@@ -1387,7 +1388,7 @@ namespace Bittorrent
 		//call slot
         if (!stateChanged->empty())
 		{
-            stateChanged->operator()(*this);
+            stateChanged->operator()(this);
 		}
 	}
 
@@ -1399,7 +1400,7 @@ namespace Bittorrent
 		//call slot
         if (!stateChanged->empty())
 		{
-            stateChanged->operator()(*this);
+            stateChanged->operator()(this);
 		}
 	}
 
@@ -1411,7 +1412,7 @@ namespace Bittorrent
 		//call slot
         if (!stateChanged->empty())
 		{
-            stateChanged->operator()(*this);
+            stateChanged->operator()(this);
 		}
 	}
 
@@ -1425,7 +1426,7 @@ namespace Bittorrent
 		//call slot
         if (!stateChanged->empty())
 		{
-            stateChanged->operator()(*this);
+            stateChanged->operator()(this);
 		}
 	}
 
@@ -1446,7 +1447,7 @@ namespace Bittorrent
 		//call slot
         if (!stateChanged->empty())
 		{
-            stateChanged->operator()(*this);
+            stateChanged->operator()(this);
 		}
 	}
 
@@ -1460,7 +1461,7 @@ namespace Bittorrent
 		//pass struct and this peer's data to slot
         if (!blockRequested->empty())
 		{
-            blockRequested->operator()(*this, newDataRequest);
+            blockRequested->operator()(this, newDataRequest);
 		}
 	}
 
@@ -1474,7 +1475,7 @@ namespace Bittorrent
 		//pass struct and this peer's data to slot
         if (!blockCancelled->empty())
 		{
-            blockCancelled->operator()(*this, newDataRequest);
+            blockCancelled->operator()(this, newDataRequest);
 		}
 	}
 
@@ -1490,7 +1491,7 @@ namespace Bittorrent
 		//pass struct and this peer's data to slot
         if (!blockReceived->empty())
 		{
-            blockReceived->operator()(*this, newPackage);
+            blockReceived->operator()(this, newPackage);
 		}
 	}
 
