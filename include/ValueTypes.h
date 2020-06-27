@@ -43,4 +43,19 @@ namespace Bittorrent
                 a.peerID == this->peerID;
         }
     };
+
+    struct dataPackage
+    {
+        int piece;
+        int block;
+        std::vector<byte> data;
+    };
+
+    struct dataRequest
+    {
+        int piece;
+        int offset;
+        int dataSize;
+        bool isCancelled;
+    };
 }
