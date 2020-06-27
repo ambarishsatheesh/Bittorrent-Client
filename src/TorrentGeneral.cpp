@@ -10,7 +10,9 @@ namespace Bittorrent
 		downloadDirectory{ "" },
 		comment{ "" }, createdBy{ "" },
 		creationDate{ },
-		encoding{ "" }, isPrivate{ false }, urlEncodedClientID{""}
+        encoding{ "" }, isPrivate{ false }, urlEncodedClientID{""},
+        sig_peersUpdated{
+            std::make_shared<boost::signals2::signal<void(peer*)>>()}
 	{
 
 	}
@@ -150,7 +152,10 @@ namespace Bittorrent
         {
             for (auto singlePeer : tracker.peerList)
             {
-                uniquePeerList.insert(singlePeer);
+                if (uniquePeerList.insert(singlePeer).second == true)
+                {
+                    sig_peersUpdated->operator()(&singlePeer);
+                }
             }
         }
     }

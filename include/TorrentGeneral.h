@@ -44,6 +44,9 @@ namespace Bittorrent
 		std::string urlEncodedClientID;
         std::unordered_set<peer> uniquePeerList;
 
+        //signal
+        std::shared_ptr<boost::signals2::signal<void(peer*)>> sig_peersUpdated;
+
 		//fill general info
 		void torrentToGeneralData(const char* fullFilePath, 
 			const valueDictionary& torrent);
