@@ -33,15 +33,21 @@ namespace Bittorrent
 			std::vector<byte> data;
 		};
 
-		boost::signals2::signal<void(Peer& peer)> disconnected;
-		boost::signals2::signal<void(Peer& peer)> stateChanged;
-		boost::signals2::signal<void(
-			Peer& peer, dataRequest newDataRequest)> blockRequested;
-		boost::signals2::signal<void(
-			Peer& peer, dataRequest newDataRequest)> blockCancelled;
-		boost::signals2::signal<void(
-			Peer& peer, dataPackage newPackage)> blockReceived;
+        //signals
+        std::shared_ptr<boost::signals2::signal<void(Peer& peer)>> disconnected;
 
+        std::shared_ptr<boost::signals2::signal<void(Peer& peer)>> stateChanged;
+
+        std::shared_ptr<boost::signals2::signal<void(
+            Peer& peer, dataRequest newDataRequest)>> blockRequested;
+
+        std::shared_ptr<boost::signals2::signal<void(
+            Peer& peer, dataRequest newDataRequest)>> blockCancelled;
+
+        std::shared_ptr<boost::signals2::signal<void(
+            Peer& peer, dataPackage newPackage)>> blockReceived;
+
+        //general variables
 		boost::bimap<std::string, int> messageType;
 
 		std::vector<byte> localID;
