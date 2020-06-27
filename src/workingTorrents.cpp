@@ -6,6 +6,7 @@
 #include <QDateTime>
 #include <QtConcurrent>
 #include <memory>
+#include <boost/bind.hpp>
 
 namespace Bittorrent
 {
@@ -35,6 +36,10 @@ std::string WorkingTorrents::isDuplicateTorrent(Torrent* modifiedTorrent)
 void WorkingTorrents::addNewTorrent(Torrent* modifiedTorrent)
 {
     torrentList.push_back(std::make_shared<Torrent>(*modifiedTorrent));
+
+    torrentList.back()->generalData.sig_peersUpdated->connect(
+                boost::bind(&WorkingTorrents::TEST_handlePeerListUpdated,
+                            this, _1));
 
     //get current time as appropriately formatted string
     addedOnList.push_back(
@@ -329,6 +334,11 @@ void WorkingTorrents::stop(int position)
 void WorkingTorrents::run()
 {
 
+}
+
+void WorkingTorrents::TEST_handlePeerListUpdated(peer* singlePeer)
+{
+    LOG_F(ERROR, "SIGNAL TEST - %s:%s", singlePeer->ipAddress.c_str(), singlePeer->port.c_str());
 }
 
 

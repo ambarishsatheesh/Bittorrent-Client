@@ -38,6 +38,9 @@ public:
     void stop(int position);
     void run();
 
+    //test signals
+    void TEST_handlePeerListUpdated(peer* singlePeer);
+
     WorkingTorrents();
 };
 
