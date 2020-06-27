@@ -150,10 +150,10 @@ void MainWindow::initLogTab()
     logTab->setLayout(logLayout);
 
     //add callback for logging so any logs are displayed in logTab
-    loguru::add_callback("logToWidget_WAR", logCallback, textEdit,
-                         loguru::Verbosity_WARNING);
-    loguru::add_callback("logToWidget_ERR", logCallback, textEdit,
-                         loguru::Verbosity_ERROR);
+//    loguru::add_callback("logToWidget_WAR", logCallback, textEdit,
+//                         loguru::Verbosity_WARNING);
+//    loguru::add_callback("logToWidget_ERR", logCallback, textEdit,
+//                         loguru::Verbosity_ERROR);
 }
 
 void MainWindow::initToolbar()
