@@ -1,6 +1,7 @@
 #ifndef WORKINGTORRENTLIST_H
 #define WORKINGTORRENTLIST_H
 
+#include "Peer.h"
 #include "timer.h"
 #include "TorrentManipulation.h"
 
@@ -38,8 +39,9 @@ public:
     void stop(int position);
     void run();
 
-    //test signals
-    void TEST_handlePeerListUpdated(peer* singlePeer);
+    //slots
+    void addPeer(peer* singlePeer, Torrent* torrent);
+    void handlePieceVerified(int index);
 
     WorkingTorrents();
 };

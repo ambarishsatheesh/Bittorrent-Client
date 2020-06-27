@@ -37,8 +37,13 @@ void WorkingTorrents::addNewTorrent(Torrent* modifiedTorrent)
 {
     torrentList.push_back(std::make_shared<Torrent>(*modifiedTorrent));
 
-    torrentList.back()->generalData.sig_peersUpdated->connect(
-                boost::bind(&WorkingTorrents::TEST_handlePeerListUpdated,
+    //connect signals and slots
+    torrentList.back()->sig_addPeer->connect(
+                boost::bind(&WorkingTorrents::addPeer,
+                            this, _1, _2));
+
+    torrentList.back()->piecesData.sig_pieceVerified->connect(
+                boost::bind(&WorkingTorrents::handlePieceVerified,
                             this, _1));
 
     //get current time as appropriately formatted string
@@ -336,9 +341,30 @@ void WorkingTorrents::run()
 
 }
 
-void WorkingTorrents::TEST_handlePeerListUpdated(peer* singlePeer)
+void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
 {
-    LOG_F(ERROR, "SIGNAL TEST - %s:%s", singlePeer->ipAddress.c_str(), singlePeer->port.c_str());
+    QFuture<void> future = QtConcurrent::run([&]()
+    {
+        //TCP setup
+        boost::asio::io_context io_context;
+
+        auto peerConn =
+            std::make_shared<Peer>(torrent, clientID, io_context);
+
+        //connect signals here
+        //peerConn->blockRequested->connect()
+
+        peerConn->startNew(singlePeer->ipAddress, singlePeer->port);
+
+        //can be shared among threads if needed - not a good idea until
+        //everything is thread safe
+        io_context.run();
+    });
+}
+
+void WorkingTorrents::handlePieceVerified(int index)
+{
+
 }
 
 
