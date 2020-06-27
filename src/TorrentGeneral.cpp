@@ -154,7 +154,10 @@ namespace Bittorrent
             {
                 if (uniquePeerList.insert(singlePeer).second == true)
                 {
-                    sig_peersUpdated->operator()(&singlePeer);
+                    if (!sig_peersUpdated->empty())
+                    {
+                        sig_peersUpdated->operator()(&singlePeer);
+                    }
                 }
             }
         }
