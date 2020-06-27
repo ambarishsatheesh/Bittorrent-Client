@@ -23,8 +23,7 @@ namespace Bittorrent
 		valueDictionary piecesDataToDictionary(valueDictionary& dict);
 
 		//piece verification signal
-		using sigPieceVer = boost::signals2::signal<void(int piece)>;
-		std::shared_ptr<sigPieceVer> pieceVerifiedSig;
+        std::shared_ptr<boost::signals2::signal<void(int piece)>> sig_pieceVerified;
 
         std::string readablePieceSize();
         std::string readableTotalSize();

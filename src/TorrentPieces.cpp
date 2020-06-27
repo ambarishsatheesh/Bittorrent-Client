@@ -8,7 +8,9 @@ namespace Bittorrent
 	using namespace utility;
 
 	TorrentPieces::TorrentPieces()
-        : blockSize{ 16384 }, pieceSize{ 0 }, totalSize{ 0 }, pieceCount{ 0 }
+        : blockSize{ 16384 }, pieceSize{ 0 }, totalSize{ 0 }, pieceCount{ 0 },
+          sig_pieceVerified{std::make_shared<
+                            boost::signals2::signal<void(int piece)>>()}
 	{
 
 	}
