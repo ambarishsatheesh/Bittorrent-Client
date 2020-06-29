@@ -351,6 +351,12 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
         auto peerConn =
             std::make_shared<Peer>(torrent, clientID, io_context);
 
+        //lock mutex before adding to map
+        std::lock_guard<std::mutex> guard(m);
+        //add to class member map so it can be accessed outside thread
+        peerConnMap.emplace(torrent->hashesData.urlEncodedInfoHash,
+                            peerConn);
+
         //connect signals here
         //peerConn->blockRequested->connect()
 
@@ -362,7 +368,7 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
     });
 }
 
-void WorkingTorrents::handlePieceVerified(int index)
+void WorkingTorrents::handlePieceVerified(int piece)
 {
 
 }

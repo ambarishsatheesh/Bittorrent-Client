@@ -8,6 +8,8 @@
 #include <vector>
 #include <QString>
 #include <QMap>
+#include <unordered_map>
+#include <mutex>
 
 namespace Bittorrent
 {
@@ -15,6 +17,8 @@ namespace Bittorrent
 class WorkingTorrents
 {
 public:
+    std::mutex m;
+
     //time the torrent was added (string format)
     std::vector<QString> addedOnList;
 
@@ -26,6 +30,9 @@ public:
 
     std::vector<std::shared_ptr<Torrent>> torrentList;
     std::vector<std::shared_ptr<Torrent>> runningTorrents;
+
+    //map of peer connections (torrent infohash as key)
+    std::unordered_multimap<std::string, std::shared_ptr<Peer>> peerConnMap;
 
     //unique trackers
     QMap<QString, int> infoTrackerMap;
