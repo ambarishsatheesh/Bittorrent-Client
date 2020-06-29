@@ -30,7 +30,7 @@ namespace Bittorrent
 		IsChokeReceived{ true }, IsInterestedReceived{ false },
 		lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
-		downloaded{ 0 }, context(io_context), socket(context), recBuffer(68)
+        downloaded{ 0 }, context(io_context), socket(context), recBuffer(68)
 	{
 		isBlockRequested.resize(torrent->piecesData.pieceCount);
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
@@ -75,9 +75,9 @@ namespace Bittorrent
 		isDisconnected{}, isHandshakeSent{}, isPositionSent{}, 
 		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{}, 
 		IsChokeReceived{ true }, IsInterestedReceived{ false }, 
-		lastActive{ boost::posix_time::second_clock::local_time() },
+        lastActive{ boost::posix_time::second_clock::local_time() },
 		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
-		downloaded{ 0 }, context(io_context), socket(std::move(tcpClient)), recBuffer(68)
+        downloaded{ 0 }, context(io_context), socket(std::move(tcpClient)), recBuffer(68)
 	{
 		isBlockRequested.resize(torrent->piecesData.pieceCount);
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)

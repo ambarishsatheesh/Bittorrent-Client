@@ -65,7 +65,7 @@ namespace Bittorrent
 		long long downloaded;
 
         //asio context
-        boost::asio::io_context context;
+        boost::asio::io_context& context;
 
 		//delete default constructor
 		Peer() = delete;
