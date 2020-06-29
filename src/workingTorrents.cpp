@@ -101,6 +101,9 @@ void WorkingTorrents::removeTorrent(int position)
 {
     auto logName = torrentList.at(position)->generalData.fileName;
 
+    //stop torrent before removing from list
+    stop(position);
+
     for (auto trackers : torrentList.at(position)->
          generalData.trackerList)
     {
@@ -187,6 +190,15 @@ void WorkingTorrents::removeTorrent(int position)
         trackerTimer->stop();
     }
 
+    //remove relevant peers from dl and ul peer maps using infohash
+    //no need to erase from ul_peerConnMap because disconnecting erases element
+    auto dlRange = dl_peerConnMap.equal_range(
+                torrentList.at(position)->hashesData.urlEncodedInfoHash);
+    for (auto it = dlRange.first; it != dlRange.second; ++it)
+    {
+        dl_peerConnMap.erase(it);
+    }
+
     //remove torrent info from list
     torrentList.erase(torrentList.begin() + position);
     addedOnList.erase(addedOnList.begin() + position);
@@ -235,9 +247,11 @@ void WorkingTorrents::start(int position)
         if (torrentList.at(position)->generalData.trackerList.size() > 5)
         {
             int count = 0;
+
             for (auto& tracker :
                  torrentList.at(position)->generalData.trackerList)
             {
+                //check if recently requested trackers
                 if (std::chrono::high_resolution_clock::now() <
                         tracker.lastPeerRequest + std::chrono::minutes{5})
                 {
@@ -337,9 +351,20 @@ void WorkingTorrents::start(int position)
         }
 
         //if peer list is empty, fill it with peers from trackers
+        //else resume peer connections with existing peers
         if (torrentList.at(position)->generalData.uniquePeerList.empty())
         {
             torrentList.at(position)->generalData.getPeerList();
+        }
+        else
+        {
+            auto range = dl_peerConnMap.equal_range(
+                        torrentList.at(position)->hashesData.urlEncodedInfoHash);
+
+            for (auto it = range.first; it != range.second; ++it)
+            {
+                it->second->resume();
+            }
         }
 
         //begin remaining process
@@ -349,14 +374,7 @@ void WorkingTorrents::start(int position)
 
 void WorkingTorrents::stop(int position)
 {
-    if (torrentList.at(position)->statusData.currentState ==
-            TorrentStatus::currentStatus::started)
-    {
-        torrentList.at(position)->statusData.currentState =
-                TorrentStatus::currentStatus::stopped;
-    }
-
-
+    disablePeerConnection(torrentList.at(position).get());
 }
 
 void WorkingTorrents::run()
@@ -383,7 +401,7 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
             std::make_shared<Peer>(torrent, clientID, io_context);
 
         //lock mutex before adding to map
-        std::lock_guard<std::mutex> guard(m);
+        std::lock_guard<std::mutex> guard(dl);
         //add to class member map so it can be accessed outside thread
         dl_peerConnMap.emplace(torrent->hashesData.urlEncodedInfoHash,
                             dl_peerConn);
@@ -416,7 +434,7 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
                                 std::move(socket));
 
                     //lock mutex before adding to map
-                    std::lock_guard<std::mutex> guard(m);
+                    std::lock_guard<std::mutex> guard(ul);
                     //add to class member map so it can be accessed outside thread
                     ul_peerConnMap.emplace(
                                 torrent->hashesData.urlEncodedInfoHash,
@@ -436,9 +454,41 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
     });
 }
 
-void WorkingTorrents::disablePeerConnection()
+void WorkingTorrents::disablePeerConnection(Torrent* torrent)
 {
+    //disconnect all peers with info hash equal to
+    //argument torrent's infohash
 
+    //downloading
+    if (torrent->statusData.currentState ==
+            TorrentStatus::currentStatus::started)
+    {
+        torrent->statusData.currentState =
+                TorrentStatus::currentStatus::stopped;
+
+        auto range = dl_peerConnMap.equal_range(
+                    torrent->hashesData.urlEncodedInfoHash);
+
+        for (auto it = range.first; it != range.second; ++it)
+        {
+            it->second->disconnect();
+        }
+    }
+    //uploading
+    else if (torrent->statusData.currentState ==
+             TorrentStatus::currentStatus::completed)
+    {
+        auto range = ul_peerConnMap.equal_range(
+                    torrent->hashesData.urlEncodedInfoHash);
+
+        for (auto it = range.first; it != range.second; ++it)
+        {
+            it->second->disconnect();
+
+            //erase since there is no point keeping the object
+            ul_peerConnMap.erase(it);
+        }
+    }
 }
 
 void WorkingTorrents::handlePieceVerified(int piece)

@@ -17,7 +17,8 @@ namespace Bittorrent
 class WorkingTorrents
 {
 public:
-    std::mutex m;
+    std::mutex dl;
+    std::mutex ul;
 
     //time the torrent was added (string format)
     std::vector<QString> addedOnList;
@@ -56,7 +57,7 @@ public:
     void handlePieceVerified(int index);
 
     //non slot peer-related methods
-    void disablePeerConnection();
+    void disablePeerConnection(Torrent* torrent);
     void acceptNewConnection(Torrent *torrent);
 
     WorkingTorrents();
