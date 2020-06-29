@@ -135,7 +135,7 @@ namespace Bittorrent
 
     void Torrent::handlePeerListUpdated(peer* singlePeer)
     {
-        if (sig_addPeer->empty())
+        if (!sig_addPeer->empty())
         {
             sig_addPeer->operator()(singlePeer, this);
         }
