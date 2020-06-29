@@ -39,13 +39,17 @@ public:
     QMap<QString, int> infoTrackerMap;
     QMap<QString, std::set<QString>> trackerTorrentMap;
 
+    //torrent processing
     std::string isDuplicateTorrent(Torrent* modifiedtorrent);
     void addNewTorrent(Torrent* modifiedtorrent);
     void removeTorrent(int position);
 
+    //torrent functionality
     void start(int position);
     void stop(int position);
     void run();
+    int seedingCount;
+    void startSeeding(int position);
 
     //slots
     void addPeer(peer* singlePeer, Torrent* torrent);

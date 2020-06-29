@@ -13,7 +13,7 @@ namespace Bittorrent
 using namespace torrentManipulation;
 
 WorkingTorrents::WorkingTorrents()
-    : trackerTimer{std::make_unique<TrackerTimer>(clientID)}
+    : trackerTimer{std::make_unique<TrackerTimer>(clientID)}, seedingCount{0}
 {
 }
 
@@ -197,8 +197,29 @@ void WorkingTorrents::removeTorrent(int position)
 
 void WorkingTorrents::start(int position)
 {
-    if (torrentList.at(position)->statusData.currentState !=
-            TorrentStatus::currentStatus::started)
+    //start seeding if torrent is completed
+    if (torrentList.at(position)->statusData.currentState ==
+            TorrentStatus::currentStatus::completed)
+    {
+        //only seed if no other torrents are seeding
+        if (seedingCount == 0)
+        {
+            startSeeding(position);
+            return;
+        }
+        else
+        {
+            LOG_F(ERROR, "Concurrent torrent seeding count is already at the "
+                         "maximum (1)! Failed to begin seeding '%s'.",
+                  torrentList.at(position)->generalData.fileName.c_str());
+
+            return;
+        }
+    }
+
+    //if torrent stopped, start it and process accordingly
+    if (torrentList.at(position)->statusData.currentState ==
+            TorrentStatus::currentStatus::stopped)
     {
         torrentList.at(position)->statusData.currentState =
                 TorrentStatus::currentStatus::started;
@@ -343,6 +364,13 @@ void WorkingTorrents::run()
 
 }
 
+//only allow seeding of one torrent at a time
+void WorkingTorrents::startSeeding(int position)
+{
+    seedingCount = 1;
+    acceptNewConnection(torrentList.at(position).get());
+}
+
 //peers for downloading
 void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
 {
@@ -369,6 +397,7 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
     });
 }
 
+//only
 void WorkingTorrents::acceptNewConnection(Torrent* torrent)
 {
     QFuture<void> future = QtConcurrent::run([&]()
@@ -393,9 +422,14 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
                                 torrent->hashesData.urlEncodedInfoHash,
                                         ul_peerConn);
                 }
+                else
+                {
+                    //reset seeding count
+                    seedingCount = 0;
+                }
 
-                //start listening for new connections
-                //doAccept();
+                //start listening for new peer connections for same torrent
+                acceptNewConnection(torrent);
             });
 
         acc_io_context.run();
