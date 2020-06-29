@@ -358,17 +358,32 @@ void WorkingTorrents::start(int position)
         }
         else
         {
-            auto range = dl_peerConnMap.equal_range(
-                        torrentList.at(position)->hashesData.urlEncodedInfoHash);
+            auto infoHash = torrentList.at(position)->
+                    hashesData.urlEncodedInfoHash;
 
-            for (auto it = range.first; it != range.second; ++it)
+            //check if peer already in map (e.g. due to tracker update signal)
+            if (dl_peerConnMap.find(infoHash) != dl_peerConnMap.end())
             {
-                QFuture<void> future = QtConcurrent::run([&]()
+                auto range = dl_peerConnMap.equal_range(infoHash);
+
+                std::vector<std::string> mapHostRange;
+
+                for (auto it = range.first; it != range.second; ++it)
                 {
-                    it->second->context.reset();
-                    it->second->resume();
-                    it->second->context.run();
-                });
+                    mapHostRange.push_back(it->second->peerHost);
+                }
+
+                for (auto singlePeer :
+                     torrentList.at(position)->generalData.uniquePeerList)
+                {
+                    if (std::find(mapHostRange.begin(), mapHostRange.end(),
+                                  singlePeer.ipAddress) != mapHostRange.end())
+                    {
+                        //add new peer if not in map
+                            addPeer(&singlePeer,
+                                    torrentList.at(position).get());
+                    }
+                }
             }
         }
 
@@ -477,6 +492,10 @@ void WorkingTorrents::disablePeerConnection(Torrent* torrent)
         for (auto it = range.first; it != range.second; ++it)
         {
             it->second->disconnect();
+
+            //erase since it is easier to recreate peer object than reset
+            //existing one
+            dl_peerConnMap.erase(it);
         }
     }
     //uploading
