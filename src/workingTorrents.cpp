@@ -363,7 +363,12 @@ void WorkingTorrents::start(int position)
 
             for (auto it = range.first; it != range.second; ++it)
             {
-                it->second->resume();
+                QFuture<void> future = QtConcurrent::run([&]()
+                {
+                    it->second->context.reset();
+                    it->second->resume();
+                    it->second->context.run();
+                });
             }
         }
 

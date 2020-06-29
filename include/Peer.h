@@ -64,6 +64,9 @@ namespace Bittorrent
 		long long uploaded;
 		long long downloaded;
 
+        //asio context
+        boost::asio::io_context context;
+
 		//delete default constructor
 		Peer() = delete;
 		//client-opened connection constructors
@@ -84,8 +87,7 @@ namespace Bittorrent
         void disconnect();
 
 	private:
-		//tcp data
-		boost::asio::io_context& context;
+        //tcp data
 		tcp::socket socket;
 
 		//TCP transmission buffers
