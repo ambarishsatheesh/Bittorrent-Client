@@ -32,7 +32,8 @@ public:
     std::vector<std::shared_ptr<Torrent>> runningTorrents;
 
     //map of peer connections (torrent infohash as key)
-    std::unordered_multimap<std::string, std::shared_ptr<Peer>> peerConnMap;
+    std::unordered_multimap<std::string, std::shared_ptr<Peer>> dl_peerConnMap;
+    std::unordered_multimap<std::string, std::shared_ptr<Peer>> ul_peerConnMap;
 
     //unique trackers
     QMap<QString, int> infoTrackerMap;
@@ -49,6 +50,10 @@ public:
     //slots
     void addPeer(peer* singlePeer, Torrent* torrent);
     void handlePieceVerified(int index);
+
+    //non slot peer-related methods
+    void disablePeerConnection();
+    void acceptNewConnection(Torrent *torrent);
 
     WorkingTorrents();
 };

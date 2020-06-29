@@ -334,6 +334,8 @@ void WorkingTorrents::stop(int position)
         torrentList.at(position)->statusData.currentState =
                 TorrentStatus::currentStatus::stopped;
     }
+
+
 }
 
 void WorkingTorrents::run()
@@ -341,6 +343,7 @@ void WorkingTorrents::run()
 
 }
 
+//peers for downloading
 void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
 {
     QFuture<void> future = QtConcurrent::run([&]()
@@ -348,24 +351,60 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
         //TCP setup
         boost::asio::io_context io_context;
 
-        auto peerConn =
+        auto dl_peerConn =
             std::make_shared<Peer>(torrent, clientID, io_context);
 
         //lock mutex before adding to map
         std::lock_guard<std::mutex> guard(m);
         //add to class member map so it can be accessed outside thread
-        peerConnMap.emplace(torrent->hashesData.urlEncodedInfoHash,
-                            peerConn);
+        dl_peerConnMap.emplace(torrent->hashesData.urlEncodedInfoHash,
+                            dl_peerConn);
 
         //connect signals here
         //peerConn->blockRequested->connect()
 
-        peerConn->startNew(singlePeer->ipAddress, singlePeer->port);
+        dl_peerConn->startNew(singlePeer->ipAddress, singlePeer->port);
 
-        //can be shared among threads if needed - not a good idea until
-        //everything is thread safe
         io_context.run();
     });
+}
+
+void WorkingTorrents::acceptNewConnection(Torrent* torrent)
+{
+    QFuture<void> future = QtConcurrent::run([&]()
+    {
+        boost::asio::io_context acc_io_context;
+        tcp::acceptor acceptor(acc_io_context);
+
+        acceptor.async_accept(
+            [&](boost::system::error_code ec, tcp::socket socket)
+            {
+                if (!ec)
+                {
+                    auto ul_peerConn =
+                            std::make_shared<Peer>(
+                                torrent, clientID, acc_io_context,
+                                std::move(socket));
+
+                    //lock mutex before adding to map
+                    std::lock_guard<std::mutex> guard(m);
+                    //add to class member map so it can be accessed outside thread
+                    ul_peerConnMap.emplace(
+                                torrent->hashesData.urlEncodedInfoHash,
+                                        ul_peerConn);
+                }
+
+                //start listening for new connections
+                //doAccept();
+            });
+
+        acc_io_context.run();
+    });
+}
+
+void WorkingTorrents::disablePeerConnection()
+{
+
 }
 
 void WorkingTorrents::handlePieceVerified(int piece)
