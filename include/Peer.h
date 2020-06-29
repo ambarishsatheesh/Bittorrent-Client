@@ -33,6 +33,8 @@ namespace Bittorrent
             Peer* peer, dataPackage newPackage)>> blockReceived;
 
         //general variables
+        std::string peerHost;
+        std::string peerPort;
 		boost::bimap<std::string, int> messageType;
 
 		std::vector<byte> localID;
@@ -74,8 +76,12 @@ namespace Bittorrent
 
 		//new connection called from client
 		void startNew(const std::string& host, const std::string& port);
+        //when a torrent is resumed and peer info already exists
+        void resume();
 
         std::shared_ptr<Peer> getPtr();
+
+        void disconnect();
 
 	private:
 		//tcp data
@@ -112,7 +118,6 @@ namespace Bittorrent
 		void sendNewBytes(std::vector<byte> sendBuffer);
 		void handleNewSend(const boost::system::error_code& ec,
 			std::size_t receivedBytes);
-		void disconnect();
 
 		//decoding
 		bool decodeHandshake(std::vector<byte>& hash, std::string& id);

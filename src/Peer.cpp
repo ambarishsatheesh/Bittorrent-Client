@@ -22,7 +22,7 @@ namespace Bittorrent
                            Peer* peer, dataRequest newDataRequest)>>()},
         blockReceived{std::make_shared<boost::signals2::signal<void(
                            Peer* peer, dataPackage newPackage)>>()},
-        localID{ localID }, peerID{ "" },
+        peerHost{""}, peerPort{""}, localID{ localID }, peerID{ "" },
 		torrent{ torrent->getPtr() }, endpointKey(),
 		isPieceDownloaded(torrent->piecesData.pieceCount),
 		isDisconnected{}, isHandshakeSent{}, isPositionSent{},
@@ -161,8 +161,12 @@ namespace Bittorrent
 		return sum;
 	}
 
+    //When a torrent is first started
 	void Peer::startNew(const std::string& host, const std::string& port)
 	{
+        peerHost = host;
+        peerPort = port;
+
 		auto presolver = std::make_shared<tcp::resolver>(context);
 
 		auto self(shared_from_this());
@@ -172,6 +176,19 @@ namespace Bittorrent
 			self->connectToNewPeer(ec, presolver, iter);
 			});
 	}
+
+    //When a torrent is resumed
+    void Peer::resume()
+    {
+        auto presolver = std::make_shared<tcp::resolver>(context);
+
+        auto self(shared_from_this());
+        presolver->async_resolve(tcp::resolver::query(peerHost, peerPort),
+            [self, presolver](auto&& ec, auto iter)
+            {
+            self->connectToNewPeer(ec, presolver, iter);
+            });
+    }
 
 	void Peer::readFromCreatedPeer()
 	{
@@ -426,7 +443,7 @@ namespace Bittorrent
 
 	void Peer::disconnect()
 	{
-		std::cout << "\n" << "Disconnecting..." << "\n";
+        std::cout << "\n" << "Disconnecting peer..." << "\n";
 
 		isDisconnected = true;
 		boost::system::error_code ignored_ec;
