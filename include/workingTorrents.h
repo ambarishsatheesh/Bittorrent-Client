@@ -18,11 +18,10 @@ class WorkingTorrents
 {
 public:
     //hardcoded parameters
+    static constexpr int maxDownloadBytesPerSecond = 4194300;
+    static constexpr int maxUploadBytesPerSecond = 512000;
     static constexpr int maxSeedersPerTorrent = 5;
     static constexpr int maxLeechersPerTorrent = 5;
-
-    std::mutex mtx_map;
-    std::mutex mtx_process;
 
     //time the torrent was added (string format)
     std::vector<QString> addedOnList;
@@ -78,6 +77,9 @@ public:
     WorkingTorrents();
 
 private:
+    std::mutex mtx_map;
+    std::mutex mtx_process;
+
     std::chrono::duration<int> peerTimeout;
 };
 
