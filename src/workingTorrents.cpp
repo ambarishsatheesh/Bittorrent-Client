@@ -192,11 +192,11 @@ void WorkingTorrents::removeTorrent(int position)
 
     //remove relevant peers from dl and ul peer maps using infohash
     //no need to erase from ul_peerConnMap because disconnecting erases element
-    auto dlRange = dl_peerConnMap.equal_range(
+    auto range = peerConnMap.equal_range(
                 torrentList.at(position)->hashesData.urlEncodedInfoHash);
-    for (auto it = dlRange.first; it != dlRange.second; ++it)
+    for (auto it = range.first; it != range.second; ++it)
     {
-        dl_peerConnMap.erase(it);
+        peerConnMap.erase(it);
     }
 
     //remove torrent info from list
@@ -362,9 +362,9 @@ void WorkingTorrents::start(int position)
                     hashesData.urlEncodedInfoHash;
 
             //check if peer already in map (e.g. due to tracker update signal)
-            if (dl_peerConnMap.find(infoHash) != dl_peerConnMap.end())
+            if (peerConnMap.find(infoHash) != peerConnMap.end())
             {
-                auto range = dl_peerConnMap.equal_range(infoHash);
+                auto range = peerConnMap.equal_range(infoHash);
 
                 std::vector<std::string> mapHostRange;
 
@@ -417,40 +417,38 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
         //TCP setup
         boost::asio::io_context io_context;
 
-        auto dl_peerConn =
+        auto peerConn =
             std::make_shared<Peer>(torrent, clientID, io_context);
 
         //connect signals to slots
-        dl_peerConn->sig_blockRequested->connect(
+        peerConn->sig_blockRequested->connect(
                     boost::bind(&WorkingTorrents::handleBlockRequested,
                                 this, _1, _2));
 
-        dl_peerConn->sig_blockCancelled->connect(
+        peerConn->sig_blockCancelled->connect(
                     boost::bind(&WorkingTorrents::handleBlockCancelled,
                                 this, _1, _2));
 
-        dl_peerConn->sig_blockReceived->connect(
+        peerConn->sig_blockReceived->connect(
                     boost::bind(&WorkingTorrents::handleBlockReceived,
                                 this, _1, _2));
 
-        dl_peerConn->sig_disconnected->connect(
+        peerConn->sig_disconnected->connect(
                     boost::bind(&WorkingTorrents::handlePeerDisconnected,
                                 this, _1));
 
-        dl_peerConn->sig_stateChanged->connect(
+        peerConn->sig_stateChanged->connect(
                     boost::bind(&WorkingTorrents::handlePeerStateChanged,
                                 this, _1));
 
         //lock mutex before adding to map
-        std::lock_guard<std::mutex> guard(dl);
+        std::lock_guard<std::mutex> guard(mtx_dl);
+
         //add to class member map so it can be accessed outside thread
-        dl_peerConnMap.emplace(torrent->hashesData.urlEncodedInfoHash,
-                            dl_peerConn);
+        peerConnMap.emplace(torrent->hashesData.urlEncodedInfoHash,
+                            peerConn);
 
-        //connect signals here
-        //peerConn->blockRequested->connect()
-
-        dl_peerConn->startNew(singlePeer->ipAddress, singlePeer->port);
+        peerConn->startNew(singlePeer->ipAddress, singlePeer->port);
 
         io_context.run();
     });
@@ -469,17 +467,43 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
             {
                 if (!ec)
                 {
-                    auto ul_peerConn =
+                    auto peerConn =
                             std::make_shared<Peer>(
                                 torrent, clientID, acc_io_context,
                                 std::move(socket));
 
+                    //connect signals to slots
+                    peerConn->sig_blockRequested->connect(
+                                boost::bind(
+                                    &WorkingTorrents::handleBlockRequested,
+                                    this, _1, _2));
+
+                    peerConn->sig_blockCancelled->connect(
+                                boost::bind(
+                                    &WorkingTorrents::handleBlockCancelled,
+                                    this, _1, _2));
+
+                    peerConn->sig_blockReceived->connect(
+                                boost::bind(
+                                    &WorkingTorrents::handleBlockReceived,
+                                    this, _1, _2));
+
+                    peerConn->sig_disconnected->connect(
+                                boost::bind(
+                                    &WorkingTorrents::handlePeerDisconnected,
+                                    this, _1));
+
+                    peerConn->sig_stateChanged->connect(
+                                boost::bind(
+                                    &WorkingTorrents::handlePeerStateChanged,
+                                    this, _1));
+
                     //lock mutex before adding to map
-                    std::lock_guard<std::mutex> guard(ul);
+                    std::lock_guard<std::mutex> guard(mtx_ul);
                     //add to class member map so it can be accessed outside thread
-                    ul_peerConnMap.emplace(
+                    peerConnMap.emplace(
                                 torrent->hashesData.urlEncodedInfoHash,
-                                        ul_peerConn);
+                                        peerConn);
                 }
                 else
                 {
@@ -495,44 +519,27 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
     });
 }
 
+//disconnect all peers with info hash equal to
+//argument torrent's infohash
 void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
 {
-    //disconnect all peers with info hash equal to
-    //argument torrent's infohash
-
-    //downloading
     if (torrent->statusData.currentState ==
             TorrentStatus::currentStatus::started)
     {
         torrent->statusData.currentState =
                 TorrentStatus::currentStatus::stopped;
-
-        auto range = dl_peerConnMap.equal_range(
-                    torrent->hashesData.urlEncodedInfoHash);
-
-        for (auto it = range.first; it != range.second; ++it)
-        {
-            it->second->disconnect();
-
-            //erase since it is easier to recreate peer object than reset
-            //existing one
-            dl_peerConnMap.erase(it);
-        }
     }
-    //uploading
-    else if (torrent->statusData.currentState ==
-             TorrentStatus::currentStatus::completed)
+
+    auto range = peerConnMap.equal_range(
+                torrent->hashesData.urlEncodedInfoHash);
+
+    for (auto it = range.first; it != range.second; ++it)
     {
-        auto range = ul_peerConnMap.equal_range(
-                    torrent->hashesData.urlEncodedInfoHash);
+        it->second->disconnect();
 
-        for (auto it = range.first; it != range.second; ++it)
-        {
-            it->second->disconnect();
-
-            //erase since there is no point keeping the object
-            ul_peerConnMap.erase(it);
-        }
+        //erase since it is easier to recreate peer object than reset
+        //existing one
+        peerConnMap.erase(it);
     }
 }
 
@@ -567,29 +574,16 @@ void WorkingTorrents::handlePeerDisconnected(std::shared_ptr<Peer> senderPeer)
 
     auto infoHash = senderPeer->torrent->hashesData.urlEncodedInfoHash;
 
-    //remove from download peer map
-    auto dl_range = dl_peerConnMap.equal_range(
+    //remove from peer map
+    auto range = peerConnMap.equal_range(
                 senderPeer->torrent->hashesData.urlEncodedInfoHash);
 
-    for (auto it = dl_range.first; it != dl_range.second; ++it)
+    for (auto it = range.first; it != range.second; ++it)
     {
         if (it->second->peerHost == senderPeer->peerHost &&
                 it->second->peerPort == senderPeer->peerPort)
         {
-            dl_peerConnMap.erase(it);
-        }
-    }
-
-    //remove from upload peer map
-    auto ul_range = ul_peerConnMap.equal_range(
-                senderPeer->torrent->hashesData.urlEncodedInfoHash);
-
-    for (auto it = ul_range.first; it != ul_range.second; ++it)
-    {
-        if (it->second->peerHost == senderPeer->peerHost &&
-                it->second->peerPort == senderPeer->peerPort)
-        {
-            ul_peerConnMap.erase(it);
+            peerConnMap.erase(it);
         }
     }
 }
@@ -600,6 +594,16 @@ void WorkingTorrents::handlePeerStateChanged(Peer* senderPeer)
 }
 
 
+//void WorkingTorrents::processPeers()
+//{
+//    //locking mutex because this method can be run on multiple threads
+//    std::lock_guard<std::mutex> processGuard(mtx_process);
+
+//    for (auto& : )
+//}
+
 }
+
+
 
 

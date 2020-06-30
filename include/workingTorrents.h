@@ -17,8 +17,9 @@ namespace Bittorrent
 class WorkingTorrents
 {
 public:
-    std::mutex dl;
-    std::mutex ul;
+    std::mutex mtx_dl;
+    std::mutex mtx_ul;
+    std::mutex mtx_process;
 
     //time the torrent was added (string format)
     std::vector<QString> addedOnList;
@@ -33,8 +34,8 @@ public:
     std::vector<std::shared_ptr<Torrent>> runningTorrents;
 
     //map of peer connections (torrent infohash as key)
-    std::unordered_multimap<std::string, std::shared_ptr<Peer>> dl_peerConnMap;
-    std::unordered_multimap<std::string, std::shared_ptr<Peer>> ul_peerConnMap;
+    std::unordered_multimap<std::string, std::shared_ptr<Peer>> peerConnMap;
+    //std::unordered_multimap<std::string, std::shared_ptr<Peer>> ul_peerConnMap;
 
     //unique trackers
     QMap<QString, int> infoTrackerMap;
@@ -61,6 +62,8 @@ public:
     void handlePeerDisconnected(std::shared_ptr<Peer> senderPeer);
     void handlePeerStateChanged(Peer* peer);
 
+    //processing peers/data
+    void processPeers();
 
     //non slot peer-related methods
     void disableTorrentConnection(Torrent* torrent);
