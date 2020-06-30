@@ -2,17 +2,38 @@
 #define THROTTLE_H
 
 #include <mutex>
+#include <chrono>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+
+namespace Bittorrent{
 
 class Throttle
 {
+    using highResClock = std::chrono::high_resolution_clock;
+
 public:
-    static constexpr int maxDownloadBytesPerSecond = 4194300;
-    static constexpr int maxUploadBytesPerSecond = 512000;
+    int maxDataSize;
+    std::chrono::duration<int> maxTimeWindow;
 
+    struct transferPacket
+    {
+        int dataSize;
+        highResClock::time_point dataTime;
+    };
+
+    std::vector<transferPacket> transferPacketVec;
+
+    void add(int size);
+    bool isThrottled();
+
+    Throttle(int maxDataSize, std::chrono::duration<int> maxTimeWindow);
+
+private:
     std::mutex mtx_throttle;
-
-
-    Throttle();
 };
+
+}
 
 #endif // THROTTLE_H
