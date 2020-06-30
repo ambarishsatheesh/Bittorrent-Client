@@ -18,6 +18,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    ../include/throttle.cpp \
     ../src/Client.cpp \
     ../src/HTTPClient.cpp \
     ../src/Peer.cpp \
@@ -68,6 +69,7 @@ HEADERS += \
     ../include/fileObj.h \
     ../include/loguru.h \
     ../include/sha1.h \
+    ../include/throttle.h \
     ../include/timer.h \
     ../include/trackerObj.h \
     ../include/trackerUrl.h \
