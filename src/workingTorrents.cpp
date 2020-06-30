@@ -13,7 +13,8 @@ namespace Bittorrent
 using namespace torrentManipulation;
 
 WorkingTorrents::WorkingTorrents()
-    : trackerTimer{std::make_unique<TrackerTimer>(clientID)}, seedingCount{0}
+    : trackerTimer{std::make_unique<TrackerTimer>(clientID)}, seedingCount{0},
+      peerTimeout{std::chrono::seconds{30}}
 {
 }
 
@@ -442,7 +443,7 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
                                 this, _1));
 
         //lock mutex before adding to map
-        std::lock_guard<std::mutex> guard(mtx_dl);
+        std::lock_guard<std::mutex> guard(mtx_map);
 
         //add to class member map so it can be accessed outside thread
         peerConnMap.emplace(torrent->hashesData.urlEncodedInfoHash,
@@ -499,7 +500,7 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
                                     this, _1));
 
                     //lock mutex before adding to map
-                    std::lock_guard<std::mutex> guard(mtx_ul);
+                    std::lock_guard<std::mutex> guard(mtx_map);
                     //add to class member map so it can be accessed outside thread
                     peerConnMap.emplace(
                                 torrent->hashesData.urlEncodedInfoHash,
@@ -594,13 +595,89 @@ void WorkingTorrents::handlePeerStateChanged(Peer* senderPeer)
 }
 
 
-//void WorkingTorrents::processPeers()
-//{
-//    //locking mutex because this method can be run on multiple threads
-//    std::lock_guard<std::mutex> processGuard(mtx_process);
+void WorkingTorrents::processPeers()
+{
+    //locking mutex because this method can be run on multiple threads
+    std::lock_guard<std::mutex> processGuard(mtx_process);
 
-//    for (auto& : )
-//}
+    //move map to vector and sort by descending pieces required available
+    std::vector<std::shared_ptr<Peer>> sortedPeers;
+    for (auto it = peerConnMap.begin(); it != peerConnMap.end(); ++it)
+    {
+        sortedPeers.push_back(it->second);
+    }
+
+    std::sort(sortedPeers.begin(), sortedPeers.end(),
+              [&](
+              const std::shared_ptr<Peer>& p1,
+              const std::shared_ptr<Peer>& p2)
+    {
+        return p1->piecesRequiredAvailable() > p2->piecesRequiredAvailable();
+    });
+
+    //processing
+    for (auto& peer : sortedPeers)
+    {
+        //peer connection timed out
+        if (std::chrono::high_resolution_clock::now() >
+                peer->lastActive + peerTimeout)
+        {
+            peer->disconnect();
+            continue;
+        }
+
+        //peer not fully set up yet
+        if (!peer->isHandshakeSent || ! peer->isHandshakeReceived)
+        {
+            continue;
+        }
+
+        //send interested message if we want to request data
+        if (peer->torrent->statusData.isCompleted())
+        {
+            peer->sendNotInterested();
+        }
+        else
+        {
+            peer->sendInterested();
+        }
+
+        //torrent completed so can disconnect
+        if (peer->isCompleted() && peer->torrent->statusData.isCompleted())
+        {
+            peer->disconnect();
+            continue;
+        }
+
+        //periodic message to keep peer connection alive
+        //method has a check to prevent spamming
+        peer->sendKeepAlive();
+
+        //allow leeching
+        auto infoHash = peer->torrent->hashesData.urlEncodedInfoHash;
+        if (peer->torrent->statusData.isStarted() &&
+                leechersMap.count(infoHash) < maxLeechersPerTorrent)
+        {
+            if (peer->IsInterestedReceived && peer->isChokeSent)
+            {
+                peer->sendUnchoke();
+                leechersMap.emplace(peer->torrent->hashesData.urlEncodedInfoHash,
+                                   peer);
+            }
+        }
+
+        //if peer is unchoked, add them to seeders
+        if (!peer->torrent->statusData.isCompleted() &&
+                seedersMap.count(infoHash) < maxSeedersPerTorrent)
+        {
+            if (!peer->IsChokeReceived)
+            {
+                seedersMap.emplace(peer->torrent->hashesData.urlEncodedInfoHash,
+                                   peer);
+            }
+        }
+    }
+}
 
 }
 

@@ -17,8 +17,13 @@ namespace Bittorrent
 class WorkingTorrents
 {
 public:
-    std::mutex mtx_dl;
-    std::mutex mtx_ul;
+    //hardcoded parameters
+    static constexpr int maxSeedersPerTorrent = 5;
+    static constexpr int maxLeechersPerTorrent = 5;
+    static constexpr int maxDownloadBytesPerSecond = 4194300;
+    static constexpr int maxUploadBytesPerSecond = 512000;
+
+    std::mutex mtx_map;
     std::mutex mtx_process;
 
     //time the torrent was added (string format)
@@ -35,7 +40,11 @@ public:
 
     //map of peer connections (torrent infohash as key)
     std::unordered_multimap<std::string, std::shared_ptr<Peer>> peerConnMap;
-    //std::unordered_multimap<std::string, std::shared_ptr<Peer>> ul_peerConnMap;
+    std::unordered_multimap<std::string, std::shared_ptr<Peer>> seedersMap;
+    std::unordered_multimap<std::string, std::shared_ptr<Peer>> leechersMap;
+
+    //sorted peers for processing in order of pieces available
+    std::vector<std::shared_ptr<Peer>> sortedPeers;
 
     //unique trackers
     QMap<QString, int> infoTrackerMap;
@@ -70,6 +79,9 @@ public:
     void acceptNewConnection(Torrent *torrent);
 
     WorkingTorrents();
+
+private:
+    std::chrono::duration<int> peerTimeout;
 };
 
 }
