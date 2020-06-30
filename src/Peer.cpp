@@ -28,9 +28,10 @@ namespace Bittorrent
 		isDisconnected{}, isHandshakeSent{}, isPositionSent{},
 		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{},
 		IsChokeReceived{ true }, IsInterestedReceived{ false },
-		lastActive{ boost::posix_time::second_clock::local_time() },
-		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
-        downloaded{ 0 }, context(io_context), socket(context), recBuffer(68)
+        lastActive{ std::chrono::high_resolution_clock::time_point::min() },
+        lastKeepAlive{ std::chrono::high_resolution_clock::time_point::min() },
+        uploaded{ 0 }, downloaded{ 0 },
+        context(io_context), socket(context), recBuffer(68)
 	{
 		isBlockRequested.resize(torrent->piecesData.pieceCount);
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
@@ -75,9 +76,10 @@ namespace Bittorrent
 		isDisconnected{}, isHandshakeSent{}, isPositionSent{}, 
 		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{}, 
 		IsChokeReceived{ true }, IsInterestedReceived{ false }, 
-        lastActive{ boost::posix_time::second_clock::local_time() },
-		lastKeepAlive{ boost::posix_time::min_date_time }, uploaded{ 0 },
-        downloaded{ 0 }, context(io_context), socket(std::move(tcpClient)), recBuffer(68)
+        lastActive{ std::chrono::high_resolution_clock::time_point::min() },
+        lastKeepAlive{ std::chrono::high_resolution_clock::time_point::min() },
+        uploaded{ 0 }, downloaded{ 0 },
+        context(io_context), socket(std::move(tcpClient)), recBuffer(68)
 	{
 		isBlockRequested.resize(torrent->piecesData.pieceCount);
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
@@ -463,7 +465,7 @@ namespace Bittorrent
 	void Peer::handleMessage()
 	{
 		//update clock
-		lastActive == boost::posix_time::second_clock::local_time();
+        lastActive = std::chrono::high_resolution_clock::now();
 
 		int deducedtype = getMessageType(processBuffer);
 
@@ -1129,7 +1131,7 @@ namespace Bittorrent
 
 	void Peer::sendKeepAlive()
 	{
-		if (lastKeepAlive > boost::posix_time::second_clock::local_time())
+        if (lastKeepAlive > std::chrono::high_resolution_clock::now())
 		{
 			return;
 		}
@@ -1145,7 +1147,8 @@ namespace Bittorrent
 		{
 			sendNewBytes(encodeKeepAlive());
 		}
-		lastKeepAlive = boost::posix_time::second_clock::local_time();
+
+        lastKeepAlive = std::chrono::high_resolution_clock::now();
 	}
 
 	void Peer::sendChoke()

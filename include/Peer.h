@@ -8,6 +8,7 @@
 #include <boost/signals2.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/bimap.hpp>
+#include <chrono>
 
 #include "Torrent.h"
 #include "ValueTypes.h"
@@ -61,8 +62,8 @@ namespace Bittorrent
 		bool IsInterestedReceived;
 		std::vector<std::vector<bool>> isBlockRequested;
 		
-		boost::posix_time::ptime lastActive;
-		boost::posix_time::ptime lastKeepAlive;
+        std::chrono::high_resolution_clock::time_point lastActive;
+        std::chrono::high_resolution_clock::time_point lastKeepAlive;
 
 		long long uploaded;
 		long long downloaded;
@@ -87,6 +88,12 @@ namespace Bittorrent
 
         std::shared_ptr<Peer> getPtr();
 
+        //status functions
+        std::string piecesDownloaded();
+        int piecesRequiredAvailable();
+        int piecesDownloadedCount();
+        bool isCompleted();
+        int blocksRequested();
         void disconnect();
 
 	private:
@@ -96,14 +103,6 @@ namespace Bittorrent
 		//TCP transmission buffers
 		std::vector<byte> processBuffer;
 		std::vector<byte> recBuffer;
-
-
-		//status functions
-		std::string piecesDownloaded();
-		int piecesRequiredAvailable();
-		int piecesDownloadedCount();
-		bool isCompleted();
-		int blocksRequested();
 
 		//established connection functions - maybe separate class?
 		bool isAccepted;	//flag to use async funcs with shared_ptr
