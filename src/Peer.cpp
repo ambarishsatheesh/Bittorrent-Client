@@ -58,8 +58,9 @@ namespace Bittorrent
 	}
 
 	//construct peer from accepted connection started by another peer
-    Peer::Peer(Torrent* torrent, std::vector<byte>& localID,
-		boost::asio::io_context& io_context, tcp::socket tcpClient)
+    Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
+               std::vector<byte>& localID, boost::asio::io_context& io_context,
+               tcp::socket tcpClient)
         : sig_disconnected{std::make_shared<boost::signals2::signal<void(
                            std::shared_ptr<Peer>)>>()},
         sig_stateChanged{std::make_shared<boost::signals2::signal<void(
@@ -71,7 +72,7 @@ namespace Bittorrent
         sig_blockReceived{std::make_shared<boost::signals2::signal<void(
                            Peer* peer, dataPackage newPackage)>>()},
         localID{ localID }, peerID{ "" },
-		torrent{ torrent->getPtr() }, endpointKey(),
+        torrent{ std::make_shared<Torrent>() }, endpointKey(),
 		isPieceDownloaded(torrent->piecesData.pieceCount), 
 		isDisconnected{}, isHandshakeSent{}, isPositionSent{}, 
 		isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{}, 
@@ -79,7 +80,8 @@ namespace Bittorrent
         lastActive{ std::chrono::high_resolution_clock::time_point::min() },
         lastKeepAlive{ std::chrono::high_resolution_clock::time_point::min() },
         uploaded{ 0 }, downloaded{ 0 },
-        context(io_context), socket(std::move(tcpClient)), recBuffer(68)
+        context(io_context), socket(std::move(tcpClient)), recBuffer(68),
+        ptr_torrentList{torrentList}
 	{
 		isBlockRequested.resize(torrent->piecesData.pieceCount);
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
@@ -135,9 +137,10 @@ namespace Bittorrent
 	//are available from Peer
 	int Peer::piecesRequiredAvailable()
 	{
-		//custom comparator (!false verified && true downloaded)
-		const auto lambda = [this](bool i) {return i &&
-			!torrent->statusData.isPieceVerified.at(i); };
+        int pos = 0;
+        //custom comparator (!verified && downloaded)
+        const auto lambda = [&](bool i) {return i &&
+            !torrent->statusData.isPieceVerified.at(pos++); };
 
 		return std::count_if(isPieceDownloaded.cbegin(),
 			isPieceDownloaded.cend(), lambda);
@@ -1357,9 +1360,28 @@ namespace Bittorrent
 	{
 		std::cout << "Handling Handshake message..." << "...\n";
 
-		//can't seem to use == overload to compare vector<byte>
-		if (!std::equal(hash.begin(), hash.end(), 
-			torrent->hashesData.infoHash.begin()))
+        //check which torrent the accepted peer connection is referencing
+        if (isAccepted)
+        {
+            for (auto& ptr_torrent : *ptr_torrentList)
+            {
+                if (hash == ptr_torrent->hashesData.infoHash)
+                {
+                    //set this Peer object's associated Torrent object
+                    //by assigning a new shared ptr to that Torrent object
+                    torrent = ptr_torrent->getPtr();
+                    break;
+                }
+            }
+            if (!torrent)
+            {
+                std::cout << "Invalid handshake! No local torrent info hash "
+                             "matches received info hash." << "\n";
+                disconnect();
+                return;
+            }
+        }
+        else if(hash == torrent->hashesData.infoHash)
 		{
 			std::cout << "Invalid handshake! Incorrect infohash. Expected " <<
 				"\"" << torrent->hashesData.hexStringInfoHash << "\", " <<

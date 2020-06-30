@@ -78,8 +78,9 @@ namespace Bittorrent
 			boost::asio::io_context& io_context);
 		//peer-opened connection constructor
 		//need io_context here to initialise timers
-        Peer(Torrent* torrent, std::vector<byte>& localID,
-			boost::asio::io_context& io_context, tcp::socket tcpClient);
+        Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
+             std::vector<byte>& localID, boost::asio::io_context& io_context,
+             tcp::socket tcpClient);
 
 		//new connection called from client
 		void startNew(const std::string& host, const std::string& port);
@@ -102,13 +103,17 @@ namespace Bittorrent
         void sendNotInterested();
         void sendUnchoke();
 
-	private:
+    private:
         //tcp data
 		tcp::socket socket;
 
 		//TCP transmission buffers
 		std::vector<byte> processBuffer;
 		std::vector<byte> recBuffer;
+
+        //ptr to working torrent list so accepted peer connection can
+        //associate handshake infohash with torrent from the list
+        std::vector<std::shared_ptr<Torrent>>* ptr_torrentList;
 
 		//established connection functions - maybe separate class?
 		bool isAccepted;	//flag to use async funcs with shared_ptr
