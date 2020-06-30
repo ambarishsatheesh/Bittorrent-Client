@@ -55,6 +55,12 @@ public:
     //slots
     void addPeer(peer* singlePeer, Torrent* torrent);
     void handlePieceVerified(int index);
+    void handleBlockRequested(Peer* peer, dataRequest newDataRequest);
+    void handleBlockCancelled(Peer* peer, dataRequest newDataRequest);
+    void handleBlockReceived(Peer* peer, dataPackage newPackage);
+    void handlePeerDisconnected(std::shared_ptr<Peer> senderPeer);
+    void handlePeerStateChanged(Peer* peer);
+
 
     //non slot peer-related methods
     void disablePeerConnection(Torrent* torrent);

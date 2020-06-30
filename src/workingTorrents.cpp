@@ -420,6 +420,27 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
         auto dl_peerConn =
             std::make_shared<Peer>(torrent, clientID, io_context);
 
+        //connect signals to slots
+        dl_peerConn->sig_blockRequested->connect(
+                    boost::bind(&WorkingTorrents::handleBlockRequested,
+                                this, _1, _2));
+
+        dl_peerConn->sig_blockCancelled->connect(
+                    boost::bind(&WorkingTorrents::handleBlockCancelled,
+                                this, _1, _2));
+
+        dl_peerConn->sig_blockReceived->connect(
+                    boost::bind(&WorkingTorrents::handleBlockReceived,
+                                this, _1, _2));
+
+        dl_peerConn->sig_disconnected->connect(
+                    boost::bind(&WorkingTorrents::handlePeerDisconnected,
+                                this, _1));
+
+        dl_peerConn->sig_stateChanged->connect(
+                    boost::bind(&WorkingTorrents::handlePeerStateChanged,
+                                this, _1));
+
         //lock mutex before adding to map
         std::lock_guard<std::mutex> guard(dl);
         //add to class member map so it can be accessed outside thread
@@ -516,6 +537,31 @@ void WorkingTorrents::disablePeerConnection(Torrent* torrent)
 }
 
 void WorkingTorrents::handlePieceVerified(int piece)
+{
+
+}
+
+void WorkingTorrents::handleBlockRequested(Peer* peer, dataRequest newDataRequest)
+{
+
+}
+
+void WorkingTorrents::handleBlockCancelled(Peer* peer, dataRequest newDataRequest)
+{
+
+}
+
+void WorkingTorrents::handleBlockReceived(Peer* peer, dataPackage newPackage)
+{
+
+}
+
+void WorkingTorrents::handlePeerDisconnected(std::shared_ptr<Peer> senderPeer)
+{
+
+}
+
+void WorkingTorrents::handlePeerStateChanged(Peer* senderPeer)
 {
 
 }
