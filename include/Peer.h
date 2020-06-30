@@ -1,7 +1,9 @@
-#pragma once
+#ifndef PEER_H
+#define PEER_H
 
 #include <map>
 #include <string>
+#include <memory>
 #include <boost/asio.hpp>
 #include <boost/signals2.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -19,18 +21,19 @@ namespace Bittorrent
 	{
 	public:
         //signals
-        std::shared_ptr<boost::signals2::signal<void(Peer* peer)>> disconnected;
+        std::shared_ptr<boost::signals2::signal<void(
+                std::shared_ptr<Peer>)>> sig_disconnected;
 
-        std::shared_ptr<boost::signals2::signal<void(Peer* peer)>> stateChanged;
+        std::shared_ptr<boost::signals2::signal<void(Peer* peer)>> sig_stateChanged;
 
         std::shared_ptr<boost::signals2::signal<void(
-            Peer* peer, dataRequest newDataRequest)>> blockRequested;
+            Peer* peer, dataRequest newDataRequest)>> sig_blockRequested;
 
         std::shared_ptr<boost::signals2::signal<void(
-            Peer* peer, dataRequest newDataRequest)>> blockCancelled;
+            Peer* peer, dataRequest newDataRequest)>> sig_blockCancelled;
 
         std::shared_ptr<boost::signals2::signal<void(
-            Peer* peer, dataPackage newPackage)>> blockReceived;
+            Peer* peer, dataPackage newPackage)>> sig_blockReceived;
 
         //general variables
         std::string peerHost;
@@ -187,4 +190,6 @@ namespace Bittorrent
 	};
 }
 
+
+#endif // PEER_H
 
