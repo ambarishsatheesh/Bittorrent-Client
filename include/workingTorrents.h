@@ -63,7 +63,7 @@ public:
 
 
     //non slot peer-related methods
-    void disablePeerConnection(Torrent* torrent);
+    void disableTorrentConnection(Torrent* torrent);
     void acceptNewConnection(Torrent *torrent);
 
     WorkingTorrents();
