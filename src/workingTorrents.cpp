@@ -13,7 +13,7 @@ namespace Bittorrent
 using namespace torrentManipulation;
 
 WorkingTorrents::WorkingTorrents()
-    : trackerTimer{std::make_unique<TrackerTimer>(clientID)}, seedingCount{0},
+    : trackerTimer{std::make_unique<TrackerTimer>(clientID)},
       peerTimeout{std::chrono::seconds{30}}
 {
 }
@@ -214,20 +214,8 @@ void WorkingTorrents::start(int position)
     if (torrentList.at(position)->statusData.currentState ==
             TorrentStatus::currentStatus::completed)
     {
-        //only seed if no other torrents are seeding
-        if (seedingCount == 0)
-        {
-            startSeeding(position);
-            return;
-        }
-        else
-        {
-            LOG_F(ERROR, "Concurrent torrent seeding count is already at the "
-                         "maximum (1)! Failed to begin seeding '%s'.",
-                  torrentList.at(position)->generalData.fileName.c_str());
-
-            return;
-        }
+        startSeeding(position);
+        return;
     }
 
     //if torrent stopped, start it and process accordingly
@@ -406,7 +394,6 @@ void WorkingTorrents::run()
 //only allow seeding of one torrent at a time
 void WorkingTorrents::startSeeding(int position)
 {
-    seedingCount = 1;
     acceptNewConnection(torrentList.at(position).get());
 }
 
@@ -470,7 +457,7 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
                 {
                     auto peerConn =
                             std::make_shared<Peer>(
-                                torrent, clientID, acc_io_context,
+                                &torrentList, clientID, acc_io_context,
                                 std::move(socket));
 
                     //connect signals to slots
@@ -505,11 +492,6 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
                     peerConnMap.emplace(
                                 torrent->hashesData.urlEncodedInfoHash,
                                         peerConn);
-                }
-                else
-                {
-                    //reset seeding count
-                    seedingCount = 0;
                 }
 
                 //start listening for new peer connections for same torrent
@@ -618,6 +600,8 @@ void WorkingTorrents::processPeers()
     //processing
     for (auto& peer : sortedPeers)
     {
+        //if nullptr, continue
+
         //peer connection timed out
         if (std::chrono::high_resolution_clock::now() >
                 peer->lastActive + peerTimeout)

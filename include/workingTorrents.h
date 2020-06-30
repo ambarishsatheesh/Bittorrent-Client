@@ -20,8 +20,6 @@ public:
     //hardcoded parameters
     static constexpr int maxSeedersPerTorrent = 5;
     static constexpr int maxLeechersPerTorrent = 5;
-    static constexpr int maxDownloadBytesPerSecond = 4194300;
-    static constexpr int maxUploadBytesPerSecond = 512000;
 
     std::mutex mtx_map;
     std::mutex mtx_process;
@@ -59,7 +57,6 @@ public:
     void start(int position);
     void stop(int position);
     void run();
-    int seedingCount;
     void startSeeding(int position);
 
     //slots
