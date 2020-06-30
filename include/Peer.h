@@ -96,6 +96,12 @@ namespace Bittorrent
         int blocksRequested();
         void disconnect();
 
+        //sending
+        void sendKeepAlive();
+        void sendInterested();
+        void sendNotInterested();
+        void sendUnchoke();
+
 	private:
         //tcp data
 		tcp::socket socket;
@@ -159,11 +165,7 @@ namespace Bittorrent
 
 		//sending
 		void sendHandShake();
-		void sendKeepAlive();
 		void sendChoke();
-		void sendUnchoke();
-		void sendInterested();
-		void sendNotInterested();
 		void sendHave(int index);
 		void sendBitfield(std::vector<bool> isPieceDownloaded);
 		void sendDataRequest(int index, int offset, int dataSize);

@@ -1131,7 +1131,8 @@ namespace Bittorrent
 
 	void Peer::sendKeepAlive()
 	{
-        if (lastKeepAlive > std::chrono::high_resolution_clock::now())
+        if (std::chrono::high_resolution_clock::now() <
+                lastKeepAlive + std::chrono::seconds{30})
 		{
 			return;
 		}
