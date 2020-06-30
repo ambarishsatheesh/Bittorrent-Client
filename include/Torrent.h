@@ -1,4 +1,6 @@
-#pragma once
+#ifndef TORRENT_H
+#define TORRENT_H
+
 #include <string>
 #include <vector>
 #include <memory>
@@ -52,3 +54,5 @@ namespace Bittorrent
 
 	};
 }
+
+#endif // TORRENT_H
