@@ -103,6 +103,10 @@ namespace Bittorrent
 
 		//get endpoint from accepted connection
 		endpointKey = socket.remote_endpoint();
+
+        peerHost = socket.remote_endpoint().address().to_string();
+        peerHost = std::to_string(socket.remote_endpoint().port());
+
 		isAccepted = true;
 		readFromCreatedPeer();
 	}
