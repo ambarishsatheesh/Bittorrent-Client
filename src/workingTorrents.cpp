@@ -193,15 +193,28 @@ void WorkingTorrents::removeTorrent(int position)
         trackerTimer->stop();
     }
 
+    //remove relevant peers from all peer maps using infohash as key
     std::lock_guard<std::mutex> guard(mtx_map);
 
-    //remove relevant peers from dl and ul peer maps using infohash
-    //no need to erase from ul_peerConnMap because disconnecting erases element
     auto range = peerConnMap.equal_range(
                 torrentList.at(position)->hashesData.urlEncodedInfoHash);
     for (auto it = range.first; it != range.second; ++it)
     {
         peerConnMap.erase(it);
+    }
+
+    range = seedersMap.equal_range(
+                    torrentList.at(position)->hashesData.urlEncodedInfoHash);
+    for (auto it = range.first; it != range.second; ++it)
+    {
+        seedersMap.erase(it);
+    }
+
+    range = leechersMap.equal_range(
+                    torrentList.at(position)->hashesData.urlEncodedInfoHash);
+    for (auto it = range.first; it != range.second; ++it)
+    {
+        leechersMap.erase(it);
     }
 
     //remove torrent info from list
@@ -496,6 +509,7 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
 
                     //lock mutex before adding to map
                     std::lock_guard<std::mutex> guard(mtx_map);
+
                     //add to class member map so it can be accessed outside thread
                     peerConnMap.emplace(
                                 torrent->hashesData.urlEncodedInfoHash,
@@ -521,6 +535,8 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
                 TorrentStatus::currentStatus::stopped;
     }
 
+
+    //disconnect and erase from maps
     std::lock_guard<std::mutex> guard(mtx_map);
 
     auto range = peerConnMap.equal_range(
@@ -535,7 +551,19 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
         peerConnMap.erase(it);
     }
 
-    //also erase from seeders and leechers
+    range = seedersMap.equal_range(
+                    torrent->hashesData.urlEncodedInfoHash);
+    for (auto it = range.first; it != range.second; ++it)
+    {
+        seedersMap.erase(it);
+    }
+
+    range = leechersMap.equal_range(
+                    torrent->hashesData.urlEncodedInfoHash);
+    for (auto it = range.first; it != range.second; ++it)
+    {
+        leechersMap.erase(it);
+    }
 
 }
 
@@ -629,6 +657,30 @@ void WorkingTorrents::handlePeerDisconnected(Peer* senderPeer)
             peerConnMap.erase(it);
         }
     }
+
+    range = seedersMap.equal_range(
+                    senderPeer->torrent->hashesData.urlEncodedInfoHash);
+
+    for (auto it = range.first; it != range.second; ++it)
+    {
+        if (it->second->peerHost == senderPeer->peerHost &&
+                it->second->peerPort == senderPeer->peerPort)
+        {
+            seedersMap.erase(it);
+        }
+    }
+
+    range = leechersMap.equal_range(
+                    senderPeer->torrent->hashesData.urlEncodedInfoHash);
+
+    for (auto it = range.first; it != range.second; ++it)
+    {
+        if (it->second->peerHost == senderPeer->peerHost &&
+                it->second->peerPort == senderPeer->peerPort)
+        {
+            leechersMap.erase(it);
+        }
+    }
 }
 
 void WorkingTorrents::handlePeerStateChanged(Peer* senderPeer)
@@ -660,6 +712,8 @@ void WorkingTorrents::processPeers(Torrent* torrent)
     {
         return p1->piecesRequiredAvailable() > p2->piecesRequiredAvailable();
     });
+
+    std::lock_guard<std::mutex> guard(mtx_map);
 
     //processing
     for (auto& peer : sortedPeers)
@@ -705,8 +759,6 @@ void WorkingTorrents::processPeers(Torrent* torrent)
         //method has a check to prevent spamming
         peer->sendKeepAlive();
 
-        std::unique_lock<std::mutex> seedersLock(mtx_seeders);
-
         //allow leeching
         auto infoHash = torrent->hashesData.urlEncodedInfoHash;
         if (torrent->statusData.isStarted() &&
@@ -730,8 +782,6 @@ void WorkingTorrents::processPeers(Torrent* torrent)
                                    peer);
             }
         }
-
-        seedersLock.unlock();
     }
 }
 
