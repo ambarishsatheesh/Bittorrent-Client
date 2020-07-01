@@ -21,6 +21,10 @@ public:
     {
         int dataSize;
         highResClock::time_point dataTime;
+
+        transferPacket(int size, highResClock::time_point time)
+            : dataSize{size}, dataTime{time}
+        {}
     };
 
     std::vector<transferPacket> transferPacketVec;
