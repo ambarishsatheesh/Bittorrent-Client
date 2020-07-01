@@ -45,9 +45,9 @@ void WorkingTorrents::addNewTorrent(Torrent* modifiedTorrent)
                 boost::bind(&WorkingTorrents::addPeer,
                             this, _1, _2));
 
-    torrentList.back()->piecesData.sig_pieceVerified->connect(
+    torrentList.back()->sig_pieceVerified->connect(
                 boost::bind(&WorkingTorrents::handlePieceVerified,
-                            this, _1));
+                            this, _1, _2));
 
     //get current time as appropriately formatted string
     addedOnList.push_back(
@@ -413,15 +413,15 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
         //connect signals to slots
         peerConn->sig_blockRequested->connect(
                     boost::bind(&WorkingTorrents::handleBlockRequested,
-                                this, _1, _2));
+                                this, _1));
 
         peerConn->sig_blockCancelled->connect(
                     boost::bind(&WorkingTorrents::handleBlockCancelled,
-                                this, _1, _2));
+                                this, _1));
 
         peerConn->sig_blockReceived->connect(
                     boost::bind(&WorkingTorrents::handleBlockReceived,
-                                this, _1, _2));
+                                this, _1));
 
         peerConn->sig_disconnected->connect(
                     boost::bind(&WorkingTorrents::handlePeerDisconnected,
@@ -470,17 +470,17 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
                     peerConn->sig_blockRequested->connect(
                                 boost::bind(
                                     &WorkingTorrents::handleBlockRequested,
-                                    this, _1, _2));
+                                    this, _1));
 
                     peerConn->sig_blockCancelled->connect(
                                 boost::bind(
                                     &WorkingTorrents::handleBlockCancelled,
-                                    this, _1, _2));
+                                    this, _1));
 
                     peerConn->sig_blockReceived->connect(
                                 boost::bind(
                                     &WorkingTorrents::handleBlockReceived,
-                                    this, _1, _2));
+                                    this, _1));
 
                     peerConn->sig_disconnected->connect(
                                 boost::bind(
@@ -532,21 +532,25 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
     }
 }
 
-void WorkingTorrents::handlePieceVerified(int piece)
+void WorkingTorrents::handlePieceVerified(Torrent* torrent, int piece)
 {
+    processPeers(torrent);
+
 
 }
 
-void WorkingTorrents::handleBlockRequested(Peer* peer, Peer::dataRequest newDataRequest)
+void WorkingTorrents::handleBlockRequested(Peer::dataRequest newDataRequest)
 {
-    std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
+    {
+        std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
 
-    outgoingBlocks.push_back(newDataRequest);
+        outgoingBlocks.push_back(newDataRequest);
+    }
 
     processUploads();
 }
 
-void WorkingTorrents::handleBlockCancelled(Peer* peer, Peer::dataRequest newDataRequest)
+void WorkingTorrents::handleBlockCancelled(Peer::dataRequest newDataRequest)
 {
     //block scope for lock_guard so that processUploads() can be called
     //separately elsewhere while retaining its own lock
@@ -568,12 +572,18 @@ void WorkingTorrents::handleBlockCancelled(Peer* peer, Peer::dataRequest newData
     processUploads();
 }
 
-void WorkingTorrents::handleBlockReceived(Peer* peer, Peer::dataPackage newPackage)
+void WorkingTorrents::handleBlockReceived(Peer::dataPackage newDataPackage)
 {
+    {
+        std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
 
+        incomingBlocks.push_back(newDataPackage);
+    }
+
+    processDownloads();
 }
 
-void WorkingTorrents::handlePeerDisconnected(std::shared_ptr<Peer> senderPeer)
+void WorkingTorrents::handlePeerDisconnected(Peer* senderPeer)
 {
     //manually disconnect slots from signals just in case
     senderPeer->sig_blockRequested->disconnect_all_slots();
@@ -600,19 +610,24 @@ void WorkingTorrents::handlePeerDisconnected(std::shared_ptr<Peer> senderPeer)
 
 void WorkingTorrents::handlePeerStateChanged(Peer* senderPeer)
 {
-
+    processPeers(senderPeer->torrent.get());
 }
 
-void WorkingTorrents::processPeers()
+void WorkingTorrents::processPeers(Torrent* torrent)
 {
     //locking mutex because this method can be run on multiple threads
     std::lock_guard<std::mutex> processGuard(mtx_process);
 
-    //move map to vector and sort by descending pieces required available
+    //move peers of specific torrent from map to vector
+    //and sort by (descending) pieces required available
     std::vector<std::shared_ptr<Peer>> sortedPeers;
     for (auto it = peerConnMap.begin(); it != peerConnMap.end(); ++it)
     {
-        sortedPeers.push_back(it->second);
+        if (it->second->torrent->hashesData.urlEncodedInfoHash ==
+                torrent->hashesData.urlEncodedInfoHash)
+        {
+            sortedPeers.push_back(it->second);
+        }
     }
 
     std::sort(sortedPeers.begin(), sortedPeers.end(),
@@ -627,6 +642,10 @@ void WorkingTorrents::processPeers()
     for (auto& peer : sortedPeers)
     {
         //if nullptr, continue
+        if (!torrent)
+        {
+            continue;
+        }
 
         //peer connection timed out
         if (std::chrono::high_resolution_clock::now() >
@@ -664,25 +683,25 @@ void WorkingTorrents::processPeers()
         peer->sendKeepAlive();
 
         //allow leeching
-        auto infoHash = peer->torrent->hashesData.urlEncodedInfoHash;
-        if (peer->torrent->statusData.isStarted() &&
+        auto infoHash = torrent->hashesData.urlEncodedInfoHash;
+        if (torrent->statusData.isStarted() &&
                 leechersMap.count(infoHash) < maxLeechersPerTorrent)
         {
             if (peer->IsInterestedReceived && peer->isChokeSent)
             {
                 peer->sendUnchoke();
-                leechersMap.emplace(peer->torrent->hashesData.urlEncodedInfoHash,
+                leechersMap.emplace(torrent->hashesData.urlEncodedInfoHash,
                                    peer);
             }
         }
 
         //if peer is unchoked, add them to seeders
-        if (!peer->torrent->statusData.isCompleted() &&
+        if (!torrent->statusData.isCompleted() &&
                 seedersMap.count(infoHash) < maxSeedersPerTorrent)
         {
             if (!peer->IsChokeReceived)
             {
-                seedersMap.emplace(peer->torrent->hashesData.urlEncodedInfoHash,
+                seedersMap.emplace(torrent->hashesData.urlEncodedInfoHash,
                                    peer);
             }
         }
@@ -733,6 +752,11 @@ void WorkingTorrents::processUploads()
         //update torrent info
         tempBlock.sourcePeer->torrent->statusData.uploaded += tempBlock.dataSize;
     }
+}
+
+void WorkingTorrents::processDownloads()
+{
+
 }
 
 }

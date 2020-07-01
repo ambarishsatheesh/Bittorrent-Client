@@ -61,20 +61,18 @@ namespace Bittorrent
         };
 
         //signals
-        std::shared_ptr<boost::signals2::signal<void(
-                std::shared_ptr<Peer>)>> sig_disconnected;
+        std::shared_ptr<boost::signals2::signal<void(Peer*)>> sig_disconnected;
+
+        std::shared_ptr<boost::signals2::signal<void(Peer*)>> sig_stateChanged;
 
         std::shared_ptr<boost::signals2::signal<void(
-                Peer* peer)>> sig_stateChanged;
+                dataRequest)>> sig_blockRequested;
 
         std::shared_ptr<boost::signals2::signal<void(
-            Peer* peer, dataRequest newDataRequest)>> sig_blockRequested;
+                dataRequest)>> sig_blockCancelled;
 
         std::shared_ptr<boost::signals2::signal<void(
-            Peer* peer, dataRequest newDataRequest)>> sig_blockCancelled;
-
-        std::shared_ptr<boost::signals2::signal<void(
-            Peer* peer, dataPackage newPackage)>> sig_blockReceived;
+                dataPackage)>> sig_blockReceived;
 
         //general variables
         std::string peerHost;

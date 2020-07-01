@@ -365,9 +365,9 @@ namespace Bittorrent
 				}
 
 				//if slots are connected to signal, call slots
-                if (!torrent.piecesData.sig_pieceVerified->empty())
+                if (!torrent.sig_pieceVerified->empty())
 				{
-                    torrent.piecesData.sig_pieceVerified->operator()(piece);
+                    torrent.sig_pieceVerified->operator()(&torrent, piece);
 				}
 
 				return;

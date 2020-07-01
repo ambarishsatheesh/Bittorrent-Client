@@ -45,7 +45,14 @@ namespace Bittorrent
         void handlePeerListUpdated(peer* singlePeer);
 
         //signals
-        std::shared_ptr<boost::signals2::signal<void(peer*, Torrent*)>> sig_addPeer;
+        std::shared_ptr<boost::signals2::signal<void(
+                peer*, Torrent*)>> sig_addPeer;
+
+        //piece verification signal
+        std::shared_ptr<boost::signals2::signal<void(
+                Torrent*, int)>> sig_pieceVerified;
+
+        //slot
         void addPeer(peer* singlePeer, Torrent* torrent);
 
 		std::shared_ptr<Torrent> getPtr();

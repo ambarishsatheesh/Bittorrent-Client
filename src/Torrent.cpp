@@ -9,9 +9,11 @@ namespace Bittorrent
 	//add tracker processing
     Torrent::Torrent()
         : generalData(), piecesData(), hashesData(),
+          statusData(std::make_shared<TorrentPieces>(piecesData)),
           sig_addPeer{
               std::make_shared<boost::signals2::signal<void(peer*, Torrent*)>>()},
-        statusData(std::make_shared<TorrentPieces>(piecesData))
+          sig_pieceVerified{
+              std::make_shared<boost::signals2::signal<void(Torrent*, int)>>()}
     {
         //connect peer-list-updated signal
         generalData.sig_peersUpdated->connect(

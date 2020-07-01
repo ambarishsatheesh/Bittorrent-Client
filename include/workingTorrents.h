@@ -63,18 +63,19 @@ public:
 
     //slots
     void addPeer(peer* singlePeer, Torrent* torrent);
-    void handlePieceVerified(int index);
-    void handleBlockRequested(Peer* peer, Peer::dataRequest newDataRequest);
-    void handleBlockCancelled(Peer* peer, Peer::dataRequest newDataRequest);
-    void handleBlockReceived(Peer* peer, Peer::dataPackage newPackage);
-    void handlePeerDisconnected(std::shared_ptr<Peer> senderPeer);
+    void handlePieceVerified(Torrent* torrent, int index);
+    void handleBlockRequested(Peer::dataRequest newDataRequest);
+    void handleBlockCancelled(Peer::dataRequest newDataRequest);
+    void handleBlockReceived(Peer::dataPackage newPackage);
+    void handlePeerDisconnected(Peer* senderPeer);
     void handlePeerStateChanged(Peer* peer);
 
     //processing peers/data
     Throttle downloadThrottle;
     Throttle uploadThrottle;
-    void processPeers();
+    void processPeers(Torrent* torrent);
     void processUploads();
+    void processDownloads();
 
     //non slot peer-related methods
     void disableTorrentConnection(Torrent* torrent);
@@ -86,6 +87,7 @@ private:
     std::mutex mtx_map;
     std::mutex mtx_process;
     std::mutex mtx_outgoing;
+    std::mutex mtx_incoming;
 
     std::chrono::duration<int> peerTimeout;
 

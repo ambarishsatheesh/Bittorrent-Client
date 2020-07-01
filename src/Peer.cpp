@@ -14,15 +14,15 @@ namespace Bittorrent
     Peer::Peer(Torrent* torrent, std::vector<byte>& localID,
         boost::asio::io_context& io_context, int localPort)
         : sig_disconnected{std::make_shared<boost::signals2::signal<void(
-                           std::shared_ptr<Peer>)>>()},
+                           Peer*)>>()},
         sig_stateChanged{std::make_shared<boost::signals2::signal<void(
-                           Peer* peer)>>()},
+                           Peer*)>>()},
         sig_blockRequested{std::make_shared<boost::signals2::signal<void(
-                           Peer* peer, dataRequest newDataRequest)>>()},
+                           dataRequest)>>()},
         sig_blockCancelled{std::make_shared<boost::signals2::signal<void(
-                           Peer* peer, dataRequest newDataRequest)>>()},
+                           dataRequest)>>()},
         sig_blockReceived{std::make_shared<boost::signals2::signal<void(
-                           Peer* peer, dataPackage newPackage)>>()},
+                               dataPackage)>>()},
         peerHost{""}, peerPort{""}, localID{ localID }, peerID{ "" },
 		torrent{ torrent->getPtr() }, endpointKey(),
 		isPieceDownloaded(torrent->piecesData.pieceCount),
@@ -69,15 +69,15 @@ namespace Bittorrent
                std::vector<byte>& localID, boost::asio::io_context& io_context,
                tcp::socket tcpClient, int localPort)
         : sig_disconnected{std::make_shared<boost::signals2::signal<void(
-                           std::shared_ptr<Peer>)>>()},
+                           Peer*)>>()},
         sig_stateChanged{std::make_shared<boost::signals2::signal<void(
-                           Peer* peer)>>()},
+                               Peer*)>>()},
         sig_blockRequested{std::make_shared<boost::signals2::signal<void(
-                           Peer* peer, dataRequest newDataRequest)>>()},
+                               dataRequest)>>()},
         sig_blockCancelled{std::make_shared<boost::signals2::signal<void(
-                           Peer* peer, dataRequest newDataRequest)>>()},
+                           dataRequest)>>()},
         sig_blockReceived{std::make_shared<boost::signals2::signal<void(
-                           Peer* peer, dataPackage newPackage)>>()},
+                           dataPackage)>>()},
         localID{ localID }, peerID{ "" },
         torrent{ std::make_shared<Torrent>() }, endpointKey(),
 		isPieceDownloaded(torrent->piecesData.pieceCount), 
@@ -474,7 +474,7 @@ namespace Bittorrent
 			<< ", uploaded: " << uploaded << "\n";
 
 		//call slot
-        sig_disconnected->operator()(getPtr());
+        sig_disconnected->operator()(this);
 	}
 
 	void Peer::handleMessage()
@@ -1520,7 +1520,7 @@ namespace Bittorrent
 		//pass struct and this peer's data to slot
         if (!sig_blockRequested->empty())
 		{
-            sig_blockRequested->operator()(this, newDataRequest);
+            sig_blockRequested->operator()(newDataRequest);
 		}
 	}
 
@@ -1534,7 +1534,7 @@ namespace Bittorrent
 		//pass struct and this peer's data to slot
         if (!sig_blockCancelled->empty())
 		{
-            sig_blockCancelled->operator()(this, newDataRequest);
+            sig_blockCancelled->operator()(newDataRequest);
 		}
 	}
 
@@ -1550,7 +1550,7 @@ namespace Bittorrent
 		//pass struct and this peer's data to slot
         if (!sig_blockReceived->empty())
 		{
-            sig_blockReceived->operator()(this, newPackage);
+            sig_blockReceived->operator()(newPackage);
 		}
 	}
 
