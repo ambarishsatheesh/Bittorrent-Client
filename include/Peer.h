@@ -64,7 +64,8 @@ namespace Bittorrent
         std::shared_ptr<boost::signals2::signal<void(
                 std::shared_ptr<Peer>)>> sig_disconnected;
 
-        std::shared_ptr<boost::signals2::signal<void(Peer* peer)>> sig_stateChanged;
+        std::shared_ptr<boost::signals2::signal<void(
+                Peer* peer)>> sig_stateChanged;
 
         std::shared_ptr<boost::signals2::signal<void(
             Peer* peer, dataRequest newDataRequest)>> sig_blockRequested;
@@ -141,6 +142,9 @@ namespace Bittorrent
         void sendInterested();
         void sendNotInterested();
         void sendUnchoke();
+        void sendDataRequest(int index, int offset, int dataSize);
+        void sendCancel(int index, int offset, int dataSize);
+        void sendPiece(int index, int offset, std::vector<byte> data);
 
     private:
         //tcp data
@@ -212,9 +216,6 @@ namespace Bittorrent
 		void sendChoke();
 		void sendHave(int index);
 		void sendBitfield(std::vector<bool> isPieceDownloaded);
-		void sendDataRequest(int index, int offset, int dataSize);
-		void sendCancel(int index, int offset, int dataSize);
-		void sendPiece(int index, int offset, std::vector<byte> data);
 
 		//receiving
 		void handleMessage();
