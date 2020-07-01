@@ -19,3 +19,6 @@ https://stackoverflow.com/questions/43173034/async-connect-doesnt-call-handler-i
 
 loguru library
 https://github.com/emilk/loguru
+
+network data transfer throttling:
+https://en.wikipedia.org/wiki/Token_bucket
