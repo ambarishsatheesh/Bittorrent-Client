@@ -140,6 +140,7 @@ namespace Bittorrent
         void sendInterested();
         void sendNotInterested();
         void sendUnchoke();
+        void sendHave(int index);
         void sendDataRequest(int index, int offset, int dataSize);
         void sendCancel(int index, int offset, int dataSize);
         void sendPiece(int index, int offset, std::vector<byte> data);
@@ -212,7 +213,6 @@ namespace Bittorrent
 		//sending
 		void sendHandShake();
 		void sendChoke();
-		void sendHave(int index);
 		void sendBitfield(std::vector<bool> isPieceDownloaded);
 
 		//receiving

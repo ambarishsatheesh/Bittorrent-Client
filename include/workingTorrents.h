@@ -85,6 +85,7 @@ public:
 
 private:
     std::mutex mtx_map;
+    std::mutex mtx_seeders;
     std::mutex mtx_process;
     std::mutex mtx_outgoing;
     std::mutex mtx_incoming;

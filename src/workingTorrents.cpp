@@ -193,6 +193,8 @@ void WorkingTorrents::removeTorrent(int position)
         trackerTimer->stop();
     }
 
+    std::lock_guard<std::mutex> guard(mtx_map);
+
     //remove relevant peers from dl and ul peer maps using infohash
     //no need to erase from ul_peerConnMap because disconnecting erases element
     auto range = peerConnMap.equal_range(
@@ -519,6 +521,8 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
                 TorrentStatus::currentStatus::stopped;
     }
 
+    std::lock_guard<std::mutex> guard(mtx_map);
+
     auto range = peerConnMap.equal_range(
                 torrent->hashesData.urlEncodedInfoHash);
 
@@ -530,13 +534,30 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
         //existing one
         peerConnMap.erase(it);
     }
+
+    //also erase from seeders and leechers
+
 }
 
 void WorkingTorrents::handlePieceVerified(Torrent* torrent, int piece)
 {
     processPeers(torrent);
 
+    std::lock_guard<std::mutex> guard(mtx_map);
 
+    auto range = peerConnMap.equal_range(
+                torrent->hashesData.urlEncodedInfoHash);
+
+    for (auto it = range.first; it != range.second; ++it)
+    {
+        //peer not fully set up yet
+        if (!it->second->isHandshakeReceived || !it->second->isHandshakeSent)
+        {
+            continue;
+        }
+
+        it->second->sendHave(piece);
+    }
 }
 
 void WorkingTorrents::handleBlockRequested(Peer::dataRequest newDataRequest)
@@ -593,6 +614,8 @@ void WorkingTorrents::handlePeerDisconnected(Peer* senderPeer)
     senderPeer->sig_stateChanged->disconnect_all_slots();
 
     auto infoHash = senderPeer->torrent->hashesData.urlEncodedInfoHash;
+
+    std::lock_guard<std::mutex> guard(mtx_map);
 
     //remove from peer map
     auto range = peerConnMap.equal_range(
@@ -682,6 +705,8 @@ void WorkingTorrents::processPeers(Torrent* torrent)
         //method has a check to prevent spamming
         peer->sendKeepAlive();
 
+        std::unique_lock<std::mutex> seedersLock(mtx_seeders);
+
         //allow leeching
         auto infoHash = torrent->hashesData.urlEncodedInfoHash;
         if (torrent->statusData.isStarted() &&
@@ -705,6 +730,8 @@ void WorkingTorrents::processPeers(Torrent* torrent)
                                    peer);
             }
         }
+
+        seedersLock.unlock();
     }
 }
 
