@@ -4,12 +4,14 @@
 #include "Peer.h"
 #include "timer.h"
 #include "TorrentManipulation.h"
+#include "throttle.h"
 
 #include <vector>
 #include <QString>
 #include <QMap>
 #include <unordered_map>
 #include <mutex>
+#include <deque>
 
 namespace Bittorrent
 {
@@ -17,13 +19,12 @@ namespace Bittorrent
 class WorkingTorrents
 {
 public:
+    //network transfer parameters
     int networkPort;
-
-    //hardcoded parameters
-    static constexpr int maxDownloadBytesPerSecond = 4194300;
-    static constexpr int maxUploadBytesPerSecond = 512000;
-    static constexpr int maxSeedersPerTorrent = 5;
-    static constexpr int maxLeechersPerTorrent = 5;
+    int maxDownloadBytesPerSecond = 4194300;
+    int maxUploadBytesPerSecond = 512000;
+    int maxSeedersPerTorrent = 5;
+    int maxLeechersPerTorrent = 5;
 
     //time the torrent was added (string format)
     std::vector<QString> addedOnList;
@@ -70,7 +71,10 @@ public:
     void handlePeerStateChanged(Peer* peer);
 
     //processing peers/data
+    Throttle downloadThrottle;
+    Throttle uploadThrottle;
     void processPeers();
+    void processUploads();
 
     //non slot peer-related methods
     void disableTorrentConnection(Torrent* torrent);
@@ -81,8 +85,13 @@ public:
 private:
     std::mutex mtx_map;
     std::mutex mtx_process;
+    std::mutex mtx_outgoing;
 
     std::chrono::duration<int> peerTimeout;
+
+    //need deque for both FIFO & iteration
+    std::deque<dataRequest> outgoingBlocks;
+    std::deque<dataPackage> incomingBlocks;
 };
 
 }

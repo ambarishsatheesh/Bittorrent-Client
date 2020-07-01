@@ -14,6 +14,8 @@ using namespace torrentManipulation;
 
 WorkingTorrents::WorkingTorrents()
     : networkPort{6880}, trackerTimer{std::make_unique<TrackerTimer>(clientID, networkPort)},
+      downloadThrottle{maxDownloadBytesPerSecond, std::chrono::seconds{1}},
+      uploadThrottle{maxUploadBytesPerSecond, std::chrono::seconds{1}},
       peerTimeout{std::chrono::seconds{30}}
 {
 }
@@ -537,12 +539,28 @@ void WorkingTorrents::handlePieceVerified(int piece)
 
 void WorkingTorrents::handleBlockRequested(Peer* peer, dataRequest newDataRequest)
 {
+    std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
 
+    outgoingBlocks.push_back(newDataRequest);
+
+    processUploads();
 }
 
 void WorkingTorrents::handleBlockCancelled(Peer* peer, dataRequest newDataRequest)
 {
+    std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
 
+    //flag block for cancelling (processed later in processUploads())
+    for (auto& block : outgoingBlocks)
+    {
+        if (block != newDataRequest)
+        {
+            continue;
+        }
+        block.isCancelled = true;
+    }
+
+    processUploads();
 }
 
 void WorkingTorrents::handleBlockReceived(Peer* peer, dataPackage newPackage)
@@ -579,7 +597,6 @@ void WorkingTorrents::handlePeerStateChanged(Peer* senderPeer)
 {
 
 }
-
 
 void WorkingTorrents::processPeers()
 {
@@ -665,6 +682,11 @@ void WorkingTorrents::processPeers()
             }
         }
     }
+}
+
+void WorkingTorrents::processUploads()
+{
+
 }
 
 }
