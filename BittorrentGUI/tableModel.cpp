@@ -166,7 +166,7 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
         auto downloadedBytes = entry->statusData.downloaded();
         if (downloadedBytes != 0)
         {
-            return entry->statusData.uploaded() / downloadedBytes;
+            return entry->statusData.uploaded / downloadedBytes;
         }
         return 0;
     }
@@ -181,7 +181,7 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
     //Uploaded
     case 14:
         return QString::fromStdString(humanReadableBytes(entry->
-                statusData.uploaded()));
+                statusData.uploaded));
     //Time Active
     case 15:
         //implement properly

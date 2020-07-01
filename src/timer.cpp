@@ -69,7 +69,7 @@ void TrackerTimer::wait_then_call(pSet* trackerSet)
                            clientID, networkPort,
                            trackerSet->begin()->second->hashesData.urlEncodedInfoHash,
                            trackerSet->begin()->second->hashesData.infoHash,
-                           trackerSet->begin()->second->statusData.uploaded(),
+                           trackerSet->begin()->second->statusData.uploaded,
                            trackerSet->begin()->second->statusData.downloaded(),
                            trackerSet->begin()->second->statusData.remaining());
 

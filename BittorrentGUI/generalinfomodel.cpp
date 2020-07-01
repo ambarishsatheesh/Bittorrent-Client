@@ -202,7 +202,7 @@ QVariant generalInfoModel::generateData(const QModelIndex &index) const
     //Uploaded
     case 13:
         return QString::fromStdString(humanReadableBytes(
-                                          entry->statusData.uploaded()));
+                                          entry->statusData.uploaded));
     //upload speed
     case 14:
         //implement properly

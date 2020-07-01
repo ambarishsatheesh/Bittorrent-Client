@@ -3,7 +3,8 @@
 namespace Bittorrent
 {
     TorrentStatus::TorrentStatus(std::shared_ptr<TorrentPieces> pieces)
-        : currentState{currentStatus::stopped}, ptr_piecesData(pieces)
+        : currentState{currentStatus::stopped}, ptr_piecesData(pieces),
+          uploaded{0}
 	{
 	}
 
@@ -32,13 +33,6 @@ namespace Bittorrent
     {
         return ptr_piecesData->pieceSize * verifiedPiecesCount();
     }
-
-    long long TorrentStatus::uploaded()
-    {
-        //need to implement properly
-        return 0;
-    }
-
 
     long long TorrentStatus::remaining()
 	{

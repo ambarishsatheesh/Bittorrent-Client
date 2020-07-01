@@ -259,7 +259,7 @@ void WorkingTorrents::start(int position)
                     hashesData.urlEncodedInfoHash,
                     torrentList.at(position).get()->
                     hashesData.infoHash,
-                    torrentList.at(position).get()->statusData.uploaded(),
+                    torrentList.at(position).get()->statusData.uploaded,
                     torrentList.at(position).get()->statusData.downloaded(),
                     torrentList.at(position).get()->statusData.remaining());
 
@@ -308,7 +308,7 @@ void WorkingTorrents::start(int position)
                     hashesData.urlEncodedInfoHash,
                     torrentList.at(position).get()->
                     hashesData.infoHash,
-                    torrentList.at(position).get()->statusData.uploaded(),
+                    torrentList.at(position).get()->statusData.uploaded,
                     torrentList.at(position).get()->statusData.downloaded(),
                     torrentList.at(position).get()->statusData.remaining());
 
@@ -691,7 +691,48 @@ void WorkingTorrents::processPeers()
 
 void WorkingTorrents::processUploads()
 {
+    std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
 
+    Peer::dataRequest tempBlock;
+
+    while (!uploadThrottle.isThrottled() && !outgoingBlocks.empty())
+    {
+        tempBlock = outgoingBlocks.front();
+        outgoingBlocks.pop_front();
+
+        if (tempBlock.isCancelled)
+        {
+            continue;
+        }
+
+        //check piece exists locally
+        if (!tempBlock.sourcePeer->torrent->
+                statusData.isPieceVerified[tempBlock.piece])
+        {
+            continue;
+        }
+
+        //get data from file and send
+        std::vector<byte> data = readBlock(*tempBlock.sourcePeer->torrent,
+                                           tempBlock.piece,
+                                           tempBlock.offset,
+                                           tempBlock.dataSize);
+
+        if (data.empty())
+        {
+            continue;
+        }
+
+        //send to peer
+        tempBlock.sourcePeer->sendPiece(tempBlock.piece, tempBlock.offset,
+                                        data);
+
+        //add to throttle bucket
+        uploadThrottle.add(tempBlock.dataSize);
+
+        //update torrent info
+        tempBlock.sourcePeer->torrent->statusData.uploaded += tempBlock.dataSize;
+    }
 }
 
 }

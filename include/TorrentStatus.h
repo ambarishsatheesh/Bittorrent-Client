@@ -31,8 +31,8 @@ namespace Bittorrent
         bool isCompleted();
         bool isStarted();
         long long downloaded();
-        long long uploaded();
         long long remaining();
+        long long uploaded;
 
 	private:
 	};
