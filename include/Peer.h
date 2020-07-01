@@ -75,12 +75,12 @@ namespace Bittorrent
 		Peer() = delete;
 		//client-opened connection constructors
         Peer(Torrent* torrent, std::vector<byte>& localID,
-			boost::asio::io_context& io_context);
+            boost::asio::io_context& io_context, int localPort);
 		//peer-opened connection constructor
 		//need io_context here to initialise timers
         Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
              std::vector<byte>& localID, boost::asio::io_context& io_context,
-             tcp::socket tcpClient);
+             tcp::socket tcpClient, int localPort);
 
 		//new connection called from client
 		void startNew(const std::string& host, const std::string& port);

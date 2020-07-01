@@ -8,10 +8,11 @@
 
 namespace Bittorrent
 {
+    using tcp = boost::asio::ip::tcp;
 	using namespace utility;
 
     Peer::Peer(Torrent* torrent, std::vector<byte>& localID,
-		boost::asio::io_context& io_context)
+        boost::asio::io_context& io_context, int localPort)
         : sig_disconnected{std::make_shared<boost::signals2::signal<void(
                            std::shared_ptr<Peer>)>>()},
         sig_stateChanged{std::make_shared<boost::signals2::signal<void(
@@ -31,8 +32,14 @@ namespace Bittorrent
         lastActive{ std::chrono::high_resolution_clock::time_point::min() },
         lastKeepAlive{ std::chrono::high_resolution_clock::time_point::min() },
         uploaded{ 0 }, downloaded{ 0 },
-        context(io_context), socket(context), recBuffer(68)
+        context(io_context), socket(context),
+        recBuffer(68)
 	{
+       //open socket, allow reuse of address+port and bind
+       socket.open(tcp::v4());
+       socket.set_option(tcp::socket::reuse_address(true));
+       socket.bind(tcp::endpoint(tcp::v4(), localPort));
+
 		isBlockRequested.resize(torrent->piecesData.pieceCount);
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
 		{
@@ -60,7 +67,7 @@ namespace Bittorrent
 	//construct peer from accepted connection started by another peer
     Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
                std::vector<byte>& localID, boost::asio::io_context& io_context,
-               tcp::socket tcpClient)
+               tcp::socket tcpClient, int localPort)
         : sig_disconnected{std::make_shared<boost::signals2::signal<void(
                            std::shared_ptr<Peer>)>>()},
         sig_stateChanged{std::make_shared<boost::signals2::signal<void(
@@ -83,6 +90,11 @@ namespace Bittorrent
         context(io_context), socket(std::move(tcpClient)), recBuffer(68),
         ptr_torrentList{torrentList}
 	{
+       //open socket, allow reuse of address+port and bind
+       socket.open(tcp::v4());
+       socket.set_option(tcp::socket::reuse_address(true));
+       socket.bind(tcp::endpoint(tcp::v4(), localPort));
+
 		isBlockRequested.resize(torrent->piecesData.pieceCount);
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
 		{
