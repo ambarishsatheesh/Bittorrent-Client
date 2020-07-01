@@ -126,18 +126,6 @@ namespace Bittorrent
 
 	}
 
-    void TorrentGeneral::updateTrackers(TorrentStatus::currentStatus currentState,
-		std::vector<byte> clientID,
-		int port, std::string urlEncodedInfoHash, std::vector<byte> infoHash, 
-		long long uploaded, long long downloaded, long long remaining)
-	{
-		for (auto tracker : trackerList)
-		{
-            tracker.update(currentState, clientID, port, urlEncodedInfoHash, infoHash, uploaded,
-				downloaded, remaining);
-		}
-	}
-
 	void TorrentGeneral::resetTrackersLastRequest()
 	{
 		for (auto tracker : trackerList)

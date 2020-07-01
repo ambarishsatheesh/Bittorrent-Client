@@ -52,12 +52,6 @@ namespace Bittorrent
 			const valueDictionary& torrent);
 		valueDictionary generalDataToDictionary(valueDictionary& dict);
 
-		//tracker processing
-        void updateTrackers(TorrentStatus::currentStatus currentState,
-			std::vector<byte> clientID,
-			int port, std::string urlEncodedInfoHash, std::vector<byte> infoHash,
-			long long uploaded, long long downloaded, long long remaining);
-
 		void resetTrackersLastRequest();
 
         //update peer list from tracker response
