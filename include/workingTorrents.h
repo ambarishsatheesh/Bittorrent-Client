@@ -64,9 +64,9 @@ public:
     //slots
     void addPeer(peer* singlePeer, Torrent* torrent);
     void handlePieceVerified(int index);
-    void handleBlockRequested(Peer* peer, dataRequest newDataRequest);
-    void handleBlockCancelled(Peer* peer, dataRequest newDataRequest);
-    void handleBlockReceived(Peer* peer, dataPackage newPackage);
+    void handleBlockRequested(Peer* peer, Peer::dataRequest newDataRequest);
+    void handleBlockCancelled(Peer* peer, Peer::dataRequest newDataRequest);
+    void handleBlockReceived(Peer* peer, Peer::dataPackage newPackage);
     void handlePeerDisconnected(std::shared_ptr<Peer> senderPeer);
     void handlePeerStateChanged(Peer* peer);
 
@@ -90,8 +90,8 @@ private:
     std::chrono::duration<int> peerTimeout;
 
     //need deque for both FIFO & iteration
-    std::deque<dataRequest> outgoingBlocks;
-    std::deque<dataPackage> incomingBlocks;
+    std::deque<Peer::dataRequest> outgoingBlocks;
+    std::deque<Peer::dataPackage> incomingBlocks;
 };
 
 }

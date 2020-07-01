@@ -1515,7 +1515,7 @@ namespace Bittorrent
 		std::cout << "Handling data request: " << "index: " << index
 			<< ", offset: " << offset << ", data size: " << dataSize << "\n";
 
-        dataRequest newDataRequest = { endpointKey, index, offset, dataSize };
+        dataRequest newDataRequest = { this, index, offset, dataSize, false };
 
 		//pass struct and this peer's data to slot
         if (!sig_blockRequested->empty())
@@ -1529,7 +1529,7 @@ namespace Bittorrent
 		std::cout << "Handling cancel request: " << "index: " << index
 			<< ", offset: " << offset << ", data size: " << dataSize << "\n";
 
-        dataRequest newDataRequest = { endpointKey, index, offset, dataSize };
+        dataRequest newDataRequest = { this, index, offset, dataSize, false };
 
 		//pass struct and this peer's data to slot
         if (!sig_blockCancelled->empty())
@@ -1544,7 +1544,7 @@ namespace Bittorrent
 			<< ", offset: " << offset << ", data size: " << data.size() << "\n";
 
 
-        dataPackage newPackage = { endpointKey, index,
+        dataPackage newPackage = { this, index,
                                    offset/torrent->piecesData.blockSize, data};
 
 		//pass struct and this peer's data to slot

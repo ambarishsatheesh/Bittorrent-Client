@@ -21,6 +21,45 @@ namespace Bittorrent
 		: public std::enable_shared_from_this<Peer>
 	{
 	public:
+        struct dataPackage
+        {
+            Peer* sourcePeer;
+            int piece;
+            int block;
+            std::vector<byte> data;
+
+            bool operator==(const dataPackage& p) const {
+                return this->sourcePeer->endpointKey ==
+                        p.sourcePeer->endpointKey &&
+                        this->piece == p.piece && this->block == p.block &&
+                        this->data == p.data;
+            }
+
+            bool operator!=(const dataPackage& p) const {
+                return !(*this == p);
+            }
+        };
+
+        struct dataRequest
+        {
+            Peer* sourcePeer;
+            int piece;
+            int offset;
+            int dataSize;
+            bool isCancelled;
+
+            bool operator==(const dataRequest& r) const {
+                return this->sourcePeer->endpointKey ==
+                        r.sourcePeer->endpointKey &&
+                        this->piece == r.piece && this->offset == r.offset &&
+                        this->dataSize == r.dataSize;
+            }
+
+            bool operator!=(const dataRequest& r) const {
+                return !(*this == r);
+            }
+        };
+
         //signals
         std::shared_ptr<boost::signals2::signal<void(
                 std::shared_ptr<Peer>)>> sig_disconnected;

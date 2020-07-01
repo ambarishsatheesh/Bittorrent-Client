@@ -537,7 +537,7 @@ void WorkingTorrents::handlePieceVerified(int piece)
 
 }
 
-void WorkingTorrents::handleBlockRequested(Peer* peer, dataRequest newDataRequest)
+void WorkingTorrents::handleBlockRequested(Peer* peer, Peer::dataRequest newDataRequest)
 {
     std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
 
@@ -546,24 +546,29 @@ void WorkingTorrents::handleBlockRequested(Peer* peer, dataRequest newDataReques
     processUploads();
 }
 
-void WorkingTorrents::handleBlockCancelled(Peer* peer, dataRequest newDataRequest)
+void WorkingTorrents::handleBlockCancelled(Peer* peer, Peer::dataRequest newDataRequest)
 {
-    std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
-
-    //flag block for cancelling (processed later in processUploads())
-    for (auto& block : outgoingBlocks)
+    //block scope for lock_guard so that processUploads() can be called
+    //separately elsewhere while retaining its own lock
     {
-        if (block != newDataRequest)
+        std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
+
+        //flag block for cancelling (processed later in processUploads())
+        for (auto& block : outgoingBlocks)
         {
-            continue;
+            if (block != newDataRequest)
+            {
+                continue;
+            }
+
+            block.isCancelled = true;
         }
-        block.isCancelled = true;
     }
 
     processUploads();
 }
 
-void WorkingTorrents::handleBlockReceived(Peer* peer, dataPackage newPackage)
+void WorkingTorrents::handleBlockReceived(Peer* peer, Peer::dataPackage newPackage)
 {
 
 }
