@@ -1,10 +1,13 @@
+#ifndef VALUETYPES_H
+#define VALUETYPES_H
+
 /**
  * @file ValueTypes.h
  *
  * @brief Definition of types used in the Bittorrent client
  */
 
-#pragma once
+
 #define BOOST_VARIANT_NO_FULL_RECURSIVE_VARIANT_SUPPORT
 #include <boost/variant.hpp>
 #include <string>
@@ -58,4 +61,7 @@ namespace Bittorrent
         int dataSize;
         bool isCancelled;
     };
+
 }
+
+#endif // VALUETYPES_H
