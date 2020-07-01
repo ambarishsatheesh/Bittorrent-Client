@@ -30,9 +30,13 @@ UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID,
     ancDownloaded{ downloaded }, ancUploaded{ uploaded },
     ancRemaining{ remaining }, ancIntEvent{ intEvent },
     recConnBuffer(16), recScrapeBuffer(200), recAncBuffer(320),
-    io_context(), socket(io_context, udp::endpoint(udp::v4(), port)),
-    remoteEndpoint(), localEndpoint()
+    io_context(), socket(io_context), remoteEndpoint(), localEndpoint()
 {
+    //open socket, allow reuse of address+port and bind
+    socket.open(boost::asio::ip::udp::v4());
+    socket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
+    socket.bind(udp::endpoint(udp::v4(), port));
+
     errorAction = { 0x0, 0x0, 0x0, 0x3 };
     dataTransmission(isAnnounce);
 }
