@@ -34,7 +34,7 @@ using pSet = std::multiset<pair, compare>;
 class TrackerTimer
 {
 public:
-    TrackerTimer(std::vector<byte> clientID);
+    TrackerTimer(std::vector<byte> clientID, int port);
     ~TrackerTimer();
 
     void start(pSet* trackerSet);
@@ -47,6 +47,7 @@ private:
     std::thread wait_thread;
     std::vector<byte> clientID;
     std::atomic_bool stopThread;
+    int networkPort;
 
     void wait_then_call(pSet* trackerSet);
 };

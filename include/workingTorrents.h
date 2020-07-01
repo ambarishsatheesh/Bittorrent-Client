@@ -17,6 +17,8 @@ namespace Bittorrent
 class WorkingTorrents
 {
 public:
+    int networkPort;
+
     //hardcoded parameters
     static constexpr int maxDownloadBytesPerSecond = 4194300;
     static constexpr int maxUploadBytesPerSecond = 512000;

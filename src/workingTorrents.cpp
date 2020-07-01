@@ -13,7 +13,7 @@ namespace Bittorrent
 using namespace torrentManipulation;
 
 WorkingTorrents::WorkingTorrents()
-    : trackerTimer{std::make_unique<TrackerTimer>(clientID)},
+    : networkPort{6880}, trackerTimer{std::make_unique<TrackerTimer>(clientID, networkPort)},
       peerTimeout{std::chrono::seconds{30}}
 {
 }
@@ -301,7 +301,7 @@ void WorkingTorrents::start(int position)
                     tracker.update(
                     torrentList.at(position).get()->statusData.currentState,
                     clientID,
-                    0,
+                    networkPort,
                     torrentList.at(position).get()->
                     hashesData.urlEncodedInfoHash,
                     torrentList.at(position).get()->
@@ -406,7 +406,7 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
         boost::asio::io_context io_context;
 
         auto peerConn =
-            std::make_shared<Peer>(torrent, clientID, io_context);
+            std::make_shared<Peer>(torrent, clientID, io_context, networkPort);
 
         //connect signals to slots
         peerConn->sig_blockRequested->connect(
@@ -450,6 +450,10 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
         boost::asio::io_context acc_io_context;
         tcp::acceptor acceptor(acc_io_context);
 
+        acceptor.open(tcp::v4());
+        acceptor.set_option(tcp::socket::reuse_address(true));
+        acceptor.bind(tcp::endpoint(tcp::v4(), networkPort));
+
         acceptor.async_accept(
             [&](boost::system::error_code ec, tcp::socket socket)
             {
@@ -458,7 +462,7 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
                     auto peerConn =
                             std::make_shared<Peer>(
                                 &torrentList, clientID, acc_io_context,
-                                std::move(socket));
+                                std::move(socket), networkPort);
 
                     //connect signals to slots
                     peerConn->sig_blockRequested->connect(
