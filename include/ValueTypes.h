@@ -10,6 +10,7 @@
 
 #define BOOST_VARIANT_NO_FULL_RECURSIVE_VARIANT_SUPPORT
 #include <boost/variant.hpp>
+#include <boost/asio.hpp>
 #include <string>
 #include <vector>
 #include <map>
@@ -49,17 +50,39 @@ namespace Bittorrent
 
     struct dataPackage
     {
+        boost::asio::ip::tcp::endpoint endpointKey;
         int piece;
         int block;
         std::vector<byte> data;
+
+        bool operator==(const dataPackage& p) const {
+            return this->endpointKey == p.endpointKey &&
+                    this->piece == p.piece && this->block == p.block &&
+                    this->data == p.data;
+        }
+
+        bool operator!=(const dataPackage& p) const {
+            return !(*this == p);
+        }
     };
 
     struct dataRequest
     {
+        boost::asio::ip::tcp::endpoint endpointKey;
         int piece;
         int offset;
         int dataSize;
         bool isCancelled;
+
+        bool operator==(const dataRequest& r) const {
+            return this->endpointKey == r.endpointKey &&
+                    this->piece == r.piece && this->offset == r.offset &&
+                    this->dataSize == r.dataSize;
+        }
+
+        bool operator!=(const dataRequest& r) const {
+            return !(*this == r);
+        }
     };
 
 }
