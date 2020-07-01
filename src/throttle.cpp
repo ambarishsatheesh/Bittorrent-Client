@@ -9,16 +9,12 @@ Throttle::Throttle(int maxDataSize, std::chrono::duration<int> maxTimeWindow)
 
 void Throttle::add(int size)
 {
-    std::lock_guard<std::mutex> throttleGuard(mtx_throttle);
-
     transferPacketVec.emplace_back(size,
                                    std::chrono::high_resolution_clock::now());
 }
 
 bool Throttle::isThrottled()
 {
-    std::lock_guard<std::mutex> throttleGuard(mtx_throttle);
-
     highResClock::time_point cutoff = highResClock::now() - maxTimeWindow;
 
     //remove all transferPacket objects created before cutoff time

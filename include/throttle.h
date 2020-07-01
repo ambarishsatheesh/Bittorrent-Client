@@ -33,9 +33,6 @@ public:
     bool isThrottled();
 
     Throttle(int maxDataSize, std::chrono::duration<int> maxTimeWindow);
-
-private:
-    std::mutex mtx_throttle;
 };
 
 }
