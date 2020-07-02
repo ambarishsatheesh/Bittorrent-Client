@@ -44,7 +44,7 @@ namespace Bittorrent
         std::shared_ptr<sigPeer> peerListUpdated;
 
         void update(TorrentStatus::currentStatus currentState,
-                    std::vector<byte> clientID, int port,
+                    std::vector<byte> clientID, int httpPort, int udpPort,
                     std::string urlEncodedInfoHash, std::vector<byte> infoHash,
                     long long uploaded, long long downloaded,
                     long long remaining);

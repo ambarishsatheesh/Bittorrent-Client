@@ -18,8 +18,9 @@ namespace Bittorrent
     }
 
     //create required url for GET request
-    void trackerObj::update(TorrentStatus::currentStatus currentState, std::vector<byte> clientID,
-        int port, std::string urlEncodedInfoHash, std::vector<byte> infoHash,
+    void trackerObj::update(TorrentStatus::currentStatus currentState,
+        std::vector<byte> clientID, int httpPort, int udpPort,
+        std::string urlEncodedInfoHash, std::vector<byte> infoHash,
         long long uploaded, long long downloaded, long long remaining)
     {
         //switch case to get enumerator string
@@ -52,9 +53,10 @@ namespace Bittorrent
             sep = "/";
         }
 
+        //this is for http requests
         //compact will be 1 but client will also support non-compact response
         std::string url = trackerAddress + sep + "?info_hash=" + urlEncodedInfoHash +
-            "&peer_id=" + urlEncodedClientID + "&port=" + std::to_string(port)
+            "&peer_id=" + urlEncodedClientID + "&port=" + std::to_string(httpPort)
             + "&uploaded=" + std::to_string(uploaded) + "&downloaded=" +
             std::to_string(downloaded) + "&left=" + std::to_string(remaining) +
             "&event=" + stringEvent + "&compact=1";
@@ -86,7 +88,7 @@ namespace Bittorrent
             if (seeders == std::numeric_limits<int>::min() &&
                 leechers == std::numeric_limits<int>::min())
             {
-                HTTPClient httpAnnounce(parsedUrl, 1);
+                HTTPClient httpAnnounce(parsedUrl, httpPort, 1);
                 isWorking = !httpAnnounce.isFail;
                 errMessage = httpAnnounce.errMessage;
 
@@ -107,7 +109,7 @@ namespace Bittorrent
             else
             {
                 //scrape
-                HTTPClient httpGen(parsedUrl, 0);
+                HTTPClient httpGen(parsedUrl, httpPort, 0);
                 isWorking = !httpGen.isFail;
                 errMessage = httpGen.errMessage;
 
@@ -152,7 +154,7 @@ namespace Bittorrent
                 leechers == std::numeric_limits<int>::min())
             {
                 UDPClient udpAnnounce(parsedUrl, clientID, infoHash, uploaded,
-                    downloaded, remaining, intEvent, port, 1);
+                    downloaded, remaining, intEvent, udpPort, 1);
 
                 isWorking = !udpAnnounce.isFail;
 
@@ -174,7 +176,7 @@ namespace Bittorrent
             {
                 //scrape
                 UDPClient udpGen(parsedUrl, clientID, infoHash, uploaded,
-                    downloaded, remaining, intEvent, port, 0);
+                    downloaded, remaining, intEvent, udpPort, 0);
                 isWorking = !udpGen.isFail;
                 errMessage = udpGen.errMessage;
 

@@ -20,22 +20,22 @@ using namespace utility;
 //port "0" in member initialisation list for socket assigns any
 //free port
 UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID,
-    std::vector<byte>& infoHash, long long& uploaded, long long& downloaded,
-    long long& remaining, int& intEvent, int& port, bool isAnnounce)
+    std::vector<byte>& infoHash, long long uploaded, long long downloaded,
+    long long remaining, int intEvent, int udpPort, bool isAnnounce)
     : connIDReceivedTime{}, lastRequestTime{}, peerRequestInterval{ 0 },
     leechers{ 0 }, seeders{ 0 }, completed{ 0 }, errMessage{""}, isFail{true},
     peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port },
-    localPort{port}, logBuffer{""}, m_isAnnounce{isAnnounce},
+    localPort{udpPort}, logBuffer{""}, m_isAnnounce{isAnnounce},
     byteInfoHash{ infoHash }, ancClientID{ clientID },
     ancDownloaded{ downloaded }, ancUploaded{ uploaded },
     ancRemaining{ remaining }, ancIntEvent{ intEvent },
     recConnBuffer(16), recScrapeBuffer(200), recAncBuffer(320),
     io_context(), socket(io_context), remoteEndpoint(), localEndpoint()
 {
-    //open socket, allow reuse of address+port and bind
+    //open socket, allow reuse of address+port and bind specific port
     socket.open(boost::asio::ip::udp::v4());
     socket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
-    socket.bind(udp::endpoint(udp::v4(), port));
+    socket.bind(udp::endpoint(udp::v4(), udpPort));
 
     errorAction = { 0x0, 0x0, 0x0, 0x3 };
     dataTransmission(isAnnounce);

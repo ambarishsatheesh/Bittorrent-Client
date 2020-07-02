@@ -21,11 +21,13 @@ class WorkingTorrents
 {
 public:
     //network transfer parameters
-    int networkPort;
-    int maxDownloadBytesPerSecond = 4194300;
-    int maxUploadBytesPerSecond = 512000;
-    int maxSeedersPerTorrent = 5;
-    int maxLeechersPerTorrent = 5;
+    int httpPort;   //default 80
+    int udpPort;    //default 6682
+    int tcpPort;    //default 6689
+    int maxDownloadBytesPerSecond;
+    int maxUploadBytesPerSecond;
+    int maxSeedersPerTorrent;
+    int maxLeechersPerTorrent;
 
     //time the torrent was added (string format)
     std::vector<QString> addedOnList;

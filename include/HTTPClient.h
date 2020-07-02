@@ -36,7 +36,7 @@ namespace Bittorrent
         void dataTransmission(bool isAnnounce);
 
         //constructor
-        HTTPClient(trackerUrl& parsedUrl, bool isAnnounce);
+        HTTPClient(trackerUrl& parsedUrl, int httpPort, bool isAnnounce);
         ~HTTPClient();
 
     private:

@@ -39,6 +39,7 @@
 #include "generalinfomodel.h"
 #include "contenttreemodel.h"
 #include "addtorrentdialog.h"
+#include "settingsdialog.h"
 #include "TorrentManipulation.h"
 
 namespace Ui {
@@ -91,6 +92,10 @@ private slots:
     void on_actionPause_triggered();
 
     void handleNewTorrent(Torrent modifiedTorrent);
+
+    void on_actionOptions_triggered();
+
+    void on_settingsChange(SettingsDialog::settings modifiedSettings);
 
 private:
     Ui::MainWindow* ui;
@@ -210,6 +215,9 @@ private:
 
     //create new torrent
     QPointer<CreateTorrent> createTorDialog;
+
+    //settings menu
+    QPointer<SettingsDialog> settingsDialog;
 
     //table header menu
     QList<QPair<QString, QPointer<TorrentHeaderCheckbox>>> actionList;

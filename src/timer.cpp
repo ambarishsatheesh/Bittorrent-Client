@@ -3,8 +3,9 @@
 namespace Bittorrent {
 
 
-TrackerTimer::TrackerTimer(std::vector<byte> clientID, int port)
-    : clientID{clientID}, stopThread{false}, networkPort{port}
+TrackerTimer::TrackerTimer(std::vector<byte> clientID,
+                           int httpPort, int udpPort, int tcpPort)
+    : clientID{clientID}, stopThread{false}, httpPort{httpPort}, udpPort{udpPort}
 {
 }
 
@@ -66,7 +67,7 @@ void TrackerTimer::wait_then_call(pSet* trackerSet)
         {
             trackerSet->begin()->first->
                     update(TorrentStatus::currentStatus::started,
-                           clientID, networkPort,
+                           clientID, httpPort, udpPort,
                            trackerSet->begin()->second->hashesData.urlEncodedInfoHash,
                            trackerSet->begin()->second->hashesData.infoHash,
                            trackerSet->begin()->second->statusData.uploaded,

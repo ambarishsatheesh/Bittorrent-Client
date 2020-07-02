@@ -848,6 +848,8 @@ void MainWindow::on_actionTorrent_Creator_triggered()
 {
     createTorDialog = new CreateTorrent(this);
 
+    createTorDialog->setWindowTitle("Create a torrent");
+
     //remove question mark from dialog
     createTorDialog->setWindowFlags(
                 createTorDialog->windowFlags() &
@@ -877,7 +879,46 @@ void MainWindow::textFilterChanged()
     proxyModel->setFilterRegExp(torrentFilterRegExp);
 }
 
+void MainWindow::on_actionOptions_triggered()
+{
+    settingsDialog = new SettingsDialog(this);
 
+    settingsDialog->setWindowTitle("Settings");
+
+    //remove question mark from dialog
+    settingsDialog->setWindowFlags(
+                settingsDialog->windowFlags() &
+                ~Qt::WindowContextHelpButtonHint);
+
+    settingsDialog->show();
+
+    //connect custom signal from SettingsDialog to send user-set data
+    //back to MainWindow and then apply to WorkingTorrent class members
+    connect(settingsDialog, &SettingsDialog::sendModifiedSettings, this,
+            [this](const SettingsDialog::settings& modifiedSettings){
+        MainWindow::on_settingsChange(modifiedSettings);}
+    );
 
 }
 
+void MainWindow::on_settingsChange(SettingsDialog::settings modifiedSettings)
+{
+    //apply settings
+    ioClient->WorkingTorrents.httpPort = modifiedSettings.httpPort;
+    ioClient->WorkingTorrents.udpPort = modifiedSettings.udpPort;
+    ioClient->WorkingTorrents.tcpPort = modifiedSettings.tcpPort;
+
+    ioClient->WorkingTorrents.maxDownloadBytesPerSecond =
+            modifiedSettings.maxDLSpeed;
+    ioClient->WorkingTorrents.maxUploadBytesPerSecond =
+            modifiedSettings.maxULSpeed;
+
+    ioClient->WorkingTorrents.maxSeedersPerTorrent =
+            modifiedSettings.maxSeeders;
+    ioClient->WorkingTorrents.maxLeechersPerTorrent =
+            modifiedSettings.maxLeechers;
+
+    LOG_F(INFO, "Settings successfully changed by user.");
+}
+
+}

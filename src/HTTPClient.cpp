@@ -13,15 +13,17 @@ namespace Bittorrent
 {
 using namespace utility;
 
-HTTPClient::HTTPClient(trackerUrl& parsedUrl, bool isAnnounce)
+HTTPClient::HTTPClient(trackerUrl& parsedUrl, int httpPort, bool isAnnounce)
     : peerHost{ parsedUrl.hostname }, peerPort{ parsedUrl.port },
     target{ parsedUrl.target }, version{ 10 }, m_isAnnounce{ isAnnounce },
     peerRequestInterval{ 0 }, seeders{ 0 }, leechers{ 0 }, errMessage{""},
     isFail{true},
     io_context(), resolver( io_context ), socket( io_context ), remoteEndpoint()
 {
-    LOG_F(INFO, "Resolving HTTP tracker (%s:%s)...",
-        peerHost.c_str(), peerPort.c_str());
+    //allow address reuse and bind specific port
+    socket.open(boost::asio::ip::tcp::v4());
+    socket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
+    socket.bind(tcp::endpoint(tcp::v4(), httpPort));
 
     dataTransmission(isAnnounce);
 }
@@ -67,6 +69,9 @@ void HTTPClient::dataTransmission(bool isAnnounce)
     res = res2;
 
     m_isAnnounce = isAnnounce;
+
+    LOG_F(INFO, "Resolving HTTP tracker (%s:%s)...",
+        peerHost.c_str(), peerPort.c_str());
 
     tcp::resolver resolver{ io_context };
     auto results = resolver.resolve(peerHost, peerPort);

@@ -32,9 +32,9 @@ namespace Bittorrent
 
         //default constructor & destructor
         UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID,
-            std::vector<byte>& infoHash, long long& uploaded,
-            long long& downloaded, long long& remaining, int& intEvent,
-            int& port, bool isAnnounce);
+            std::vector<byte>& infoHash, long long uploaded,
+            long long downloaded, long long remaining, int intEvent,
+            int udpPort, bool isAnnounce);
         ~UDPClient();
 
     private:

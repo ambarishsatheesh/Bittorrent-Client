@@ -2,7 +2,6 @@
 #include "Decoder.h"
 #include "loguru.h"
 
-
 #include <QDateTime>
 #include <QtConcurrent>
 #include <memory>
@@ -13,7 +12,11 @@ namespace Bittorrent
 using namespace torrentManipulation;
 
 WorkingTorrents::WorkingTorrents()
-    : networkPort{6880}, trackerTimer{std::make_unique<TrackerTimer>(clientID, networkPort)},
+    : httpPort{80}, udpPort{6689}, tcpPort{6682},
+      maxDownloadBytesPerSecond{4194300}, maxUploadBytesPerSecond{512000},
+      maxSeedersPerTorrent{5}, maxLeechersPerTorrent{5},
+      trackerTimer{std::make_unique<TrackerTimer>(
+                       clientID, httpPort, udpPort, tcpPort)},
       downloadThrottle{maxDownloadBytesPerSecond, std::chrono::seconds{1}},
       uploadThrottle{maxUploadBytesPerSecond, std::chrono::seconds{1}},
       rand{}, rng{rand()}, peerTimeout{std::chrono::seconds{30}}
@@ -267,8 +270,7 @@ void WorkingTorrents::start(int position)
                 {
                     tracker.update(
                     torrentList.at(position).get()->statusData.currentState,
-                    clientID,
-                    0,
+                    clientID, httpPort, udpPort,
                     torrentList.at(position).get()->
                     hashesData.urlEncodedInfoHash,
                     torrentList.at(position).get()->
@@ -316,8 +318,7 @@ void WorkingTorrents::start(int position)
                 {
                     tracker.update(
                     torrentList.at(position).get()->statusData.currentState,
-                    clientID,
-                    networkPort,
+                    clientID, httpPort, udpPort,
                     torrentList.at(position).get()->
                     hashesData.urlEncodedInfoHash,
                     torrentList.at(position).get()->
@@ -428,7 +429,7 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
         boost::asio::io_context io_context;
 
         auto peerConn =
-            std::make_shared<Peer>(torrent, clientID, io_context, networkPort);
+            std::make_shared<Peer>(torrent, clientID, io_context, tcpPort);
 
         //connect signals to slots
         peerConn->sig_blockRequested->connect(
@@ -475,7 +476,7 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
         //allow reuse of port across multiple sockets
         acceptor.open(tcp::v4());
         acceptor.set_option(tcp::socket::reuse_address(true));
-        acceptor.bind(tcp::endpoint(tcp::v4(), networkPort));
+        acceptor.bind(tcp::endpoint(tcp::v4(), tcpPort));
 
         acceptor.async_accept(
             [&](boost::system::error_code ec, tcp::socket socket)
@@ -486,7 +487,7 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
                     auto peerConn =
                             std::make_shared<Peer>(
                                 &torrentList, clientID, acc_io_context,
-                                std::move(socket), networkPort);
+                                std::move(socket), tcpPort);
 
                     //connect signals to slots
                     peerConn->sig_blockRequested->connect(
