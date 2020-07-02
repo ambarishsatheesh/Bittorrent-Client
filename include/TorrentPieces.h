@@ -25,9 +25,9 @@ namespace Bittorrent
         std::string readablePieceSize();
         std::string readableTotalSize();
 
-		int setPieceSize(int piece);
-		int setBlockSize(int piece, int block);
-		int setBlockCount(int piece);
+		int getPieceSize(int piece);
+		int getBlockSize(int piece, int block);
+		int getBlockCount(int piece);
 
 		//constructor
 		TorrentPieces();

@@ -73,7 +73,7 @@ namespace Bittorrent
 		pieceCount = pieces.size();
 	}
 
-	int TorrentPieces::setPieceSize(int piece)
+    int TorrentPieces::getPieceSize(int piece)
 	{
 		if (piece == pieceCount - 1)
 		{
@@ -86,11 +86,11 @@ namespace Bittorrent
 		return pieceSize;
 	}
 
-	int TorrentPieces::setBlockSize(int piece, int block)
+    int TorrentPieces::getBlockSize(int piece, int block)
 	{
-		if (piece == setBlockCount(piece) - 1)
+        if (block == getBlockCount(piece) - 1)
 		{
-			const int remainder = setPieceSize(piece) % blockSize;
+            const int remainder = getPieceSize(piece) % blockSize;
 			if (remainder != 0)
 			{
 				return remainder;
@@ -99,9 +99,9 @@ namespace Bittorrent
 		return blockSize;
 	}
 
-	int TorrentPieces::setBlockCount(int piece)
+    int TorrentPieces::getBlockCount(int piece)
 	{
-		return std::ceil(setPieceSize(piece) / static_cast<double>(blockSize));
+        return std::ceil(getPieceSize(piece) / static_cast<double>(blockSize));
 	}
 
     std::string TorrentPieces::readablePieceSize()

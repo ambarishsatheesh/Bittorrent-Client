@@ -205,7 +205,7 @@ namespace Bittorrent
 			for (size_t i = 0; i < pieceCount; ++i)
 			{
 				createdTorrent.statusData.isBlockAcquired.at(i).resize(
-					createdTorrent.piecesData.setBlockCount(i));
+					createdTorrent.piecesData.getBlockCount(i));
 			}
 
 			for (size_t i = 0; i < pieceCount; ++i)
@@ -329,7 +329,7 @@ namespace Bittorrent
         inline std::vector<byte> readPiece(Torrent& torrent, int piece)
 		{
 			return read(torrent, piece * torrent.piecesData.pieceSize,
-				torrent.piecesData.setPieceSize(piece));
+				torrent.piecesData.getPieceSize(piece));
 		}
 
         inline std::vector<byte> readBlock(Torrent& torrent, int piece, long long offset,

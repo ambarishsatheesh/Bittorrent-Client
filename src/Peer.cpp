@@ -44,7 +44,7 @@ namespace Bittorrent
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
 		{
 			isBlockRequested.at(i).resize(
-				torrent->piecesData.setBlockCount(i));
+				torrent->piecesData.getBlockCount(i));
 		}
 
 		//add message types to map
@@ -99,7 +99,7 @@ namespace Bittorrent
 		for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
 		{
 			isBlockRequested.at(i).resize(
-				torrent->piecesData.setBlockCount(i));
+				torrent->piecesData.getBlockCount(i));
 		}
 
 		//add message types to map

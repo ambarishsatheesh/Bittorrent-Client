@@ -242,7 +242,6 @@ void WorkingTorrents::start(int position)
         torrentList.at(position)->statusData.currentState =
                 TorrentStatus::currentStatus::started;
 
-        //not needed?
         runningTorrents.push_back(torrentList.at(position));
 
         std::vector<std::thread> threadVector;
@@ -401,6 +400,11 @@ void WorkingTorrents::start(int position)
 
 void WorkingTorrents::stop(int position)
 {
+    {
+        std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
+        runningTorrents.erase(runningTorrents.begin() + position - 1);
+    }
+
     disableTorrentConnection(torrentList.at(position).get());
 }
 
@@ -538,7 +542,6 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
                 TorrentStatus::currentStatus::stopped;
     }
 
-
     //disconnect and erase from maps
     std::lock_guard<std::mutex> guard(mtx_map);
 
@@ -599,7 +602,7 @@ void WorkingTorrents::handleBlockRequested(Peer::dataRequest request)
         outgoingBlocks.push_back(request);
     }
 
-    processUploads();
+    //processUploads();
 }
 
 void WorkingTorrents::handleBlockCancelled(Peer::dataRequest request)
@@ -663,7 +666,7 @@ void WorkingTorrents::handleBlockReceived(Peer::dataPackage package)
 
     }
 
-    processDownloads();
+    //processDownloads();
 }
 
 void WorkingTorrents::handlePeerDisconnected(Peer* senderPeer)
@@ -886,15 +889,96 @@ void WorkingTorrents::processDownloads()
         }
     }
 
-    //return if torrent downloading is done
-    if (tempBlock.sourcePeer->torrent->statusData.isCompleted())
+    //process each torrent
+    for (auto torrent : runningTorrents)
     {
-        return;
-    }
+        //skip the rest if torrent downloading is done
+        if (torrent->statusData.isCompleted())
+        {
+            continue;
+        }
 
+        //rank pieces to be requested using piece progress and rarity
+        std::vector<int> rankedPieces =
+                getRankedPieces(torrent.get());
+
+        for (auto piece : rankedPieces)
+        {
+            //skip if already have piece
+            if (torrent->statusData.isPieceVerified.at(piece))
+            {
+                continue;
+            }
+
+            auto rankedSeeders = getRankedSeeders(torrent.get());
+
+            for (auto seeder : rankedSeeders)
+            {
+                //skip if seeder doesn't have the piece
+                if (!seeder->isPieceDownloaded.at(piece))
+                {
+                    continue;
+                }
+
+                for (int block = 0;
+                     block < torrent->piecesData.getBlockCount(piece); ++block)
+                {
+                    //skip if already acquired
+                    if (torrent->statusData.isBlockAcquired.at(piece).at(block))
+                    {
+                        continue;
+                    }
+
+                    //skip if throttled
+                    if (downloadThrottle.isThrottled())
+                    {
+                        continue;
+                    }
+
+                    //only request one block from each seeder at a time
+                    if (seeder->blocksRequested() > 0)
+                    {
+                        continue;
+                    }
+
+                    //only request block from one peer at a time
+                    auto range = peerConnMap.equal_range(
+                                torrent->hashesData.urlEncodedInfoHash);
+                    int count = 0;
+
+                    for (auto it = range.first; it != range.second; ++it)
+                    {
+                        if (it->second->isBlockRequested.at(piece).at(block))
+                        {
+                            ++count;
+                        }
+                    }
+
+                    if (count > 0)
+                    {
+                        continue;
+                    }
+
+                    //send data request to peer
+                    int blockSize = torrent->piecesData.getBlockSize(
+                                piece, block);
+
+                    seeder->sendDataRequest(
+                                piece, block * torrent->piecesData.blockSize,
+                                blockSize);
+
+                    //add expected data size to throttle bucket
+                    downloadThrottle.add(blockSize);
+
+                    //update info
+                    seeder->isBlockRequested.at(piece).at(block) = true;
+                }
+            }
+        }
+    }
 }
 
-std::vector<Peer*> WorkingTorrents::getRankedSeeders()
+std::vector<Peer*> WorkingTorrents::getRankedSeeders(Torrent* torrent)
 {
     //shuffle seeders
     std::vector<Peer*> rankedSeeders;
@@ -902,10 +986,16 @@ std::vector<Peer*> WorkingTorrents::getRankedSeeders()
 
     for (auto& peer : seedersMap)
     {
-        rankedSeeders.push_back(peer.second.get());
+        if (peer.second->torrent->hashesData.urlEncodedInfoHash ==
+                torrent->hashesData.urlEncodedInfoHash)
+        {
+            rankedSeeders.push_back(peer.second.get());
+        }
     }
 
     std::shuffle(rankedSeeders.begin(), rankedSeeders.end(), rng);
+
+    return rankedSeeders;
 }
 
 std::vector<int> WorkingTorrents::getRankedPieces(Torrent* torrent)

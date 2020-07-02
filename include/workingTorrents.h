@@ -81,7 +81,7 @@ public:
     //peer ranking
     std::random_device rand;
     std::default_random_engine rng;
-    std::vector<Peer*> getRankedSeeders();
+    std::vector<Peer*> getRankedSeeders(Torrent* torrent);
     std::vector<int> getRankedPieces(Torrent* torrent);
     float getPieceScore(Torrent* torrent, int piece);
     float getPieceProgress(Torrent* torrent, int piece);
