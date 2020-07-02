@@ -64,9 +64,9 @@ public:
     //slots
     void addPeer(peer* singlePeer, Torrent* torrent);
     void handlePieceVerified(Torrent* torrent, int index);
-    void handleBlockRequested(Peer::dataRequest newDataRequest);
-    void handleBlockCancelled(Peer::dataRequest newDataRequest);
-    void handleBlockReceived(Peer::dataPackage newPackage);
+    void handleBlockRequested(Peer::dataRequest request);
+    void handleBlockCancelled(Peer::dataRequest request);
+    void handleBlockReceived(Peer::dataPackage package);
     void handlePeerDisconnected(Peer* senderPeer);
     void handlePeerStateChanged(Peer* peer);
 

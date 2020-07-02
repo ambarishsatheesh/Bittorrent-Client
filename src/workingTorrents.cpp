@@ -467,6 +467,7 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
         boost::asio::io_context acc_io_context;
         tcp::acceptor acceptor(acc_io_context);
 
+        //allow reuse of port across multiple sockets
         acceptor.open(tcp::v4());
         acceptor.set_option(tcp::socket::reuse_address(true));
         acceptor.bind(tcp::endpoint(tcp::v4(), networkPort));
@@ -476,6 +477,7 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
             {
                 if (!ec)
                 {
+                    //create Peer object and move socket to it
                     auto peerConn =
                             std::make_shared<Peer>(
                                 &torrentList, clientID, acc_io_context,
@@ -588,18 +590,18 @@ void WorkingTorrents::handlePieceVerified(Torrent* torrent, int piece)
     }
 }
 
-void WorkingTorrents::handleBlockRequested(Peer::dataRequest newDataRequest)
+void WorkingTorrents::handleBlockRequested(Peer::dataRequest request)
 {
     {
         std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
 
-        outgoingBlocks.push_back(newDataRequest);
+        outgoingBlocks.push_back(request);
     }
 
     processUploads();
 }
 
-void WorkingTorrents::handleBlockCancelled(Peer::dataRequest newDataRequest)
+void WorkingTorrents::handleBlockCancelled(Peer::dataRequest request)
 {
     //block scope for lock_guard so that processUploads() can be called
     //separately elsewhere while retaining its own lock
@@ -609,7 +611,7 @@ void WorkingTorrents::handleBlockCancelled(Peer::dataRequest newDataRequest)
         //flag block for cancelling (processed later in processUploads())
         for (auto& block : outgoingBlocks)
         {
-            if (block != newDataRequest)
+            if (block != request)
             {
                 continue;
             }
@@ -621,12 +623,43 @@ void WorkingTorrents::handleBlockCancelled(Peer::dataRequest newDataRequest)
     processUploads();
 }
 
-void WorkingTorrents::handleBlockReceived(Peer::dataPackage newDataPackage)
+void WorkingTorrents::handleBlockReceived(Peer::dataPackage package)
 {
     {
         std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
 
-        incomingBlocks.push_back(newDataPackage);
+        //add to deque for processing
+        incomingBlocks.push_back(package);
+
+        //reset block requested
+        package.sourcePeer->isBlockRequested.at(package.piece).at(package.block)
+                = false;
+
+        auto range = peerConnMap.equal_range(
+                    package.sourcePeer->torrent->
+                    hashesData.urlEncodedInfoHash);
+
+        for (auto it = range.first; it != range.second; ++it)
+        {
+            //ignore peer if block is not requested
+            //(includes peer from argument due to reset above)
+            if (!it->second->
+                    isBlockRequested.at(package.piece).at(package.block))
+            {
+                continue;
+            }
+
+            it->second->sendCancel(package.piece,
+                                   package.block *
+                                   package.sourcePeer->torrent->
+                                   piecesData.blockSize,
+                                   package.sourcePeer->torrent->
+                                   piecesData.blockSize);
+
+            it->second->isBlockRequested.at(package.piece).at(package.block)
+                    = false;
+        }
+
     }
 
     processDownloads();
@@ -833,6 +866,10 @@ void WorkingTorrents::processUploads()
 
 void WorkingTorrents::processDownloads()
 {
+    std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
+
+
+
 
 }
 
