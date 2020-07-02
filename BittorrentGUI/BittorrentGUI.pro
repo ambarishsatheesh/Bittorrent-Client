@@ -43,6 +43,7 @@ SOURCES += \
     generalinfomodel.cpp \
     main.cpp \
     mainwindow.cpp \
+    settingsdialog.cpp \
     tableModel.cpp \
     torrentheadercheckbox.cpp \
     torrentinfolist.cpp \
@@ -81,6 +82,7 @@ HEADERS += \
     generalinfomodel.h \
     mainwindow.h \
     progressDelegate.h \
+    settingsdialog.h \
     storedPrevTorrents.h \
     tableModel.h \
     torrentheadercheckbox.h \
@@ -92,7 +94,8 @@ FORMS += \
     addTorrent.ui \
     createtorrent.ui \
     generalInfoTab.ui \
-    mainwindow.ui
+    mainwindow.ui \
+    settingsdialog.ui
 
 INCLUDEPATH += ../include/
 INCLUDEPATH += $$PWD/../../../Boostmingw/boost_1_73_0
