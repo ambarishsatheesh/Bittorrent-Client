@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <deque>
+#include <random>
 
 namespace Bittorrent
 {
@@ -76,6 +77,15 @@ public:
     void processPeers(Torrent* torrent);
     void processUploads();
     void processDownloads();
+
+    //peer ranking
+    std::random_device rand;
+    std::default_random_engine rng;
+    std::vector<Peer*> getRankedSeeders();
+    std::vector<int> getRankedPieces(Torrent* torrent);
+    float getPieceScore(Torrent* torrent, int piece);
+    float getPieceProgress(Torrent* torrent, int piece);
+    float getPieceRarity(Torrent* torrent, int piece);
 
     //non slot peer-related methods
     void disableTorrentConnection(Torrent* torrent);

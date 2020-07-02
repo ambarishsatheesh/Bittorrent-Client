@@ -16,7 +16,7 @@ WorkingTorrents::WorkingTorrents()
     : networkPort{6880}, trackerTimer{std::make_unique<TrackerTimer>(clientID, networkPort)},
       downloadThrottle{maxDownloadBytesPerSecond, std::chrono::seconds{1}},
       uploadThrottle{maxUploadBytesPerSecond, std::chrono::seconds{1}},
-      peerTimeout{std::chrono::seconds{30}}
+      rand{}, rng{rand()}, peerTimeout{std::chrono::seconds{30}}
 {
 }
 
@@ -372,6 +372,7 @@ void WorkingTorrents::start(int position)
             {
                 auto range = peerConnMap.equal_range(infoHash);
 
+                //push map values into vector so they can be searched
                 std::vector<std::string> mapHostRange;
 
                 for (auto it = range.first; it != range.second; ++it)
@@ -379,13 +380,13 @@ void WorkingTorrents::start(int position)
                     mapHostRange.push_back(it->second->peerHost);
                 }
 
+                //create new Peer object if not in peerConnMap
                 for (auto singlePeer :
                      torrentList.at(position)->generalData.uniquePeerList)
                 {
                     if (std::find(mapHostRange.begin(), mapHostRange.end(),
-                                  singlePeer.ipAddress) != mapHostRange.end())
+                                  singlePeer.ipAddress) == mapHostRange.end())
                     {
-                        //add new peer if not in map
                             addPeer(&singlePeer,
                                     torrentList.at(position).get());
                     }
@@ -868,9 +869,141 @@ void WorkingTorrents::processDownloads()
 {
     std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
 
+    Peer::dataPackage tempBlock;
 
+    //write received data to disk only if block has not been acquired already
+    while (!incomingBlocks.empty())
+    {
+        tempBlock = incomingBlocks.front();
+        incomingBlocks.pop_front();
 
+        if (!tempBlock.sourcePeer->torrent->
+                statusData.isBlockAcquired
+                .at(tempBlock.piece).at(tempBlock.block))
+        {
+            writeBlock(*tempBlock.sourcePeer->torrent, tempBlock.piece,
+                       tempBlock.block, tempBlock.data);
+        }
+    }
 
+    //return if torrent downloading is done
+    if (tempBlock.sourcePeer->torrent->statusData.isCompleted())
+    {
+        return;
+    }
+
+}
+
+std::vector<Peer*> WorkingTorrents::getRankedSeeders()
+{
+    //shuffle seeders
+    std::vector<Peer*> rankedSeeders;
+    rankedSeeders.reserve(seedersMap.size());
+
+    for (auto& peer : seedersMap)
+    {
+        rankedSeeders.push_back(peer.second.get());
+    }
+
+    std::shuffle(rankedSeeders.begin(), rankedSeeders.end(), rng);
+}
+
+std::vector<int> WorkingTorrents::getRankedPieces(Torrent* torrent)
+{
+    //sort pieces by their respective scores
+    struct indexScores
+    {
+        int index;
+        float score;
+    };
+
+    std::vector<indexScores> indexScores(torrent->piecesData.pieceCount);
+
+    for (int i = 0; i < indexScores.size(); ++i)
+    {
+        indexScores.at(i).index = i;
+        indexScores.at(i).score = getPieceScore(torrent, i);
+    }
+
+    std::sort(indexScores.begin(), indexScores.end(),
+              [&](const struct indexScores& a, const struct indexScores& b)
+    {
+        return a.score > b.score;
+    });
+
+    std::vector<int> resIndexes;
+    resIndexes.reserve(indexScores.size());
+
+    for (auto singleStruct : indexScores)
+    {
+        resIndexes.push_back(singleStruct.index);
+    }
+
+    return resIndexes;
+}
+
+float WorkingTorrents::getPieceScore(Torrent* torrent, int piece)
+{
+    float progress = getPieceProgress(torrent, piece);
+    float rarity = getPieceRarity(torrent, piece);
+
+    //if all blocks are acquired, minimise progress and (hence score)
+    if (progress == 1.0)
+    {
+        progress = 0.0;
+    }
+
+    //use random float to handle case where progress and rarity values for
+    //different peers are equal
+    std::uniform_real_distribution<float> dist(0, 1);
+
+    return progress + rarity + dist(rng);
+}
+
+float WorkingTorrents::getPieceProgress(Torrent* torrent, int piece)
+{
+    float progressSum = std::accumulate(
+                torrent->statusData.isBlockAcquired.at(piece).begin(),
+                torrent->statusData.isBlockAcquired.at(piece).end(), 0,
+            [](float sum, const bool& b) -> float
+    {
+        return sum + (b ? 1.0 : 0.0);
+    });
+
+    return progressSum / torrent->statusData.isBlockAcquired.at(piece).size();
+}
+
+float WorkingTorrents::getPieceRarity(Torrent* torrent, int piece)
+{
+    if (peerConnMap.empty())
+    {
+        return 0.0;
+    }
+
+    auto infoHash = torrent->hashesData.urlEncodedInfoHash;
+
+    //get summed rarity of peers who have required piece
+    float raritySum = std::accumulate(
+                peerConnMap.begin(), peerConnMap.end(), 0,
+                    [&]
+                (float sum,
+                const std::unordered_multimap<std::string,
+                std::shared_ptr<Peer>>::value_type& p) -> float
+    {
+        //only look at peers associated with relevant torrent
+        if (p.second->torrent->hashesData.urlEncodedInfoHash == infoHash)
+        {
+            //add 1 when peer doesnt have piece to increase rarity value
+            return sum + (p.second->isPieceDownloaded.at(piece) ? 0.0 : 1.0);
+        }
+        else
+        {
+            return sum;
+        }
+    });
+
+    //average rarity
+    return raritySum / peerConnMap.count(infoHash);
 }
 
 }
