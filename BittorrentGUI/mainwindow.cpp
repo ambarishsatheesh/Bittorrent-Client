@@ -39,11 +39,17 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
       generalInfoTab(new Ui::generalInfo),
       ioClient(client), isFirstTorrentHeaderMenu{true},
       isFirstTorrentTableMenuData{true},
-      isFirstTorrentTableMenuOutside{true}
+      isFirstTorrentTableMenuOutside{true},
+      addTorrentDialog{nullptr}, addTorInfoDialog{nullptr},
+      createTorDialog{nullptr}, settingsDialog{nullptr}
 {
     //initialise ui forms
     ui->setupUi(this);
     generalInfoTab->setupUi(this);
+
+    //connect menu add torrent action to slot because default one is buggy
+    connect(ui->actionAdd_NewTorrent, &QAction::triggered,
+            this, &MainWindow::on_actionAdd_Torrent_triggered);
 
     this->setWindowTitle("ioTorrent");
 
@@ -591,24 +597,28 @@ void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
         return;
     }
 
-    //create dialog
-    addTorInfoDialog = new AddTorrentDialog(filePath, buffer, this);
+    if (!addTorInfoDialog)
+    {
+        //create dialog
+        addTorInfoDialog = new AddTorrentDialog(filePath, buffer, this);
 
-    //remove question mark from dialog
-    addTorInfoDialog->setWindowFlags(
-                addTorInfoDialog->windowFlags() &
-                ~Qt::WindowContextHelpButtonHint);
+        //remove question mark from dialog
+        addTorInfoDialog->setWindowFlags(
+                    addTorInfoDialog->windowFlags() &
+                    ~Qt::WindowContextHelpButtonHint);
 
-    addTorInfoDialog->setMinimumWidth(700);
+        addTorInfoDialog->setMinimumWidth(700);
+
+        //connect custom signal from AddTorrentDialog to send modified torrent
+        //back to MainWindow and then pass its bencoded data
+        //via the loadCreatedTorrent slot
+        connect(addTorInfoDialog, &AddTorrentDialog::sendModifiedTorrent, this,
+                [this](Torrent modifiedTorrent){
+            MainWindow::handleNewTorrent(modifiedTorrent);}
+        );
+    }
+
     addTorInfoDialog->show();
-
-    //connect custom signal from AddTorrentDialog to send modified torrent
-    //back to MainWindow and then pass its bencoded data
-    //via the loadCreatedTorrent slot
-    connect(addTorInfoDialog, &AddTorrentDialog::sendModifiedTorrent, this,
-            [this](Torrent modifiedTorrent){
-        MainWindow::handleNewTorrent(modifiedTorrent);}
-    );
 }
 
 void MainWindow::handleNewTorrent(Torrent modifiedTorrent)
@@ -686,10 +696,14 @@ void MainWindow::duplicateTorrentSlot(QString torrentName)
 
 void MainWindow::on_actionAdd_Torrent_triggered()
 {
-    addTorrentDialog = new QFileDialog(this);
-    addTorrentDialog->setNameFilter(tr("*.torrent"));
-    addTorrentDialog->setViewMode(QFileDialog::Detail);
-    addTorrentDialog->setFileMode(QFileDialog::ExistingFiles);
+    if (!addTorrentDialog)
+    {
+        addTorrentDialog = new QFileDialog(this);
+        addTorrentDialog->setNameFilter(tr("*.torrent"));
+        addTorrentDialog->setViewMode(QFileDialog::Detail);
+        addTorrentDialog->setFileMode(QFileDialog::ExistingFiles);
+        //addTorrentDialog->setModal(true);
+    }
 
     if ( QDialog::Accepted == addTorrentDialog->exec() )
     {
@@ -710,8 +724,6 @@ void MainWindow::on_actionAdd_Torrent_triggered()
 
 void MainWindow::on_actionExit_Client_triggered()
 {
-
-
     const QMessageBox::StandardButton res = QMessageBox::warning(
                 this, tr("Exit Client"),
                          "Are you sure you want to exit the client?",
@@ -846,24 +858,28 @@ void Bittorrent::MainWindow::on_actionPause_triggered()
 
 void MainWindow::on_actionTorrent_Creator_triggered()
 {
-    createTorDialog = new CreateTorrent(this);
+    if (!createTorDialog)
+    {
+        createTorDialog = new CreateTorrent(this);
 
-    createTorDialog->setWindowTitle("Create a torrent");
+        createTorDialog->setWindowTitle("Create a torrent");
 
-    //remove question mark from dialog
-    createTorDialog->setWindowFlags(
-                createTorDialog->windowFlags() &
-                ~Qt::WindowContextHelpButtonHint);
+        //remove question mark from dialog
+        createTorDialog->setWindowFlags(
+                    createTorDialog->windowFlags() &
+                    ~Qt::WindowContextHelpButtonHint);
+
+        //connect custom signal from CreateTorrent to send created torrent
+        //file path back to MainWindow and then load its bencoded data
+        //via the loadCreatedTorrent slot
+        connect(createTorDialog, &CreateTorrent::sendfilePath, this,
+                [this](const QString& fileName){
+            MainWindow::loadCreatedTorrent(fileName);}
+        );
+    }
 
     createTorDialog->show();
 
-    //connect custom signal from CreateTorrent to send created torrent
-    //file path back to MainWindow and then load its bencoded data
-    //via the loadCreatedTorrent slot
-    connect(createTorDialog, &CreateTorrent::sendfilePath, this,
-            [this](const QString& fileName){
-        MainWindow::loadCreatedTorrent(fileName);}
-    );
 }
 
 void MainWindow::loadCreatedTorrent(QString filePath)
@@ -881,25 +897,29 @@ void MainWindow::textFilterChanged()
 
 void MainWindow::on_actionOptions_triggered()
 {
-    settingsDialog = new SettingsDialog(
-                &ioClient->WorkingTorrents.defaultSettings, this);
+    if (!settingsDialog)
+    {
+        settingsDialog = new SettingsDialog(
+                    &ioClient->WorkingTorrents.defaultSettings, this);
 
-    settingsDialog->setWindowTitle("Settings");
+        settingsDialog->setWindowTitle("Settings");
 
-    //remove question mark from dialog
-    settingsDialog->setWindowFlags(
-                settingsDialog->windowFlags() &
-                ~Qt::WindowContextHelpButtonHint);
+        //remove question mark from dialog
+        settingsDialog->setWindowFlags(
+                    settingsDialog->windowFlags() &
+                    ~Qt::WindowContextHelpButtonHint);
+
+        settingsDialog->setModal(true);
+
+        //connect custom signal from SettingsDialog to send user-set data
+        //back to MainWindow and then apply to WorkingTorrent class members
+        connect(settingsDialog, &SettingsDialog::sendModifiedSettings, this,
+                [this](const WorkingTorrents::settings& modifiedSettings){
+            MainWindow::on_settingsChange(modifiedSettings);}
+        );
+    }
 
     settingsDialog->show();
-
-    //connect custom signal from SettingsDialog to send user-set data
-    //back to MainWindow and then apply to WorkingTorrent class members
-    connect(settingsDialog, &SettingsDialog::sendModifiedSettings, this,
-            [this](const WorkingTorrents::settings& modifiedSettings){
-        MainWindow::on_settingsChange(modifiedSettings);}
-    );
-
 }
 
 void MainWindow::on_settingsChange(WorkingTorrents::settings modifiedSettings)

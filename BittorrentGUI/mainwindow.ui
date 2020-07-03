@@ -32,7 +32,7 @@
     </property>
     <addaction name="separator"/>
     <addaction name="separator"/>
-    <addaction name="actionAdd_Torrent"/>
+    <addaction name="actionAdd_NewTorrent"/>
     <addaction name="actionExit_Client"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
@@ -171,15 +171,6 @@
     <string>Torrent Creator</string>
    </property>
   </action>
-  <action name="actionAdd_Torrent">
-   <property name="icon">
-    <iconset resource="Resources.qrc">
-     <normaloff>:/imgs/Icons/addTorrent.png</normaloff>:/imgs/Icons/addTorrent.png</iconset>
-   </property>
-   <property name="text">
-    <string>Add Torrent</string>
-   </property>
-  </action>
   <action name="actionExit_Client">
    <property name="icon">
     <iconset resource="Resources.qrc">
@@ -196,6 +187,15 @@
    </property>
    <property name="text">
     <string>Delete Torrent</string>
+   </property>
+  </action>
+  <action name="actionAdd_NewTorrent">
+   <property name="icon">
+    <iconset resource="Resources.qrc">
+     <normaloff>:/imgs/Icons/addTorrent.png</normaloff>:/imgs/Icons/addTorrent.png</iconset>
+   </property>
+   <property name="text">
+    <string>Add New Torrent</string>
    </property>
   </action>
  </widget>
