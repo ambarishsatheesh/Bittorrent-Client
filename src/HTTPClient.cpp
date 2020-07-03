@@ -20,10 +20,19 @@ HTTPClient::HTTPClient(trackerUrl& parsedUrl, int httpPort, bool isAnnounce)
     isFail{true},
     io_context(), resolver( io_context ), socket( io_context ), remoteEndpoint()
 {
-    //allow address reuse and bind specific port
-    socket.open(boost::asio::ip::tcp::v4());
-    socket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
-    socket.bind(tcp::endpoint(tcp::v4(), httpPort));
+    try
+    {
+        //allow address reuse and bind specific port
+        socket.open(boost::asio::ip::tcp::v4());
+        socket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
+        socket.bind(tcp::endpoint(tcp::v4(), httpPort));
+    }
+    catch(const boost::system::system_error& error)
+    {
+        LOG_F(ERROR, "Failed to bind HTTP socket to port %d!", httpPort);
+
+        close();
+    }
 
     dataTransmission(isAnnounce);
 }
@@ -55,6 +64,8 @@ HTTPClient::~HTTPClient()
 
 void HTTPClient::close()
 {
+    isFail = true;
+
     socket.close();
 
     LOG_F(INFO,

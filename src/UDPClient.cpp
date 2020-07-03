@@ -32,10 +32,19 @@ UDPClient::UDPClient(trackerUrl& parsedUrl, std::vector<byte>& clientID,
     recConnBuffer(16), recScrapeBuffer(200), recAncBuffer(320),
     io_context(), socket(io_context), remoteEndpoint(), localEndpoint()
 {
-    //open socket, allow reuse of address+port and bind specific port
-    socket.open(boost::asio::ip::udp::v4());
-    socket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
-    socket.bind(udp::endpoint(udp::v4(), udpPort));
+    try
+    {
+        //open socket, allow reuse of address+port and bind specific port
+        socket.open(boost::asio::ip::udp::v4());
+        socket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
+        socket.bind(udp::endpoint(udp::v4(), udpPort));
+    }
+    catch(const boost::system::system_error& error)
+    {
+        LOG_F(ERROR, "Failed to bind HTTP socket to port %d!", udpPort);
+
+        close();
+    }
 
     errorAction = { 0x0, 0x0, 0x0, 0x3 };
     dataTransmission(isAnnounce);
@@ -69,6 +78,8 @@ UDPClient::~UDPClient()
 
 void UDPClient::close()
 {
+    isFail = true;
+
     socket.close();
 
     LOG_F(INFO,
