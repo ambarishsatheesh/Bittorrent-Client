@@ -56,7 +56,7 @@ void CreateTorrent::on_buttonCreate_clicked()
     {
         storedTorrentPath = ui->pathField->text();
 
-        if (!QFileInfo(storedTorrentPath).exists() ||
+        if (!QFile::exists(storedTorrentPath) &&
                 !QDir(storedTorrentPath).exists())
         {
             QMessageBox::warning(this, "Warning",
