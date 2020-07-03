@@ -180,6 +180,7 @@ void MainWindow::initToolbar()
             &MainWindow::on_actionDelete_triggered);
     toolbar->addAction(toolbar_deleteTorrent);
 
+    //separator
     toolbar->addSeparator();
 
     toolbar_resume = new QAction(QIcon(":/imgs/Icons/resume.png"), "");
@@ -194,27 +195,43 @@ void MainWindow::initToolbar()
             &MainWindow::on_actionPause_triggered);
     toolbar->addAction(toolbar_pause);
 
+    //separator
     toolbar->addSeparator();
 
     toolbar_maxPriority = new QAction(QIcon(":/imgs/Icons/maxPriority.png"), "");
     toolbar_maxPriority->setToolTip("Max Priority");
+    connect(toolbar_maxPriority, &QAction::triggered, this,
+            &MainWindow::on_actionTop_priority_triggered);
+    toolbar->addAction(toolbar_maxPriority);
+
     toolbar_increasePriority = new QAction(QIcon(":/imgs/Icons/increasePriority.png"), "");
     toolbar_increasePriority->setToolTip("Increase Priority");
+    connect(toolbar_increasePriority, &QAction::triggered, this,
+            &MainWindow::on_actionIncrease_Priority_triggered);
+    toolbar->addAction(toolbar_increasePriority);
+
     toolbar_decreasePriority = new QAction(QIcon(":/imgs/Icons/decreasePriority.png"), "");
     toolbar_decreasePriority->setToolTip("Decrease Priority");
+    connect(toolbar_decreasePriority, &QAction::triggered, this,
+            &MainWindow::on_actionDecrease_Priority_triggered);
+    toolbar->addAction(toolbar_decreasePriority);
+
     toolbar_minPriority = new QAction(QIcon(":/imgs/Icons/minPriority.png"), "");
     toolbar_minPriority->setToolTip("Min Priority");
-    toolbar->addAction(toolbar_maxPriority);
-    toolbar->addAction(toolbar_increasePriority);
-    toolbar->addAction(toolbar_decreasePriority);
+    connect(toolbar_minPriority, &QAction::triggered, this,
+            &MainWindow::on_actionMin_Priority_triggered);
     toolbar->addAction(toolbar_minPriority);
 
+    //separator
     toolbar->addSeparator();
 
     toolbar_settings = new QAction(QIcon(":/imgs/Icons/settings.png"), "");
     toolbar_settings->setToolTip("Settings");
+    connect(toolbar_settings, &QAction::triggered, this,
+            &MainWindow::on_actionOptions_triggered);
     toolbar->addAction(toolbar_settings);
 
+    //separator
     toolbar->addSeparator();
 
     //"show all" button
@@ -465,6 +482,35 @@ void MainWindow::customTorrentSelectRequested(const QPoint& pos)
         {
             torrentTableMainMenuData = new QMenu(this);
 
+            a_maxPriority = new QAction("Max Priority", this);
+            connect(a_maxPriority, &QAction::triggered, this,
+                    &MainWindow::on_actionTop_priority_triggered);
+            a_maxPriority->setIcon(QIcon(":/imgs/Icons/maxPriority.png"));
+            torrentTableMainMenuData->addAction(a_maxPriority);
+
+            a_increasePriority = new QAction("Increase Priority", this);
+            connect(a_increasePriority, &QAction::triggered, this,
+                    &MainWindow::on_actionIncrease_Priority_triggered);
+            a_increasePriority->setIcon(
+                        QIcon(":/imgs/Icons/increasePriority.png"));
+            torrentTableMainMenuData->addAction(a_increasePriority);
+
+            a_decreasePriority = new QAction("Decrease Priority", this);
+            connect(a_decreasePriority, &QAction::triggered, this,
+                    &MainWindow::on_actionDecrease_Priority_triggered);
+            a_decreasePriority->setIcon(
+                        QIcon(":/imgs/Icons/decreasePriority.png"));
+            torrentTableMainMenuData->addAction(a_decreasePriority);
+
+            a_minPriority = new QAction("Min Priority", this);
+            connect(a_minPriority, &QAction::triggered, this,
+                    &MainWindow::on_actionMin_Priority_triggered);
+            a_minPriority->setIcon(QIcon(":/imgs/Icons/minPriority.png"));
+            torrentTableMainMenuData->addAction(a_minPriority);
+
+            //separator
+            torrentTableMainMenuData->addSeparator();
+
             a_resumeTorrent = new QAction("Resume", this);
             connect(a_resumeTorrent, &QAction::triggered, this,
                     &MainWindow::on_actionResume_triggered);
@@ -477,6 +523,7 @@ void MainWindow::customTorrentSelectRequested(const QPoint& pos)
             a_pauseTorrent->setIcon(QIcon(":/imgs/Icons/pause.png"));
             torrentTableMainMenuData->addAction(a_pauseTorrent);
 
+            //separator
             torrentTableMainMenuData->addSeparator();
 
             a_deleteTorrent = new QAction("Delete", this);
@@ -597,26 +644,23 @@ void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
         return;
     }
 
-    if (!addTorInfoDialog)
-    {
-        //create dialog
-        addTorInfoDialog = new AddTorrentDialog(filePath, buffer, this);
+    //create dialog
+    addTorInfoDialog = new AddTorrentDialog(filePath, buffer, this);
 
-        //remove question mark from dialog
-        addTorInfoDialog->setWindowFlags(
-                    addTorInfoDialog->windowFlags() &
-                    ~Qt::WindowContextHelpButtonHint);
+    //remove question mark from dialog
+    addTorInfoDialog->setWindowFlags(
+                addTorInfoDialog->windowFlags() &
+                ~Qt::WindowContextHelpButtonHint);
 
-        addTorInfoDialog->setMinimumWidth(700);
+    addTorInfoDialog->setMinimumWidth(700);
 
-        //connect custom signal from AddTorrentDialog to send modified torrent
-        //back to MainWindow and then pass its bencoded data
-        //via the loadCreatedTorrent slot
-        connect(addTorInfoDialog, &AddTorrentDialog::sendModifiedTorrent, this,
-                [this](Torrent modifiedTorrent){
-            MainWindow::handleNewTorrent(modifiedTorrent);}
-        );
-    }
+    //connect custom signal from AddTorrentDialog to send modified torrent
+    //back to MainWindow and then pass its bencoded data
+    //via the loadCreatedTorrent slot
+    connect(addTorInfoDialog, &AddTorrentDialog::sendModifiedTorrent, this,
+            [this](Torrent modifiedTorrent){
+        MainWindow::handleNewTorrent(modifiedTorrent);}
+    );
 
     addTorInfoDialog->show();
 }
@@ -742,25 +786,8 @@ void MainWindow::on_actionExit_Client_triggered()
 
 void MainWindow::on_actionDelete_triggered()
 {
-    //map proxy selection to source
-    auto mappedSelection = proxyModel->mapSelectionToSource(
-                torrentTable->selectionModel()->selection());
-
-    //get selected indices
-    QModelIndexList selectedViewIdxList =
-            mappedSelection.indexes();
-
-    //map selected view indices to source torrentModel rows
-    //use QSet to remove duplicates (since multiple indices will share a row)
-    QSet<int> selectedSourceRowSet;
-    for (auto selectedViewIndex : selectedViewIdxList)
-    {
-        selectedSourceRowSet.insert(selectedViewIndex.row());
-    }
-
-    //transform to QList for simpler sort and iteration
-    QList<int> selectedSourceRowList(selectedSourceRowSet.begin(),
-                                     selectedSourceRowSet.end());
+    //get selected source rows
+    auto selectedSourceRowList = toTorrentSourceRows();
 
     //sort by descending row num so deletion doesn't upset indices
     std::sort(selectedSourceRowList.begin(), selectedSourceRowList.end(),
@@ -785,25 +812,8 @@ void MainWindow::on_actionDelete_triggered()
 
 void Bittorrent::MainWindow::on_actionResume_triggered()
 {
-    //map proxy selection to source
-    auto mappedSelection = proxyModel->mapSelectionToSource(
-                torrentTable->selectionModel()->selection());
-
-    //get selected indices
-    QModelIndexList selectedViewIdxList =
-            mappedSelection.indexes();
-
-    //map selected view indices to source torrentModel rows
-    //use QSet to remove duplicates (since multiple indices will share a row)
-    QSet<int> selectedSourceRowSet;
-    for (auto selectedViewIndex : selectedViewIdxList)
-    {
-        selectedSourceRowSet.insert(selectedViewIndex.row());
-    }
-
-    //transform to QList for simpler sort and iteration
-    QList<int> selectedSourceRowList(selectedSourceRowSet.begin(),
-                                     selectedSourceRowSet.end());
+    //get selected source rows
+    auto selectedSourceRowList = toTorrentSourceRows();
 
     //start threads for tracker updates and send signal to update model when done
     if (!selectedSourceRowList.isEmpty())
@@ -821,25 +831,8 @@ void Bittorrent::MainWindow::on_actionResume_triggered()
 
 void Bittorrent::MainWindow::on_actionPause_triggered()
 {
-    //map proxy selection to source
-    auto mappedSelection = proxyModel->mapSelectionToSource(
-                torrentTable->selectionModel()->selection());
-
-    //get selected indices
-    QModelIndexList selectedViewIdxList =
-            mappedSelection.indexes();
-
-    //map selected view indices to source torrentModel rows
-    //use QSet to remove duplicates (since multiple indices will share a row)
-    QSet<int> selectedSourceRowSet;
-    for (auto selectedViewIndex : selectedViewIdxList)
-    {
-        selectedSourceRowSet.insert(selectedViewIndex.row());
-    }
-
-    //transform to QList for simpler sort and iteration
-    QList<int> selectedSourceRowList(selectedSourceRowSet.begin(),
-                                     selectedSourceRowSet.end());
+    //get selected source rows
+    auto selectedSourceRowList = toTorrentSourceRows();
 
     //start threads for tracker updates and send signal to update model when done
     if (!selectedSourceRowList.isEmpty())
@@ -947,5 +940,109 @@ void MainWindow::on_settingsChange(WorkingTorrents::settings modifiedSettings)
 
     LOG_F(INFO, "Settings successfully changed by user.");
 }
+
+void MainWindow::on_actionIncrease_Priority_triggered()
+{
+    //get selected source rows
+    auto selectedSourceRowList = toTorrentSourceRows();
+
+    std::lock_guard<std::mutex> rankGuard(ioClient->WorkingTorrents.mtx_ranking);
+
+    //increase rank for each selected torrent
+    for (auto row : selectedSourceRowList)
+    {
+        ioClient->WorkingTorrents.torrentList.at(row)->clientRank++;
+    }
+}
+
+void Bittorrent::MainWindow::on_actionDecrease_Priority_triggered()
+{
+    //get selected source rows
+    auto selectedSourceRowList = toTorrentSourceRows();
+
+    std::lock_guard<std::mutex> rankGuard(ioClient->WorkingTorrents.mtx_ranking);
+
+    //increase rank for each selected torrent
+    for (auto row : selectedSourceRowList)
+    {
+        ioClient->WorkingTorrents.torrentList.at(row)->clientRank++;
+    }
+}
+
+void Bittorrent::MainWindow::on_actionTop_priority_triggered()
+{
+    //get selected source rows
+    auto selectedSourceRowList = toTorrentSourceRows();
+
+    std::lock_guard<std::mutex> rankGuard(ioClient->WorkingTorrents.mtx_ranking);
+
+    //get max torrent rank and set selected torrent's rank to be greater
+    //if multiple selected, they are all raised to the same max rank
+    std::vector<int> ranks;
+    ranks.reserve(ioClient->WorkingTorrents.torrentList.size());
+
+    for (auto torrent : ioClient->WorkingTorrents.torrentList)
+    {
+        ranks.push_back(torrent->clientRank);
+    }
+
+    for (auto row : selectedSourceRowList)
+    {
+        ioClient->WorkingTorrents.torrentList.at(row)->clientRank =
+                (*std::max_element(ranks.begin(), ranks.end())) + 1;
+    }
+}
+
+
+void Bittorrent::MainWindow::on_actionMin_Priority_triggered()
+{
+    //get selected source rows
+    auto selectedSourceRowList = toTorrentSourceRows();
+
+    std::lock_guard<std::mutex> rankGuard(ioClient->WorkingTorrents.mtx_ranking);
+
+    //get max torrent rank and set selected torrent's rank to be lesser
+    //if multiple selected, they are all lowered to the same min rank
+    std::vector<int> ranks;
+    ranks.reserve(ioClient->WorkingTorrents.torrentList.size());
+
+    for (auto torrent : ioClient->WorkingTorrents.torrentList)
+    {
+        ranks.push_back(torrent->clientRank);
+    }
+
+    //only one row
+    for (auto row : selectedSourceRowList)
+    {
+        ioClient->WorkingTorrents.torrentList.at(row)->clientRank =
+                (*std::min_element(ranks.begin(), ranks.end())) - 1;
+    }
+}
+
+
+QList<int> MainWindow::toTorrentSourceRows()
+{
+    //map proxy selection to source
+    auto mappedSelection = proxyModel->mapSelectionToSource(
+                torrentTable->selectionModel()->selection());
+
+    //get selected indices
+    QModelIndexList selectedViewIdxList = mappedSelection.indexes();
+
+    //map selected view indices to source torrentModel rows
+    //use QSet to remove duplicates (since multiple indices will share a row)
+    QSet<int> selectedSourceRowSet;
+    for (auto selectedViewIndex : selectedViewIdxList)
+    {
+        selectedSourceRowSet.insert(selectedViewIndex.row());
+    }
+
+    //transform to QList for simpler sort and iteration
+    QList<int> selectedSourceRowList(selectedSourceRowSet.begin(),
+                                     selectedSourceRowSet.end());
+
+    return selectedSourceRowList;
+}
+
 
 }

@@ -97,6 +97,14 @@ private slots:
 
     void on_settingsChange(WorkingTorrents::settings modifiedSettings);
 
+    void on_actionIncrease_Priority_triggered();
+
+    void on_actionDecrease_Priority_triggered();
+
+    void on_actionTop_priority_triggered();
+
+    void on_actionMin_Priority_triggered();
+
 private:
     Ui::MainWindow* ui;
     Ui::generalInfo* generalInfoTab;
@@ -197,7 +205,11 @@ private:
     bool isFirstTorrentTableMenuData;
     bool isFirstTorrentTableMenuOutside;
 
-    //table main menu
+    //table menu
+    QPointer<QAction> a_maxPriority;
+    QPointer<QAction> a_increasePriority;
+    QPointer<QAction> a_decreasePriority;
+    QPointer<QAction> a_minPriority;
     QPointer<QAction> a_addTorrent;
     QPointer<QAction> a_deleteTorrent;
     QPointer<QAction> a_resumeTorrent;
@@ -240,6 +252,9 @@ private:
 
     //infoList
     QPointer<TorrentInfoList> infoListModel;
+
+    //utility
+    QList<int> toTorrentSourceRows();
 
 };
 
