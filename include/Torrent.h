@@ -19,6 +19,8 @@ namespace Bittorrent
 		: public std::enable_shared_from_this<Torrent>
 	{
     public:
+        //ranking
+        int clientRank;
 
 		//general info
 		TorrentGeneral generalData;
