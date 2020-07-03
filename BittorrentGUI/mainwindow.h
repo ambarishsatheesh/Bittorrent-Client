@@ -95,7 +95,7 @@ private slots:
 
     void on_actionOptions_triggered();
 
-    void on_settingsChange(SettingsDialog::settings modifiedSettings);
+    void on_settingsChange(WorkingTorrents::settings modifiedSettings);
 
 private:
     Ui::MainWindow* ui;

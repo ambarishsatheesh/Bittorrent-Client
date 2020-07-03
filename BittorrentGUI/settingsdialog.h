@@ -6,6 +6,8 @@
 #include <QFileDialog>
 #include <QPointer>
 
+#include "workingTorrents.h"
+
 
 namespace Ui {
 class SettingsDialog;
@@ -18,7 +20,8 @@ class SettingsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit SettingsDialog(QPointer<QWidget> parent = nullptr);
+    explicit SettingsDialog(WorkingTorrents::settings* defaultSettings,
+                            QPointer<QWidget> parent = nullptr);
     ~SettingsDialog();
 
 private slots:
@@ -28,35 +31,13 @@ private slots:
 
     void on_restoreDefaults_clicked();
 
-public:
-    struct settings
-    {
-        int httpPort;
-        int udpPort;
-        int tcpPort;
-
-        int maxDLSpeed;
-        int maxULSpeed;
-
-        int maxSeeders;
-        int maxLeechers;
-
-        settings(int httpPort, int udpPort, int tcpPort,
-                           int maxDLSpeed, int maxULSpeed,
-                           int maxSeeders, int maxLeechers)
-            : httpPort{httpPort}, udpPort{udpPort}, tcpPort{tcpPort},
-              maxDLSpeed{maxDLSpeed}, maxULSpeed{maxULSpeed},
-              maxSeeders{maxSeeders}, maxLeechers{maxLeechers}
-        {}
-    };
-
 private:
     Ui::SettingsDialog *ui;
 
-    QString storedTorrentPath;
+    WorkingTorrents::settings* defaultSettings;
 
 signals:
-    void sendModifiedSettings(settings modifiedSettings);
+    void sendModifiedSettings(WorkingTorrents::settings modifiedSettings);
 
 
 };

@@ -881,7 +881,8 @@ void MainWindow::textFilterChanged()
 
 void MainWindow::on_actionOptions_triggered()
 {
-    settingsDialog = new SettingsDialog(this);
+    settingsDialog = new SettingsDialog(
+                &ioClient->WorkingTorrents.defaultSettings, this);
 
     settingsDialog->setWindowTitle("Settings");
 
@@ -895,28 +896,34 @@ void MainWindow::on_actionOptions_triggered()
     //connect custom signal from SettingsDialog to send user-set data
     //back to MainWindow and then apply to WorkingTorrent class members
     connect(settingsDialog, &SettingsDialog::sendModifiedSettings, this,
-            [this](const SettingsDialog::settings& modifiedSettings){
+            [this](const WorkingTorrents::settings& modifiedSettings){
         MainWindow::on_settingsChange(modifiedSettings);}
     );
 
 }
 
-void MainWindow::on_settingsChange(SettingsDialog::settings modifiedSettings)
+void MainWindow::on_settingsChange(WorkingTorrents::settings modifiedSettings)
 {
     //apply settings
-    ioClient->WorkingTorrents.httpPort = modifiedSettings.httpPort;
-    ioClient->WorkingTorrents.udpPort = modifiedSettings.udpPort;
-    ioClient->WorkingTorrents.tcpPort = modifiedSettings.tcpPort;
+    ioClient->WorkingTorrents.defaultSettings.httpPort = modifiedSettings.httpPort;
+    ioClient->WorkingTorrents.defaultSettings.udpPort = modifiedSettings.udpPort;
+    ioClient->WorkingTorrents.defaultSettings.tcpPort = modifiedSettings.tcpPort;
 
-    ioClient->WorkingTorrents.maxDownloadBytesPerSecond =
+    ioClient->WorkingTorrents.defaultSettings.maxDLSpeed =
             modifiedSettings.maxDLSpeed;
-    ioClient->WorkingTorrents.maxUploadBytesPerSecond =
+    ioClient->WorkingTorrents.defaultSettings.maxULSpeed =
             modifiedSettings.maxULSpeed;
 
-    ioClient->WorkingTorrents.maxSeedersPerTorrent =
+    ioClient->WorkingTorrents.defaultSettings.maxSeeders =
             modifiedSettings.maxSeeders;
-    ioClient->WorkingTorrents.maxLeechersPerTorrent =
+    ioClient->WorkingTorrents.defaultSettings.maxLeechers =
             modifiedSettings.maxLeechers;
+
+    ioClient->WorkingTorrents.downloadThrottle.maxDataSize =
+            modifiedSettings.maxDLSpeed;
+    ioClient->WorkingTorrents.uploadThrottle.maxDataSize =
+            modifiedSettings.maxULSpeed;
+
 
     LOG_F(INFO, "Settings successfully changed by user.");
 }

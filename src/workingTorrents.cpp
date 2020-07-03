@@ -12,13 +12,12 @@ namespace Bittorrent
 using namespace torrentManipulation;
 
 WorkingTorrents::WorkingTorrents()
-    : httpPort{80}, udpPort{6689}, tcpPort{6682},
-      maxDownloadBytesPerSecond{4194300}, maxUploadBytesPerSecond{512000},
-      maxSeedersPerTorrent{5}, maxLeechersPerTorrent{5},
+    : defaultSettings{80, 6689, 6682, 4194300, 512000, 5, 5},
       trackerTimer{std::make_unique<TrackerTimer>(
-                       clientID, httpPort, udpPort, tcpPort)},
-      downloadThrottle{maxDownloadBytesPerSecond, std::chrono::seconds{1}},
-      uploadThrottle{maxUploadBytesPerSecond, std::chrono::seconds{1}},
+                       clientID, defaultSettings.httpPort,
+                       defaultSettings.udpPort, defaultSettings.tcpPort)},
+      downloadThrottle{defaultSettings.maxDLSpeed, std::chrono::seconds{1}},
+      uploadThrottle{defaultSettings.maxULSpeed, std::chrono::seconds{1}},
       rand{}, rng{rand()}, peerTimeout{std::chrono::seconds{30}}
 {
 }
@@ -270,7 +269,7 @@ void WorkingTorrents::start(int position)
                 {
                     tracker.update(
                     torrentList.at(position).get()->statusData.currentState,
-                    clientID, httpPort, udpPort,
+                    clientID, defaultSettings.httpPort, defaultSettings.udpPort,
                     torrentList.at(position).get()->
                     hashesData.urlEncodedInfoHash,
                     torrentList.at(position).get()->
@@ -318,7 +317,7 @@ void WorkingTorrents::start(int position)
                 {
                     tracker.update(
                     torrentList.at(position).get()->statusData.currentState,
-                    clientID, httpPort, udpPort,
+                    clientID, defaultSettings.httpPort, defaultSettings.udpPort,
                     torrentList.at(position).get()->
                     hashesData.urlEncodedInfoHash,
                     torrentList.at(position).get()->
@@ -429,7 +428,8 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
         boost::asio::io_context io_context;
 
         auto peerConn =
-            std::make_shared<Peer>(torrent, clientID, io_context, tcpPort);
+            std::make_shared<Peer>(torrent, clientID, io_context,
+                                   defaultSettings.tcpPort);
 
         //connect signals to slots
         peerConn->sig_blockRequested->connect(
@@ -476,7 +476,7 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
         //allow reuse of port across multiple sockets
         acceptor.open(tcp::v4());
         acceptor.set_option(tcp::socket::reuse_address(true));
-        acceptor.bind(tcp::endpoint(tcp::v4(), tcpPort));
+        acceptor.bind(tcp::endpoint(tcp::v4(), defaultSettings.tcpPort));
 
         acceptor.async_accept(
             [&](boost::system::error_code ec, tcp::socket socket)
@@ -487,7 +487,7 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
                     auto peerConn =
                             std::make_shared<Peer>(
                                 &torrentList, clientID, acc_io_context,
-                                std::move(socket), tcpPort);
+                                std::move(socket), defaultSettings.tcpPort);
 
                     //connect signals to slots
                     peerConn->sig_blockRequested->connect(
@@ -800,7 +800,7 @@ void WorkingTorrents::processPeers(Torrent* torrent)
         //allow leeching
         auto infoHash = torrent->hashesData.urlEncodedInfoHash;
         if (torrent->statusData.isStarted() &&
-                leechersMap.count(infoHash) < maxLeechersPerTorrent)
+                leechersMap.count(infoHash) < defaultSettings.maxSeeders)
         {
             if (peer->IsInterestedReceived && peer->isChokeSent)
             {
@@ -812,7 +812,7 @@ void WorkingTorrents::processPeers(Torrent* torrent)
 
         //if peer is unchoked, add them to seeders
         if (!torrent->statusData.isCompleted() &&
-                seedersMap.count(infoHash) < maxSeedersPerTorrent)
+                seedersMap.count(infoHash) < defaultSettings.maxSeeders)
         {
             if (!peer->IsChokeReceived)
             {
