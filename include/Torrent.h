@@ -18,7 +18,7 @@ namespace Bittorrent
 	class Torrent
 		: public std::enable_shared_from_this<Torrent>
 	{
-	public:
+    public:
 
 		//general info
 		TorrentGeneral generalData;

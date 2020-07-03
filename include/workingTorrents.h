@@ -52,7 +52,7 @@ public:
     std::unique_ptr<TrackerTimer> trackerTimer;
 
     std::vector<std::shared_ptr<Torrent>> torrentList;
-    std::vector<std::shared_ptr<Torrent>> runningTorrents;
+    std::vector<std::pair<std::shared_ptr<Torrent>, int>> runningTorrents;
 
     //map of peer connections (torrent infohash as key)
     std::unordered_multimap<std::string, std::shared_ptr<Peer>> peerConnMap;
@@ -93,9 +93,10 @@ public:
     void processUploads();
     void processDownloads();
 
-    //peer ranking
+    //ranking
     std::random_device rand;
     std::default_random_engine rng;
+    std::vector<std::pair<Torrent*, int>> getRankedTorrents();
     std::vector<Peer*> getRankedSeeders(Torrent* torrent);
     std::vector<int> getRankedPieces(Torrent* torrent);
     float getPieceScore(Torrent* torrent, int piece);
@@ -109,6 +110,7 @@ public:
     WorkingTorrents();
 
 private:
+    std::mutex mtx_ranking;
     std::mutex mtx_map;
     std::mutex mtx_seeders;
     std::mutex mtx_process;
