@@ -221,11 +221,6 @@ void WorkingTorrents::removeTorrent(int position)
 
     //remove torrent info from vectors
     torrentList.erase(torrentList.begin() + position);
-
-    std::unique_lock<std::mutex> rankGuard(mtx_ranking);
-    runningTorrents.erase(runningTorrents.begin() + position);
-    rankGuard.unlock();
-
     addedOnList.erase(addedOnList.begin() + position);
 
     LOG_F(INFO, "Removed Torrent '%s' from client!",
@@ -234,6 +229,8 @@ void WorkingTorrents::removeTorrent(int position)
 
 void WorkingTorrents::start(int position)
 {
+    std::unique_lock<std::mutex> statusGuard(mtx_status);
+
     //start seeding if torrent is completed
     if (torrentList.at(position)->statusData.currentState ==
             TorrentStatus::currentStatus::completed)
@@ -241,7 +238,6 @@ void WorkingTorrents::start(int position)
         startSeeding(position);
         return;
     }
-
     //if torrent stopped, start it and process accordingly
     if (torrentList.at(position)->statusData.currentState ==
             TorrentStatus::currentStatus::stopped)
@@ -249,11 +245,7 @@ void WorkingTorrents::start(int position)
         torrentList.at(position)->statusData.currentState =
                 TorrentStatus::currentStatus::started;
 
-        //lock mutex to protect runningTorrents
-        std::unique_lock<std::mutex> rankGuard(mtx_ranking);
-        //add to running torrents list with default ranking
-        runningTorrents.push_back(torrentList.at(position));
-        rankGuard.unlock();
+        statusGuard.unlock();
 
         std::vector<std::thread> threadVector;
 
@@ -296,8 +288,8 @@ void WorkingTorrents::start(int position)
                 //every 5 threads, join threads and clear thread vector to
                 //limit number of concurrent threads
                 if (count == 4 ||
-                        &tracker == &runningTorrents.back()->
-                        generalData.trackerList.back())
+                        tracker.trackerAddress == torrentList.at(position)->
+                        generalData.trackerList.back().trackerAddress)
                 {
                     for (auto& thread : threadVector)
                     {
@@ -314,7 +306,7 @@ void WorkingTorrents::start(int position)
         else
         {
             for (auto& tracker :
-                 runningTorrents.back()->generalData.trackerList)
+                 torrentList.at(position)->generalData.trackerList)
             {
                 if (std::chrono::high_resolution_clock::now() <
                         tracker.lastPeerRequest + std::chrono::minutes{5})
@@ -375,6 +367,9 @@ void WorkingTorrents::start(int position)
             auto infoHash = torrentList.at(position)->
                     hashesData.urlEncodedInfoHash;
 
+
+            std::unique_lock<std::mutex> mapGuard(mtx_map);
+
             //check if peer already in map (e.g. due to tracker update signal)
             if (peerConnMap.find(infoHash) != peerConnMap.end())
             {
@@ -387,6 +382,8 @@ void WorkingTorrents::start(int position)
                 {
                     mapHostRange.push_back(it->second->peerHost);
                 }
+
+                mapGuard.unlock();
 
                 //create new Peer object if not in peerConnMap
                 for (auto singlePeer :
@@ -409,11 +406,6 @@ void WorkingTorrents::start(int position)
 
 void WorkingTorrents::stop(int position)
 {
-    {
-        std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
-        runningTorrents.erase(runningTorrents.begin() + position);
-    }
-
     disableTorrentConnection(torrentList.at(position).get());
 }
 
@@ -462,11 +454,13 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
                                 this, _1));
 
         //lock mutex before adding to map
-        std::lock_guard<std::mutex> guard(mtx_map);
+        std::unique_lock<std::mutex> mapGuard(mtx_map);
 
         //add to class member map so it can be accessed outside thread
         peerConnMap.emplace(torrent->hashesData.urlEncodedInfoHash,
                             peerConn);
+
+        mapGuard.unlock();
 
         peerConn->startNew(singlePeer->ipAddress, singlePeer->port);
 
@@ -525,12 +519,14 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
                                     this, _1));
 
                     //lock mutex before adding to map
-                    std::lock_guard<std::mutex> guard(mtx_map);
+                    std::unique_lock<std::mutex> mapGuard(mtx_map);
 
                     //add to class member map so it can be accessed outside thread
                     peerConnMap.emplace(
                                 torrent->hashesData.urlEncodedInfoHash,
                                         peerConn);
+
+                    mapGuard.unlock();
                 }
 
                 //start listening for new peer connections for same torrent
@@ -545,6 +541,8 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
 //argument torrent's infohash
 void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
 {
+    std::unique_lock<std::mutex> statusGuard(mtx_status);
+
     if (torrent->statusData.currentState ==
             TorrentStatus::currentStatus::started)
     {
@@ -552,8 +550,7 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
                 TorrentStatus::currentStatus::stopped;
     }
 
-    //disconnect and erase from maps
-    std::lock_guard<std::mutex> guard(mtx_map);
+    statusGuard.unlock();
 
     auto range = peerConnMap.equal_range(
                 torrent->hashesData.urlEncodedInfoHash);
@@ -561,26 +558,7 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
     for (auto it = range.first; it != range.second; ++it)
     {
         it->second->disconnect();
-
-        //erase since it is easier to recreate peer object than reset
-        //existing one
-        peerConnMap.erase(it);
     }
-
-    range = seedersMap.equal_range(
-                    torrent->hashesData.urlEncodedInfoHash);
-    for (auto it = range.first; it != range.second; ++it)
-    {
-        seedersMap.erase(it);
-    }
-
-    range = leechersMap.equal_range(
-                    torrent->hashesData.urlEncodedInfoHash);
-    for (auto it = range.first; it != range.second; ++it)
-    {
-        leechersMap.erase(it);
-    }
-
 }
 
 void WorkingTorrents::handlePieceVerified(Torrent* torrent, int piece)
@@ -634,7 +612,7 @@ void WorkingTorrents::handleBlockCancelled(Peer::dataRequest request)
         }
     }
 
-    processUploads();
+    //processUploads();
 }
 
 void WorkingTorrents::handleBlockReceived(Peer::dataPackage package)
@@ -649,9 +627,11 @@ void WorkingTorrents::handleBlockReceived(Peer::dataPackage package)
         package.sourcePeer->isBlockRequested.at(package.piece).at(package.block)
                 = false;
 
+        std::unique_lock<std::mutex> mapGuard(mtx_map);
         auto range = peerConnMap.equal_range(
                     package.sourcePeer->torrent->
                     hashesData.urlEncodedInfoHash);
+        mapGuard.unlock();
 
         for (auto it = range.first; it != range.second; ++it)
         {
@@ -688,11 +668,11 @@ void WorkingTorrents::handlePeerDisconnected(Peer* senderPeer)
     senderPeer->sig_disconnected->disconnect_all_slots();
     senderPeer->sig_stateChanged->disconnect_all_slots();
 
+    std::lock_guard<std::mutex> mapGuard(mtx_map);
+
     auto infoHash = senderPeer->torrent->hashesData.urlEncodedInfoHash;
 
-    std::lock_guard<std::mutex> guard(mtx_map);
-
-    //remove from peer map
+    //remove from peer maps
     auto range = peerConnMap.equal_range(
                 senderPeer->torrent->hashesData.urlEncodedInfoHash);
 
@@ -743,6 +723,8 @@ void WorkingTorrents::processPeers(Torrent* torrent)
     //move peers of specific torrent from map to vector
     //and sort by (descending) pieces required available
     std::vector<std::shared_ptr<Peer>> sortedPeers;
+
+    std::unique_lock<std::mutex> mapGuard(mtx_map);
     for (auto it = peerConnMap.begin(); it != peerConnMap.end(); ++it)
     {
         if (it->second->torrent->hashesData.urlEncodedInfoHash ==
@@ -751,6 +733,7 @@ void WorkingTorrents::processPeers(Torrent* torrent)
             sortedPeers.push_back(it->second);
         }
     }
+    mapGuard.unlock();
 
     std::sort(sortedPeers.begin(), sortedPeers.end(),
               [&](
@@ -759,8 +742,6 @@ void WorkingTorrents::processPeers(Torrent* torrent)
     {
         return p1->piecesRequiredAvailable() > p2->piecesRequiredAvailable();
     });
-
-    std::lock_guard<std::mutex> guard(mtx_map);
 
     //processing
     for (auto& peer : sortedPeers)
@@ -805,6 +786,8 @@ void WorkingTorrents::processPeers(Torrent* torrent)
         //periodic message to keep peer connection alive
         //method has a check to prevent spamming
         peer->sendKeepAlive();
+
+        std::lock_guard<std::mutex> seedersGuard(mtx_seeders);
 
         //allow leeching
         auto infoHash = torrent->hashesData.urlEncodedInfoHash;
@@ -956,6 +939,8 @@ void WorkingTorrents::processDownloads()
                         continue;
                     }
 
+                    std::unique_lock<std::mutex> mapGuard(mtx_map);
+
                     //only request block from one peer at a time
                     auto range = peerConnMap.equal_range(
                                 torrent->hashesData.urlEncodedInfoHash);
@@ -968,6 +953,8 @@ void WorkingTorrents::processDownloads()
                             ++count;
                         }
                     }
+
+                    mapGuard.unlock();
 
                     if (count > 0)
                     {
@@ -997,15 +984,20 @@ void WorkingTorrents::processDownloads()
 //sort torrents in order of descending ranking
 std::vector<Torrent*> WorkingTorrents::getRankedTorrents()
 {
-    std::lock_guard<std::mutex> rankGuard(mtx_ranking);
-
     std::vector<Torrent*> rankedTorrents;
-    rankedTorrents.reserve(runningTorrents.size());
 
-    for (auto torrent : runningTorrents)
+    std::unique_lock<std::mutex> statusGuard(mtx_status);
+
+    for (auto torrent : torrentList)
     {
-        rankedTorrents.emplace_back(torrent.get());
+        if (torrent->statusData.currentState ==
+                TorrentStatus::currentStatus::started)
+        {
+            rankedTorrents.push_back(torrent.get());
+        }
     }
+
+    statusGuard.unlock();
 
     //sort torrents by ranking
     std::sort(rankedTorrents.begin(), rankedTorrents.end(),
@@ -1023,6 +1015,8 @@ std::vector<Peer*> WorkingTorrents::getRankedSeeders(Torrent* torrent)
     //shuffle seeders
     std::vector<Peer*> rankedSeeders;
     rankedSeeders.reserve(seedersMap.size());
+
+    std::lock_guard<std::mutex> seedersGuard(mtx_seeders);
 
     for (auto peer : seedersMap)
     {
@@ -1105,6 +1099,8 @@ float WorkingTorrents::getPieceProgress(Torrent* torrent, int piece)
 
 float WorkingTorrents::getPieceRarity(Torrent* torrent, int piece)
 {
+    std::lock_guard<std::mutex> mapGuard(mtx_map);
+
     if (peerConnMap.empty())
     {
         return 0.0;

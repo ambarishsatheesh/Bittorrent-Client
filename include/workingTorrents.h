@@ -52,7 +52,7 @@ public:
     std::unique_ptr<TrackerTimer> trackerTimer;
 
     std::vector<std::shared_ptr<Torrent>> torrentList;
-    std::vector<std::shared_ptr<Torrent>> runningTorrents;
+    //std::vector<std::shared_ptr<Torrent>> runningTorrents;
 
     //map of peer connections (torrent infohash as key)
     std::unordered_multimap<std::string, std::shared_ptr<Peer>> peerConnMap;
@@ -110,7 +110,7 @@ public:
     WorkingTorrents();
 
 private:
-    std::mutex mtx_ranking;
+    std::mutex mtx_status;
     std::mutex mtx_map;
     std::mutex mtx_seeders;
     std::mutex mtx_process;
