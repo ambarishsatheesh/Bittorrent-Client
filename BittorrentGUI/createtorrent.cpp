@@ -11,7 +11,7 @@ CreateTorrent::CreateTorrent(QPointer<QWidget> parent) :
     QDialog(parent),
     ui(new Ui::CreateTorrent),
     comment{""},
-    isStartSeeding{false}, isPrivate{false}
+    isAddToClient{false}, isPrivate{false}
 {
     ui->setupUi(this);
 
@@ -74,6 +74,14 @@ void CreateTorrent::on_buttonCreate_clicked()
                              QMessageBox::Ok);
         return;
     }
+    //handle empty trackers box
+    if (ui->trackerUrls->toPlainText().isEmpty())
+    {
+        QMessageBox::warning(this, "Warning",
+                             "Please provide at least one tracker.",
+                             QMessageBox::Ok);
+        return;
+    }
 
     //get destination path
     QString writePath =
@@ -122,17 +130,12 @@ void CreateTorrent::on_buttonCreate_clicked()
         //set current progress level
         ui->progressBar->setValue(5);
 
-
-        if (isStartSeeding)
+        if (isAddToClient || ui->addToClient_check->isChecked())
         {
             LOG_F(INFO, "Started seeding torrent %s.",
                   storedWritePath.toStdString().c_str());
 
-            //implement seeding code
-
-
-            //notify mainwindow by seting result code to Accepted and
-            //calling accept() signal
+            //notify mainwindow and load torrent to client
             emit sendfilePath(storedWritePath);
         }
     }
@@ -190,9 +193,11 @@ void CreateTorrent::on_buttonCancel_clicked()
     this->close();
 }
 
-void CreateTorrent::on_startSeedingCheckBox_stateChanged(int arg1)
+void CreateTorrent::on_addToClient_check_stateChanged(int arg1)
 {
-    isStartSeeding = ui->startSeedingCheckBox->isChecked() ? true : false;
+    isAddToClient = ui->addToClient_check->isChecked() ? true : false;
 }
 
 }
+
+

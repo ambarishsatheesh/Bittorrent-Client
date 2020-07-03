@@ -30,7 +30,7 @@ private slots:
 
     void on_selectFolder_clicked();
 
-    void on_startSeedingCheckBox_stateChanged(int arg1);
+    void on_addToClient_check_stateChanged(int arg1);
 
 signals:
     void sendfilePath(QString);
@@ -47,7 +47,7 @@ private:
     std::string torrentName;
 
     //settings
-    bool isStartSeeding;
+    bool isAddToClient;
     bool isPrivate;
 
     //file dialogs

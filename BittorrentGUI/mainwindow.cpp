@@ -879,6 +879,11 @@ void MainWindow::loadCreatedTorrent(QString filePath)
 {
     std::string buffer = loadFromFile(filePath.toStdString().c_str());
     loadTorrent(filePath.toStdString(), buffer);
+
+    if (createTorDialog->isVisible())
+    {
+            createTorDialog->close();
+    }
 }
 
 void MainWindow::textFilterChanged()
