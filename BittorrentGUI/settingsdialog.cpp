@@ -13,9 +13,9 @@ SettingsDialog::SettingsDialog(WorkingTorrents::settings* defaultSettings,
     ui->setupUi(this);
 
     //set default values
-    ui->httpPort_val->setMaximum(std::numeric_limits<int>::max());
-    ui->udpPort_val->setMaximum(std::numeric_limits<int>::max());
-    ui->tcpPort_val->setMaximum(std::numeric_limits<int>::max());
+    ui->httpPort_val->setMaximum(50000);
+    ui->udpPort_val->setMaximum(50000);
+    ui->tcpPort_val->setMaximum(50000);
     ui->maxDLSpeed_val->setMaximum(std::numeric_limits<int>::max());
     ui->maxULSpeed_val->setMaximum(std::numeric_limits<int>::max());
     ui->maxSeeders_val->setMaximum(10);
