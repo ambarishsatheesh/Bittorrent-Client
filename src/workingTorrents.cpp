@@ -219,8 +219,13 @@ void WorkingTorrents::removeTorrent(int position)
         leechersMap.erase(it);
     }
 
-    //remove torrent info from list
+    //remove torrent info from vectors
     torrentList.erase(torrentList.begin() + position);
+
+    std::unique_lock<std::mutex> rankGuard(mtx_ranking);
+    runningTorrents.erase(runningTorrents.begin() + position);
+    rankGuard.unlock();
+
     addedOnList.erase(addedOnList.begin() + position);
 
     LOG_F(INFO, "Removed Torrent '%s' from client!",
@@ -247,7 +252,7 @@ void WorkingTorrents::start(int position)
         //lock mutex to protect runningTorrents
         std::unique_lock<std::mutex> rankGuard(mtx_ranking);
         //add to running torrents list with default ranking
-        runningTorrents.emplace_back(torrentList.at(position), 0);
+        runningTorrents.push_back(torrentList.at(position));
         rankGuard.unlock();
 
         std::vector<std::thread> threadVector;
@@ -291,7 +296,7 @@ void WorkingTorrents::start(int position)
                 //every 5 threads, join threads and clear thread vector to
                 //limit number of concurrent threads
                 if (count == 4 ||
-                        &tracker == &runningTorrents.back().first->
+                        &tracker == &runningTorrents.back()->
                         generalData.trackerList.back())
                 {
                     for (auto& thread : threadVector)
@@ -309,7 +314,7 @@ void WorkingTorrents::start(int position)
         else
         {
             for (auto& tracker :
-                 runningTorrents.back().first->generalData.trackerList)
+                 runningTorrents.back()->generalData.trackerList)
             {
                 if (std::chrono::high_resolution_clock::now() <
                         tracker.lastPeerRequest + std::chrono::minutes{5})
@@ -406,7 +411,7 @@ void WorkingTorrents::stop(int position)
 {
     {
         std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
-        runningTorrents.erase(runningTorrents.begin() + position - 1);
+        runningTorrents.erase(runningTorrents.begin() + position);
     }
 
     disableTorrentConnection(torrentList.at(position).get());
@@ -898,27 +903,27 @@ void WorkingTorrents::processDownloads()
     auto rankedTorrents = getRankedTorrents();
 
     //process each torrent
-    for (auto torRankPair : rankedTorrents)
+    for (auto torrent : rankedTorrents)
     {
         //skip the rest if torrent downloading is done
-        if (torRankPair.first->statusData.isCompleted())
+        if (torrent->statusData.isCompleted())
         {
             continue;
         }
 
         //rank pieces to be requested using piece progress and rarity
         std::vector<int> rankedPieces =
-                getRankedPieces(torRankPair.first);
+                getRankedPieces(torrent);
 
         for (auto piece : rankedPieces)
         {
             //skip if already have piece
-            if (torRankPair.first->statusData.isPieceVerified.at(piece))
+            if (torrent->statusData.isPieceVerified.at(piece))
             {
                 continue;
             }
 
-            auto rankedSeeders = getRankedSeeders(torRankPair.first);
+            auto rankedSeeders = getRankedSeeders(torrent);
 
             for (auto seeder : rankedSeeders)
             {
@@ -929,11 +934,11 @@ void WorkingTorrents::processDownloads()
                 }
 
                 for (int block = 0;
-                     block < torRankPair.first->piecesData.getBlockCount(piece);
+                     block < torrent->piecesData.getBlockCount(piece);
                      ++block)
                 {
                     //skip if already acquired
-                    if (torRankPair.first->
+                    if (torrent->
                             statusData.isBlockAcquired.at(piece).at(block))
                     {
                         continue;
@@ -953,7 +958,7 @@ void WorkingTorrents::processDownloads()
 
                     //only request block from one peer at a time
                     auto range = peerConnMap.equal_range(
-                                torRankPair.first->hashesData.urlEncodedInfoHash);
+                                torrent->hashesData.urlEncodedInfoHash);
                     int count = 0;
 
                     for (auto it = range.first; it != range.second; ++it)
@@ -970,12 +975,12 @@ void WorkingTorrents::processDownloads()
                     }
 
                     //send data request to peer
-                    int blockSize = torRankPair.first->piecesData.getBlockSize(
+                    int blockSize = torrent->piecesData.getBlockSize(
                                 piece, block);
 
                     seeder->sendDataRequest(
                                 piece,
-                                block * torRankPair.first->piecesData.blockSize,
+                                block * torrent->piecesData.blockSize,
                                 blockSize);
 
                     //add expected data size to throttle bucket
@@ -990,24 +995,24 @@ void WorkingTorrents::processDownloads()
 }
 
 //sort torrents in order of descending ranking
-std::vector<std::pair<Torrent*, int>> WorkingTorrents::getRankedTorrents()
+std::vector<Torrent*> WorkingTorrents::getRankedTorrents()
 {
     std::lock_guard<std::mutex> rankGuard(mtx_ranking);
 
-    std::vector<std::pair<Torrent*, int>> rankedTorrents;
+    std::vector<Torrent*> rankedTorrents;
     rankedTorrents.reserve(runningTorrents.size());
 
-    for (auto pair : runningTorrents)
+    for (auto torrent : runningTorrents)
     {
-        rankedTorrents.emplace_back(pair.first.get(), pair.second);
+        rankedTorrents.emplace_back(torrent.get());
     }
 
     //sort torrents by ranking
     std::sort(rankedTorrents.begin(), rankedTorrents.end(),
-              [&](const std::pair<Torrent*, int>& r1,
-              const std::pair<Torrent*, int>& r2)
+              [&](const Torrent* r1,
+              const Torrent* r2)
     {
-        return r1.second > r2.second;
+        return r1->clientRank > r2->clientRank;
     });
 
     return rankedTorrents;
