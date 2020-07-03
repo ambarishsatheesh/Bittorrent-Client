@@ -20,12 +20,11 @@ namespace Bittorrent
 	valueDictionary TorrentGeneral::generalDataToDictionary(valueDictionary& dict)
 	{
 		//trackers
-		assert(!trackerList.empty());
 		if (trackerList.size() == 1)
 		{
 			dict.emplace("announce", trackerList.at(0).trackerAddress);
 		}
-		else
+        else if (trackerList.size() > 1)
 		{
 			dict.emplace("announce", trackerList.at(0).trackerAddress);
 
@@ -88,7 +87,7 @@ namespace Bittorrent
 		}
 		else
 		{
-			throw std::invalid_argument("Error: no trackers specified in torrent!");
+            LOG_F(ERROR, "Error: no trackers specified in torrent!");
 		}
 
 		if (torrent.count("comment"))
