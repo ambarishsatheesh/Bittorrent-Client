@@ -20,6 +20,9 @@ namespace Bittorrent
 class WorkingTorrents
 {
 public:
+    //public so MainWindow class can access
+    std::mutex mtx_ranking;
+
     //network transfer parameters
     struct settings
     {

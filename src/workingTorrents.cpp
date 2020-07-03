@@ -984,6 +984,8 @@ void WorkingTorrents::processDownloads()
 //sort torrents in order of descending ranking
 std::vector<Torrent*> WorkingTorrents::getRankedTorrents()
 {
+    std::lock_guard<std::mutex> rankGuard(mtx_ranking);
+
     std::vector<Torrent*> rankedTorrents;
 
     std::unique_lock<std::mutex> statusGuard(mtx_status);
