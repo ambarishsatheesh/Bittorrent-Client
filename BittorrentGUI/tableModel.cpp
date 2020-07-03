@@ -118,8 +118,8 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
                     WorkingTorrents.addedOnList.at(index.row());
     //Priority
     case 1:
-        //implement priority properly
-        return 1;
+        return ioClientModel->
+                WorkingTorrents.torrentList.at(index.row())->clientRank;
     //Name
     case 2:
         return QString::fromStdString(entry->generalData.fileName);

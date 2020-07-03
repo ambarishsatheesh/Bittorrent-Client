@@ -949,9 +949,33 @@ void MainWindow::on_actionIncrease_Priority_triggered()
     std::lock_guard<std::mutex> rankGuard(ioClient->WorkingTorrents.mtx_ranking);
 
     //increase rank for each selected torrent
-    for (auto row : selectedSourceRowList)
+    std::vector<int> ranks;
+    ranks.reserve(ioClient->WorkingTorrents.torrentList.size());
+
+    for (auto torrent : ioClient->WorkingTorrents.torrentList)
     {
-        ioClient->WorkingTorrents.torrentList.at(row)->clientRank++;
+        ranks.push_back(torrent->clientRank);
+    }
+
+    if (all_of(ranks.begin(), ranks.end(),
+               [&] (int i) {return i == ranks.at(0);}))
+    {
+        for (auto row : selectedSourceRowList)
+        {
+            ioClient->WorkingTorrents.torrentList.at(row)->clientRank++;
+        }
+    }
+    else
+    {
+        for (auto row : selectedSourceRowList)
+        {
+            auto maxRank = *std::max_element(ranks.begin(), ranks.end());
+            if (ioClient->WorkingTorrents.torrentList.at(row)->clientRank !=
+                    maxRank)
+            {
+                ioClient->WorkingTorrents.torrentList.at(row)->clientRank++;
+            }
+        }
     }
 }
 
@@ -962,10 +986,34 @@ void Bittorrent::MainWindow::on_actionDecrease_Priority_triggered()
 
     std::lock_guard<std::mutex> rankGuard(ioClient->WorkingTorrents.mtx_ranking);
 
-    //increase rank for each selected torrent
-    for (auto row : selectedSourceRowList)
+    //decrease rank for each selected torrent
+    std::vector<int> ranks;
+    ranks.reserve(ioClient->WorkingTorrents.torrentList.size());
+
+    for (auto torrent : ioClient->WorkingTorrents.torrentList)
     {
-        ioClient->WorkingTorrents.torrentList.at(row)->clientRank++;
+        ranks.push_back(torrent->clientRank);
+    }
+
+    if (all_of(ranks.begin(), ranks.end(),
+               [&] (int i) {return i == ranks.at(0);}))
+    {
+        for (auto row : selectedSourceRowList)
+        {
+            ioClient->WorkingTorrents.torrentList.at(row)->clientRank--;
+        }
+    }
+    else
+    {
+        for (auto row : selectedSourceRowList)
+        {
+            auto minRank = *std::min_element(ranks.begin(), ranks.end());
+            if (ioClient->WorkingTorrents.torrentList.at(row)->clientRank !=
+                    minRank)
+            {
+                ioClient->WorkingTorrents.torrentList.at(row)->clientRank--;
+            }
+        }
     }
 }
 
@@ -986,10 +1034,26 @@ void Bittorrent::MainWindow::on_actionTop_priority_triggered()
         ranks.push_back(torrent->clientRank);
     }
 
-    for (auto row : selectedSourceRowList)
+    if (all_of(ranks.begin(), ranks.end(),
+               [&] (int i) {return i == ranks.at(0);}))
     {
-        ioClient->WorkingTorrents.torrentList.at(row)->clientRank =
-                (*std::max_element(ranks.begin(), ranks.end())) + 1;
+        for (auto row : selectedSourceRowList)
+        {
+            ioClient->WorkingTorrents.torrentList.at(row)->clientRank++;
+        }
+    }
+    else
+    {
+        for (auto row : selectedSourceRowList)
+        {
+            auto maxRank = *std::max_element(ranks.begin(), ranks.end());
+            if (ioClient->WorkingTorrents.torrentList.at(row)->clientRank !=
+                    maxRank)
+            {
+                ioClient->WorkingTorrents.torrentList.at(row)->clientRank =
+                        maxRank + 1;
+            }
+        }
     }
 }
 
@@ -1011,11 +1075,26 @@ void Bittorrent::MainWindow::on_actionMin_Priority_triggered()
         ranks.push_back(torrent->clientRank);
     }
 
-    //only one row
-    for (auto row : selectedSourceRowList)
+    if (all_of(ranks.begin(), ranks.end(),
+               [&] (int i) {return i == ranks.at(0);}))
     {
-        ioClient->WorkingTorrents.torrentList.at(row)->clientRank =
-                (*std::min_element(ranks.begin(), ranks.end())) - 1;
+        for (auto row : selectedSourceRowList)
+        {
+            ioClient->WorkingTorrents.torrentList.at(row)->clientRank--;
+        }
+    }
+    else
+    {
+        for (auto row : selectedSourceRowList)
+        {
+            auto minRank = *std::min_element(ranks.begin(), ranks.end());
+            if (ioClient->WorkingTorrents.torrentList.at(row)->clientRank !=
+                    minRank)
+            {
+                ioClient->WorkingTorrents.torrentList.at(row)->clientRank =
+                        minRank -1 ;
+            }
+        }
     }
 }
 
