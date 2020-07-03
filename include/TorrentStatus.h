@@ -14,9 +14,8 @@ namespace Bittorrent
             completed = 1,
             started,
             stopped
-        };
+        } currentState;
 
-        currentStatus currentState;
 		std::vector<std::vector<bool>> isBlockAcquired;
 		std::vector<bool> isPieceVerified;
         std::shared_ptr<TorrentPieces> ptr_piecesData;
