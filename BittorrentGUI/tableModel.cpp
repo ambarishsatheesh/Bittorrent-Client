@@ -138,8 +138,34 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
     }
     //Status
     case 5:
-         //implement using progress
-        return 0;
+    {
+        if (ioClientModel->
+                WorkingTorrents.torrentList.at(index.row())->
+                statusData.currentState ==
+                TorrentStatus::currentStatus::started)
+        {
+            return "Downloading";
+        }
+        else if (ioClientModel->
+                 WorkingTorrents.torrentList.at(index.row())->
+                 statusData.currentState ==
+                 TorrentStatus::currentStatus::stopped)
+        {
+            return "Paused";
+        }
+        else if (ioClientModel->
+                 WorkingTorrents.torrentList.at(index.row())->
+                 statusData.currentState ==
+                 TorrentStatus::currentStatus::completed)
+        {
+            return "Completed";
+        }
+        else if (ioClientModel->
+                 WorkingTorrents.torrentList.at(index.row())->isSeeding)
+        {
+            return "Seeding";
+        }
+    }
     //seeds
     case 6:
         //implement properly
