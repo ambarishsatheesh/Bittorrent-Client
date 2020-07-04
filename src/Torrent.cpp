@@ -8,7 +8,8 @@ namespace Bittorrent
 {
 	//add tracker processing
     Torrent::Torrent()
-        : clientRank{0}, generalData(), piecesData(), hashesData(),
+        : clientRank{0}, isSeeding{false},
+          generalData(), piecesData(), hashesData(),
           statusData(std::make_shared<TorrentPieces>(piecesData)),
           sig_addPeer{
               std::make_shared<boost::signals2::signal<void(peer, std::shared_ptr<Torrent>)>>()},
