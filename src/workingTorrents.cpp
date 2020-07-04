@@ -439,6 +439,7 @@ void WorkingTorrents::stop(int position)
 //only allow seeding of one torrent at a time
 void WorkingTorrents::startSeeding(int position)
 {
+    torrentList.at(position)->isSeeding = true;
     acceptNewConnection(torrentList.at(position).get());
 }
 
@@ -572,6 +573,8 @@ void WorkingTorrents::handle_accept(const boost::system::error_code& ec,
 
       //start reading
       peerConn->readFromAcceptedPeer();
+
+      LOG_F(INFO, "Successfully accepted new connection from peer!");
   }
 
   acceptNewConnection(torrent);
@@ -588,6 +591,12 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
     {
         torrent->statusData.currentState =
                 TorrentStatus::currentStatus::stopped;
+    }
+
+    //change seeding status
+    if (torrent->isSeeding)
+    {
+        torrent->isSeeding = 0;
     }
 
     statusGuard.unlock();
