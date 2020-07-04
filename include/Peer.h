@@ -94,10 +94,10 @@ namespace Bittorrent
 		bool isHandshakeSent;
 		bool isPositionSent;
 		bool isChokeSent;
-		bool isInterestSent;
+        bool isInterestedSent;
 		bool isHandshakeReceived;
-		bool IsChokeReceived;
-		bool IsInterestedReceived;
+        bool isChokeReceived;
+        bool isInterestedReceived;
 		std::vector<std::vector<bool>> isBlockRequested;
 		
         std::chrono::high_resolution_clock::time_point lastActive;
@@ -107,23 +107,18 @@ namespace Bittorrent
 		long long downloaded;
 
         //asio context
-        boost::asio::io_context& context;
+        //boost::asio::io_context& context;
 
 		//delete default constructor
 		Peer() = delete;
 		//client-opened connection constructors
         Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
-            boost::asio::io_context& io_context, int localPort);
+            boost::asio::io_context& io_context, int tcpPort);
 		//peer-opened connection constructor
 		//need io_context here to initialise timers
         Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
              std::vector<byte>& localID, boost::asio::io_context& io_context,
-             tcp::socket tcpClient, int localPort);
-
-		//new connection called from client
-		void startNew(const std::string& host, const std::string& port);
-        //when a torrent is resumed and peer info already exists
-        void resume();
+             int tcpPort);
 
         std::shared_ptr<Peer> getPtr();
 
@@ -145,9 +140,20 @@ namespace Bittorrent
         void sendCancel(int index, int offset, int dataSize);
         void sendPiece(int index, int offset, std::vector<byte> data);
 
+
+        //ASIO
+        boost::asio::ip::tcp::socket& socket();
+        //start connection to resolved peer endpoints
+        void connectToNewPeer(boost::system::error_code const& ec,
+            std::shared_ptr<tcp::resolver> presolver,
+            tcp::resolver::iterator iter);
+        void readFromAcceptedPeer();
+
     private:
+        // Strand to ensure the connection's handlers are not called concurrently.
+        boost::asio::io_context::strand strand_;
         //tcp data
-		tcp::socket socket;
+        tcp::socket socket_;
 
 		//TCP transmission buffers
 		std::vector<byte> processBuffer;
@@ -159,13 +165,9 @@ namespace Bittorrent
 
 		//established connection functions - maybe separate class?
 		bool isAccepted;	//flag to use async funcs with shared_ptr
-		void readFromCreatedPeer();
 		void acc_sendNewBytes(std::vector<byte> sendBuffer);
 
 		//new connection methods
-		void connectToNewPeer(boost::system::error_code const& ec,
-			std::shared_ptr<tcp::resolver> presolver, 
-			tcp::resolver::iterator iter);
 		void handleNewConnect(const boost::system::error_code& ec,
 			tcp::resolver::results_type::iterator endpointItr);
 		void startNewRead();

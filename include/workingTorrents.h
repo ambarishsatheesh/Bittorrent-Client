@@ -77,7 +77,6 @@ public:
     //torrent functionality
     void start(int position);
     void stop(int position);
-    void run();
     void startSeeding(int position);
 
     //slots
@@ -111,6 +110,7 @@ public:
     void acceptNewConnection(Torrent *torrent);
 
     WorkingTorrents();
+    ~WorkingTorrents();
 
 private:
     std::mutex mtx_status;
@@ -121,10 +121,24 @@ private:
     std::mutex mtx_incoming;
 
     std::chrono::duration<int> peerTimeout;
+    std::size_t threadPoolSize;
 
     //need deque for both FIFO & iteration
     std::deque<Peer::dataRequest> outgoingBlocks;
     std::deque<Peer::dataPackage> incomingBlocks;
+
+    //asio
+    boost::asio::io_context io_context;
+    //keep io_context running even when there is no work
+    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work;
+    tcp::acceptor acceptor_;
+
+    void handle_accept(const boost::system::error_code& ec, Peer* peerConn,
+                       Torrent* torrent);
+    void resumePeer(Peer* peer);
+
+    std::vector<std::shared_ptr<std::thread>> threadPool;
+
 };
 
 }

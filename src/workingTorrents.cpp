@@ -18,9 +18,34 @@ WorkingTorrents::WorkingTorrents()
                        defaultSettings.udpPort, defaultSettings.tcpPort)},
       downloadThrottle{defaultSettings.maxDLSpeed, std::chrono::seconds{1}},
       uploadThrottle{defaultSettings.maxULSpeed, std::chrono::seconds{1}},
-      rand{}, rng{rand()}, peerTimeout{std::chrono::seconds{30}}
+      rand{}, rng{rand()}, peerTimeout{std::chrono::seconds{30}},
+      threadPoolSize{5},
+      work{boost::asio::make_work_guard(io_context)}, acceptor_{io_context}
 {
+    // Create a pool of threads to share io_context and run
+    //executor_work_guard will keep it running when tasks are not queued
+      for (std::size_t i = 0; i < threadPoolSize; ++i)
+      {
+          auto thread = std::make_shared<std::thread>(
+              boost::bind(&boost::asio::io_context::run, &io_context));
 
+          threadPool.push_back(thread);
+      }
+
+    //Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
+    acceptor_.open(tcp::v4());
+    acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+    acceptor_.bind(tcp::endpoint(tcp::v4(), defaultSettings.tcpPort));
+    acceptor_.listen();
+}
+
+WorkingTorrents::~WorkingTorrents()
+{
+    // Wait for all threads in the pool to exit.
+    for (std::size_t i = 0; i < threadPool.size(); ++i)
+    {
+        threadPool.at(i)->join();
+    }
 }
 
 std::string WorkingTorrents::isDuplicateTorrent(Torrent* modifiedTorrent)
@@ -367,48 +392,48 @@ void WorkingTorrents::start(int position)
 
             std::unique_lock<std::mutex> mapGuard(mtx_map);
 
-            //check if peer already in map (e.g. due to tracker update signal)
+            //check if peers already in map (e.g. due to tracker update signal)
             if (peerConnMap.find(infoHash) != peerConnMap.end())
             {
                 auto range = peerConnMap.equal_range(infoHash);
 
                 //push map values into vector so they can be searched
-                std::vector<std::string> mapHostRange;
+                std::vector<Peer*> mapPeerRange;
 
                 for (auto it = range.first; it != range.second; ++it)
                 {
-                    mapHostRange.push_back(it->second->peerHost);
+                    mapPeerRange.push_back(it->second.get());
                 }
 
                 mapGuard.unlock();
 
-                //create new Peer object if not in peerConnMap
                 for (auto singlePeer :
                      torrentList.at(position)->generalData.uniquePeerList)
                 {
-                    if (std::find(mapHostRange.begin(), mapHostRange.end(),
-                                  singlePeer.ipAddress) == mapHostRange.end())
+                    //create new Peer object if not in peerConnMap
+                    //else resume connection
+                    auto itr_find = std::find_if(mapPeerRange.begin(), mapPeerRange.end(),
+                                              [&singlePeer](const Peer* p){
+                        return p->peerHost == singlePeer.ipAddress;});
+
+                    if (itr_find == mapPeerRange.end())
                     {
-                            addPeer(singlePeer,
-                                    torrentList.at(position));
+                        addPeer(singlePeer,
+                                torrentList.at(position));
+                    }
+                    else
+                    {
+                        resumePeer(*itr_find);
                     }
                 }
             }
         }
-
-        //begin remaining process
-        run();
     }
 }
 
 void WorkingTorrents::stop(int position)
 {
     disableTorrentConnection(torrentList.at(position).get());
-}
-
-void WorkingTorrents::run()
-{
-
 }
 
 //only allow seeding of one torrent at a time
@@ -420,118 +445,136 @@ void WorkingTorrents::startSeeding(int position)
 //peers for downloading
 void WorkingTorrents::addPeer(peer singlePeer, std::shared_ptr<Torrent> torrent)
 {
-    QFuture<void> future = QtConcurrent::run([&]()
-    {
-        //TCP setup
-        boost::asio::io_context io_context;
+    LOG_F(INFO, "Added new peer (%s)...", singlePeer.ipAddress.c_str());
 
-        auto peerConn =
-            std::make_shared<Peer>(torrent, clientID, io_context,
-                                   defaultSettings.tcpPort);
+    auto peerConn = std::make_shared<Peer>(torrent, clientID, io_context,
+                                       defaultSettings.tcpPort);
 
-        //connect signals to slots
-        peerConn->sig_blockRequested->connect(
-                    boost::bind(&WorkingTorrents::handleBlockRequested,
-                                this, _1));
+    peerConn->peerHost = singlePeer.ipAddress;
+    peerConn->peerPort = singlePeer.port;
 
-        peerConn->sig_blockCancelled->connect(
-                    boost::bind(&WorkingTorrents::handleBlockCancelled,
-                                this, _1));
+    //connect signals to slots
+    peerConn->sig_blockRequested->connect(
+                boost::bind(&WorkingTorrents::handleBlockRequested,
+                            this, _1));
 
-        peerConn->sig_blockReceived->connect(
-                    boost::bind(&WorkingTorrents::handleBlockReceived,
-                                this, _1));
+    peerConn->sig_blockCancelled->connect(
+                boost::bind(&WorkingTorrents::handleBlockCancelled,
+                            this, _1));
 
-        peerConn->sig_disconnected->connect(
-                    boost::bind(&WorkingTorrents::handlePeerDisconnected,
-                                this, _1));
+    peerConn->sig_blockReceived->connect(
+                boost::bind(&WorkingTorrents::handleBlockReceived,
+                            this, _1));
 
-        peerConn->sig_stateChanged->connect(
-                    boost::bind(&WorkingTorrents::handlePeerStateChanged,
-                                this, _1));
+    peerConn->sig_disconnected->connect(
+                boost::bind(&WorkingTorrents::handlePeerDisconnected,
+                            this, _1));
 
-        //lock mutex before adding to map
-        std::unique_lock<std::mutex> mapGuard(mtx_map);
+    peerConn->sig_stateChanged->connect(
+                boost::bind(&WorkingTorrents::handlePeerStateChanged,
+                            this, _1));
 
-        //add to class member map so it can be accessed outside thread
-        peerConnMap.emplace(torrent->hashesData.urlEncodedInfoHash,
-                            peerConn);
+    //lock mutex before adding to map
+    std::unique_lock<std::mutex> mapGuard(mtx_map);
 
-        mapGuard.unlock();
+    //add to class member map so it can be accessed outside thread
+    peerConnMap.emplace(torrent->hashesData.urlEncodedInfoHash,
+                        peerConn);
 
-        peerConn->startNew(singlePeer.ipAddress, singlePeer.port);
+    mapGuard.unlock();
 
-        io_context.run();
-    });
+    auto presolver = std::make_shared<tcp::resolver>(io_context);
+
+    //resolve peer and start connect
+    presolver->async_resolve(tcp::resolver::query(singlePeer.ipAddress, singlePeer.port),
+        [&peerConn, presolver](auto&& ec, auto iter)
+        {
+            peerConn->connectToNewPeer(ec, presolver, iter);
+        });
+
+    LOG_F(INFO, "Successfully added new peer!");
 }
 
-//only
+void WorkingTorrents::resumePeer(Peer* peer)
+{
+    //reset transfer checks
+    peer->isHandshakeReceived = false;
+    peer->isHandshakeSent = false;
+    peer->isChokeSent = false;
+    peer->isChokeReceived = false;
+    peer->isInterestedSent = false;
+    peer->isInterestedReceived = false;
+    peer->isDisconnected = false;
+
+    auto presolver = std::make_shared<tcp::resolver>(io_context);
+
+    //resolve peer and start connect
+    presolver->async_resolve(tcp::resolver::query(peer->peerHost, peer->peerPort),
+        [&](auto&& ec, auto iter)
+        {
+            peer->connectToNewPeer(ec, presolver, iter);
+        });
+}
+
 void WorkingTorrents::acceptNewConnection(Torrent* torrent)
 {
-    QFuture<void> future = QtConcurrent::run([&]()
+    auto peerConn = std::make_shared<Peer>(&torrentList, clientID, io_context,
+                                       defaultSettings.tcpPort);
+
+    if (acceptor_.is_open())
     {
-        boost::asio::io_context acc_io_context;
-        tcp::acceptor acceptor(acc_io_context);
+        acceptor_.async_accept(peerConn->socket(),
+              boost::bind(&WorkingTorrents::handle_accept, this,
+                boost::asio::placeholders::error, peerConn.get(), torrent));
+    }
+}
 
-        //allow reuse of port across multiple sockets
-        acceptor.open(tcp::v4());
-        acceptor.set_option(tcp::socket::reuse_address(true));
-        acceptor.bind(tcp::endpoint(tcp::v4(), defaultSettings.tcpPort));
+void WorkingTorrents::handle_accept(const boost::system::error_code& ec,
+                                    Peer* peerConn, Torrent* torrent)
+{
+  if (!ec)
+  {
+      //connect signals to slots
+      peerConn->sig_blockRequested->connect(
+                  boost::bind(
+                      &WorkingTorrents::handleBlockRequested,
+                      this, _1));
 
-        acceptor.async_accept(
-            [&](boost::system::error_code ec, tcp::socket socket)
-            {
-                if (!ec)
-                {
-                    //create Peer object and move socket to it
-                    auto peerConn =
-                            std::make_shared<Peer>(
-                                &torrentList, clientID, acc_io_context,
-                                std::move(socket), defaultSettings.tcpPort);
+      peerConn->sig_blockCancelled->connect(
+                  boost::bind(
+                      &WorkingTorrents::handleBlockCancelled,
+                      this, _1));
 
-                    //connect signals to slots
-                    peerConn->sig_blockRequested->connect(
-                                boost::bind(
-                                    &WorkingTorrents::handleBlockRequested,
-                                    this, _1));
+      peerConn->sig_blockReceived->connect(
+                  boost::bind(
+                      &WorkingTorrents::handleBlockReceived,
+                      this, _1));
 
-                    peerConn->sig_blockCancelled->connect(
-                                boost::bind(
-                                    &WorkingTorrents::handleBlockCancelled,
-                                    this, _1));
+      peerConn->sig_disconnected->connect(
+                  boost::bind(
+                      &WorkingTorrents::handlePeerDisconnected,
+                      this, _1));
 
-                    peerConn->sig_blockReceived->connect(
-                                boost::bind(
-                                    &WorkingTorrents::handleBlockReceived,
-                                    this, _1));
+      peerConn->sig_stateChanged->connect(
+                  boost::bind(
+                      &WorkingTorrents::handlePeerStateChanged,
+                      this, _1));
 
-                    peerConn->sig_disconnected->connect(
-                                boost::bind(
-                                    &WorkingTorrents::handlePeerDisconnected,
-                                    this, _1));
+      //lock mutex before adding to map
+      std::unique_lock<std::mutex> mapGuard(mtx_map);
 
-                    peerConn->sig_stateChanged->connect(
-                                boost::bind(
-                                    &WorkingTorrents::handlePeerStateChanged,
-                                    this, _1));
+      //add to class member map so it can be accessed outside thread
+      peerConnMap.emplace(
+                  torrent->hashesData.urlEncodedInfoHash,
+                          peerConn);
 
-                    //lock mutex before adding to map
-                    std::unique_lock<std::mutex> mapGuard(mtx_map);
+      mapGuard.unlock();
 
-                    //add to class member map so it can be accessed outside thread
-                    peerConnMap.emplace(
-                                torrent->hashesData.urlEncodedInfoHash,
-                                        peerConn);
+      //start reading
+      peerConn->readFromAcceptedPeer();
+  }
 
-                    mapGuard.unlock();
-                }
-
-                //start listening for new peer connections for same torrent
-                acceptNewConnection(torrent);
-            });
-
-        acc_io_context.run();
-    });
+  acceptNewConnection(torrent);
 }
 
 //disconnect all peers with info hash equal to
@@ -791,7 +834,7 @@ void WorkingTorrents::processPeers(Torrent* torrent)
         if (torrent->statusData.isStarted() &&
                 leechersMap.count(infoHash) < defaultSettings.maxSeeders)
         {
-            if (peer->IsInterestedReceived && peer->isChokeSent)
+            if (peer->isInterestedReceived && peer->isChokeSent)
             {
                 peer->sendUnchoke();
                 leechersMap.emplace(torrent->hashesData.urlEncodedInfoHash,
@@ -803,7 +846,7 @@ void WorkingTorrents::processPeers(Torrent* torrent)
         if (!torrent->statusData.isCompleted() &&
                 seedersMap.count(infoHash) < defaultSettings.maxSeeders)
         {
-            if (!peer->IsChokeReceived)
+            if (!peer->isChokeReceived)
             {
                 seedersMap.emplace(torrent->hashesData.urlEncodedInfoHash,
                                    peer);

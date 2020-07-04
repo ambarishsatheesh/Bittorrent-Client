@@ -86,8 +86,8 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
-    loguru::remove_callback("logToWidget_WAR");
-    loguru::remove_callback("logToWidget_ERR");
+//    loguru::remove_callback("logToWidget_WAR");
+//    loguru::remove_callback("logToWidget_ERR");
 }
 
 void MainWindow::initWindows()

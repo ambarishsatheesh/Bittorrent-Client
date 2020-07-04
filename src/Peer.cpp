@@ -12,7 +12,7 @@ using tcp = boost::asio::ip::tcp;
 using namespace utility;
 
 Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
-    boost::asio::io_context& io_context, int localPort)
+    boost::asio::io_context& io_context, int tcpPort)
     : sig_disconnected{std::make_shared<boost::signals2::signal<void(
                        Peer*)>>()},
     sig_stateChanged{std::make_shared<boost::signals2::signal<void(
@@ -27,28 +27,27 @@ Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
     torrent{ torrent }, endpointKey(),
     isPieceDownloaded(torrent->piecesData.pieceCount),
     isDisconnected{}, isHandshakeSent{}, isPositionSent{},
-    isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{},
-    IsChokeReceived{ true }, IsInterestedReceived{ false },
+    isChokeSent{ true }, isInterestedSent{ false }, isHandshakeReceived{},
+    isChokeReceived{ true }, isInterestedReceived{ false },
     lastActive{ std::chrono::high_resolution_clock::time_point::min() },
     lastKeepAlive{ std::chrono::high_resolution_clock::time_point::min() },
     uploaded{ 0 }, downloaded{ 0 },
-    context(io_context), socket(context),
+    strand_(io_context), socket_(io_context),
     recBuffer(68)
 {
     try
     {
-        //open socket, allow reuse of address+port and bind
-        socket.open(tcp::v4());
-        socket.set_option(tcp::socket::reuse_address(true));
-        socket.bind(tcp::endpoint(tcp::v4(), localPort));
+        //open socket_, allow reuse of address+port and bind
+        socket_.open(tcp::v4());
+        socket_.set_option(tcp::socket::reuse_address(true));
+        socket_.bind(tcp::endpoint(tcp::v4(), tcpPort));
     }
-    catch(const boost::system::system_error& error)
+    catch (const boost::system::system_error& error)
     {
-        LOG_F(ERROR, "Failed to bind TCP socket to port %d", localPort);
+        LOG_F(ERROR, "Failed to bind TCP socket_ to port %d", tcpPort);
 
         disconnect();
     }
-
 
     isBlockRequested.resize(torrent->piecesData.pieceCount);
     for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
@@ -71,13 +70,12 @@ Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
     messageType.insert({ "piece", 7 });
     messageType.insert({ "cancel", 8 });
     messageType.insert({ "port", 9 });
-
 }
 
 //construct peer from accepted connection started by another peer
 Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
            std::vector<byte>& localID, boost::asio::io_context& io_context,
-           tcp::socket tcpClient, int localPort)
+           int tcpPort)
     : sig_disconnected{std::make_shared<boost::signals2::signal<void(
                        Peer*)>>()},
     sig_stateChanged{std::make_shared<boost::signals2::signal<void(
@@ -92,18 +90,27 @@ Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
     torrent{ std::make_shared<Torrent>() }, endpointKey(),
     isPieceDownloaded(torrent->piecesData.pieceCount),
     isDisconnected{}, isHandshakeSent{}, isPositionSent{},
-    isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{},
-    IsChokeReceived{ true }, IsInterestedReceived{ false },
+    isChokeSent{ true }, isInterestedSent{ false }, isHandshakeReceived{},
+    isChokeReceived{ true }, isInterestedReceived{ false },
     lastActive{ std::chrono::high_resolution_clock::time_point::min() },
     lastKeepAlive{ std::chrono::high_resolution_clock::time_point::min() },
     uploaded{ 0 }, downloaded{ 0 },
-    context(io_context), socket(std::move(tcpClient)), recBuffer(68),
+    strand_(io_context), socket_(io_context), recBuffer(68),
     ptr_torrentList{torrentList}
 {
-   //open socket, allow reuse of address+port and bind
-   socket.open(tcp::v4());
-   socket.set_option(tcp::socket::reuse_address(true));
-   socket.bind(tcp::endpoint(tcp::v4(), localPort));
+    try
+    {
+       //open socket_, allow reuse of address+port and bind
+       socket_.open(tcp::v4());
+       socket_.set_option(tcp::socket::reuse_address(true));
+       socket_.bind(tcp::endpoint(tcp::v4(), tcpPort));
+    }
+    catch (const boost::system::system_error& error)
+    {
+       LOG_F(ERROR, "Failed to bind TCP socket_ to port %d", tcpPort);
+
+       disconnect();
+    }
 
     isBlockRequested.resize(torrent->piecesData.pieceCount);
     for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
@@ -127,14 +134,12 @@ Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
     messageType.insert({ "cancel", 8 });
     messageType.insert({ "port", 9 });
 
-    //get endpoint from accepted connection
-    endpointKey = socket.remote_endpoint();
-
-    peerHost = socket.remote_endpoint().address().to_string();
-    peerHost = std::to_string(socket.remote_endpoint().port());
-
     isAccepted = true;
-    readFromCreatedPeer();
+}
+
+boost::asio::ip::tcp::socket& Peer::socket()
+{
+    return socket_;
 }
 
 std::string Peer::piecesDownloaded()
@@ -192,44 +197,19 @@ int Peer::blocksRequested()
     return sum;
 }
 
-//When a torrent is first started
-void Peer::startNew(const std::string& host, const std::string& port)
+void Peer::readFromAcceptedPeer()
 {
-    peerHost = host;
-    peerPort = port;
+    if (peerHost.empty() || peerPort.empty())
+    {
+        //get endpoint info from accepted connection
+        endpointKey = socket_.remote_endpoint();
+        peerHost = socket_.remote_endpoint().address().to_string();
+        peerHost = std::to_string(socket_.remote_endpoint().port());
+    }
 
-    auto presolver = std::make_shared<tcp::resolver>(context);
-
-    auto self(shared_from_this());
-    presolver->async_resolve(tcp::resolver::query(host, port),
-        [self, presolver](auto&& ec, auto iter)
-        {
-        self->connectToNewPeer(ec, presolver, iter);
-        });
-}
-
-//When a torrent is resumed
-void Peer::resume()
-{
-    auto presolver = std::make_shared<tcp::resolver>(context);
-
-    auto self(shared_from_this());
-    presolver->async_resolve(tcp::resolver::query(peerHost, peerPort),
-        [self, presolver](auto&& ec, auto iter)
-        {
-        self->connectToNewPeer(ec, presolver, iter);
-        });
-}
-
-void Peer::readFromCreatedPeer()
-{
-    //increase the shared_ptr reference count so when original shared_ptr
-    //in Client is destroyed, this Peer object is not destroyed until
-    //lambda function is called and its arguments are destructed
-    auto self(shared_from_this());
-    socket.async_read_some(boost::asio::buffer(recBuffer),
-        [self](boost::system::error_code ec, std::size_t receivedBytes)
-        {
+    socket_.async_read_some(boost::asio::buffer(recBuffer),
+        boost::asio::bind_executor(strand_,
+        [self = shared_from_this()](boost::system::error_code ec, std::size_t receivedBytes){
             if (!ec)
             {
                 self->handleRead(ec, receivedBytes);
@@ -240,60 +220,32 @@ void Peer::readFromCreatedPeer()
 
                 self->disconnect();
             }
-        });
-}
-
-void Peer::acc_sendNewBytes(std::vector<byte> sendBuffer)
-{
-    if (isDisconnected)
-    {
-        return;
-    }
-
-    auto self(shared_from_this());
-    boost::asio::async_write(socket, boost::asio::buffer(sendBuffer),
-        [self](boost::system::error_code ec, std::size_t sentBytes)
-        {
-            if (!ec)
-            {
-                std::cout << "Sent " << sentBytes << " bytes" << "\n";
-            }
-            else
-            {
-                std::cout << "Error on send: " << ec.message() << "\n";
-
-                self->disconnect();
-            }
-        });
+        }));
 }
 
 void Peer::connectToNewPeer(boost::system::error_code const& ec,
     std::shared_ptr<tcp::resolver> presolver, tcp::resolver::iterator iter)
 {
     if (ec) {
-        std::cerr << "error resolving: " << ec.message() << std::endl;
+        std::cout << "error resolving: " << ec.message() << std::endl;
     }
-    else {
-        auto self(shared_from_this());
-        boost::asio::async_connect(socket, iter,
-            [self, presolver]
-            (auto&& ec, auto iter)
+    else
+    {
+        boost::asio::async_connect(socket_, iter,
+            boost::asio::bind_executor(strand_,
+            [self = shared_from_this(), presolver]
+            (const boost::system::error_code& ec,
+             tcp::resolver::results_type::iterator endpointItr)
             {
-            self->handleNewConnect(ec, iter);
-            //dropping presolver here - we don't need it any more
-            });
+                self->handleNewConnect(ec, endpointItr);
+            }));
     }
 }
 
 void Peer::handleNewConnect(const boost::system::error_code& ec,
     tcp::resolver::results_type::iterator endpointItr)
 {
-    if (ec)
-    {
-        std::cout << "Connect error: " << ec.message() << "\n";
-    }
-    // else connection successful
-    else
+    if (!ec)
     {
         std::cout << "Connected to " << endpointItr->endpoint() << "\n";
 
@@ -302,17 +254,22 @@ void Peer::handleNewConnect(const boost::system::error_code& ec,
         startNewRead();
         sendHandShake();
     }
-
+    // else connection successful
+    else
+    {
+        std::cout << "Connect error: " << ec.message() << "\n";
+    }
 }
 
 void Peer::startNewRead()
 {
-    auto self(shared_from_this());
-    boost::asio::async_read(socket, boost::asio::buffer(recBuffer),
-        [self](auto&& ec, auto size)
+    boost::asio::async_read(socket_, boost::asio::buffer(recBuffer),
+        boost::asio::bind_executor(strand_,
+        [self = shared_from_this()]
+        (const boost::system::error_code& ec, std::size_t receivedBytes)
         {
-            self->handleRead(ec, size);
-        });
+            self->handleRead(ec, receivedBytes);
+        }));
 }
 
 void Peer::handleRead(const boost::system::error_code& ec,
@@ -336,9 +293,10 @@ void Peer::handleRead(const boost::system::error_code& ec,
             recBuffer.clear();
             recBuffer.resize(4);
 
+            //differentiate between accepted connected and initiated connection
             if (isAccepted)
             {
-                readFromCreatedPeer();
+                readFromAcceptedPeer();
             }
             else
             {
@@ -361,7 +319,7 @@ void Peer::handleRead(const boost::system::error_code& ec,
 
                 if (isAccepted)
                 {
-                    readFromCreatedPeer();
+                    readFromAcceptedPeer();
                 }
                 else
                 {
@@ -379,7 +337,7 @@ void Peer::handleRead(const boost::system::error_code& ec,
 
                 if (isAccepted)
                 {
-                    readFromCreatedPeer();
+                    readFromAcceptedPeer();
                 }
                 else
                 {
@@ -403,7 +361,7 @@ void Peer::handleRead(const boost::system::error_code& ec,
 
             if (isAccepted)
             {
-                readFromCreatedPeer();
+                readFromAcceptedPeer();
             }
             else
             {
@@ -419,17 +377,29 @@ void Peer::handleRead(const boost::system::error_code& ec,
     }
 }
 
-int Peer::getMessageLength()
+void Peer::acc_sendNewBytes(std::vector<byte> sendBuffer)
 {
-    //header packet (4 bytes) gives message length
-    //convert bytes to int
-    int length = 0;
-    for (size_t i = 0; i < 4; ++i)
+    if (isDisconnected)
     {
-        length <<= 8;
-        length |= recBuffer.at(i);
+        return;
     }
-    return length;
+
+    boost::asio::async_write(socket_, boost::asio::buffer(sendBuffer),
+        boost::asio::bind_executor(strand_,
+        [self = shared_from_this()]
+        (boost::system::error_code ec, std::size_t sentBytes)
+        {
+            if (!ec)
+            {
+                std::cout << "Sent " << sentBytes << " bytes" << "\n";
+            }
+            else
+            {
+                std::cout << "Error on send: " << ec.message() << "\n";
+
+                self->disconnect();
+            }
+        }));
 }
 
 void Peer::sendNewBytes(std::vector<byte> sendBuffer)
@@ -442,14 +412,14 @@ void Peer::sendNewBytes(std::vector<byte> sendBuffer)
     //capture the payload so it continues to exist during async send
     auto payload = std::make_shared<std::vector<byte>>(sendBuffer);
 
-    // start async send and immediately call the handler func
-    auto self = shared_from_this();
-    boost::asio::async_write(socket, boost::asio::buffer(*payload),
-        [self,payload]
-            (auto&& ec, auto size)
+    // start async send and immediately call the handler
+    boost::asio::async_write(socket_, boost::asio::buffer(*payload),
+        boost::asio::bind_executor(strand_,
+        [self = shared_from_this(), payload]
+        (const boost::system::error_code& ec, std::size_t sentBytes)
         {
-            self->handleNewSend(ec, size);
-        });
+            self->handleNewSend(ec, sentBytes);
+        }));
 }
 
 void Peer::handleNewSend(const boost::system::error_code& ec,
@@ -478,13 +448,27 @@ void Peer::disconnect()
 
     isDisconnected = true;
     boost::system::error_code ignored_ec;
-    socket.close(ignored_ec);
+    socket_.close(ignored_ec);
 
     std::cout << "\n" << "Disconnected from peer, downloaded: " << downloaded
         << ", uploaded: " << uploaded << "\n";
 
     //call slot
     sig_disconnected->operator()(this);
+}
+
+
+int Peer::getMessageLength()
+{
+    //header packet (4 bytes) gives message length
+    //convert bytes to int
+    int length = 0;
+    for (size_t i = 0; i < 4; ++i)
+    {
+        length <<= 8;
+        length |= recBuffer.at(i);
+    }
+    return length;
 }
 
 void Peer::handleMessage()
@@ -1223,7 +1207,7 @@ void Peer::sendUnchoke()
 
 void Peer::sendInterested()
 {
-    if (isInterestSent)
+    if (isInterestedSent)
     {
         return;
     }
@@ -1240,12 +1224,12 @@ void Peer::sendInterested()
         sendNewBytes(encodeInterested());
     }
 
-    isInterestSent = true;
+    isInterestedSent = true;
 }
 
 void Peer::sendNotInterested()
 {
-    if (!isInterestSent)
+    if (!isInterestedSent)
     {
         return;
     }
@@ -1262,7 +1246,7 @@ void Peer::sendNotInterested()
         sendNewBytes(encodeNotInterested());
     }
 
-    isInterestSent = false;
+    isInterestedSent = false;
 }
 
 void Peer::sendHave(int index)
@@ -1440,7 +1424,7 @@ void Peer::handleKeepAlive()
 void Peer::handleChoke()
 {
     std::cout << "Handling Choke message..." << "...\n";
-    IsChokeReceived = true;
+    isChokeReceived = true;
 
     //call slot
     if (!sig_stateChanged->empty())
@@ -1452,7 +1436,7 @@ void Peer::handleChoke()
 void Peer::handleUnchoke()
 {
     std::cout << "Handling Unchoke message..." << "...\n";
-    IsChokeReceived = false;
+    isChokeReceived = false;
 
     //call slot
     if (!sig_stateChanged->empty())
@@ -1464,7 +1448,7 @@ void Peer::handleUnchoke()
 void Peer::handleInterested()
 {
     std::cout << "Handling Interested message..." << "...\n";
-    IsInterestedReceived = true;
+    isInterestedReceived = true;
 
     //call slot
     if (!sig_stateChanged->empty())
@@ -1476,7 +1460,7 @@ void Peer::handleInterested()
 void Peer::handleNotInterested()
 {
     std::cout << "Handling Not Interested message..." << "...\n";
-    IsInterestedReceived = false;
+    isInterestedReceived = false;
 
     //call slot
     if (!sig_stateChanged->empty())
