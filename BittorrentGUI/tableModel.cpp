@@ -158,12 +158,13 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
                  statusData.currentState ==
                  TorrentStatus::currentStatus::completed)
         {
+            if (ioClientModel->
+                    WorkingTorrents.torrentList.at(index.row())->isSeeding)
+            {
+                return "Seeding";
+            }
+
             return "Completed";
-        }
-        else if (ioClientModel->
-                 WorkingTorrents.torrentList.at(index.row())->isSeeding)
-        {
-            return "Seeding";
         }
     }
     //seeds
