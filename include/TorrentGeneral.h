@@ -45,7 +45,7 @@ namespace Bittorrent
         std::unordered_set<peer> uniquePeerList;
 
         //signal
-        std::shared_ptr<boost::signals2::signal<void(peer*)>> sig_peersUpdated;
+        std::shared_ptr<boost::signals2::signal<void(peer)>> sig_peersUpdated;
 
 		//fill general info
 		void torrentToGeneralData(const char* fullFilePath, 
@@ -53,9 +53,6 @@ namespace Bittorrent
 		valueDictionary generalDataToDictionary(valueDictionary& dict);
 
 		void resetTrackersLastRequest();
-
-        //update peer list from tracker response
-        void getPeerList();
 
 		//constructor
         TorrentGeneral();

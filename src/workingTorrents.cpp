@@ -20,6 +20,7 @@ WorkingTorrents::WorkingTorrents()
       uploadThrottle{defaultSettings.maxULSpeed, std::chrono::seconds{1}},
       rand{}, rng{rand()}, peerTimeout{std::chrono::seconds{30}}
 {
+
 }
 
 std::string WorkingTorrents::isDuplicateTorrent(Torrent* modifiedTorrent)
@@ -269,15 +270,13 @@ void WorkingTorrents::start(int position)
                 threadVector.emplace_back([&]()
                 {
                     tracker.update(
-                    torrentList.at(position).get()->statusData.currentState,
+                    torrentList.at(position)->statusData.currentState,
                     clientID, defaultSettings.httpPort, defaultSettings.udpPort,
-                    torrentList.at(position).get()->
-                    hashesData.urlEncodedInfoHash,
-                    torrentList.at(position).get()->
-                    hashesData.infoHash,
-                    torrentList.at(position).get()->statusData.uploaded,
-                    torrentList.at(position).get()->statusData.downloaded(),
-                    torrentList.at(position).get()->statusData.remaining());
+                    torrentList.at(position)->hashesData.urlEncodedInfoHash,
+                    torrentList.at(position)->hashesData.infoHash,
+                    torrentList.at(position)->statusData.uploaded,
+                    torrentList.at(position)->statusData.downloaded(),
+                    torrentList.at(position)->statusData.remaining());
 
                     LOG_F(INFO, "Processed tracker %s",
                           tracker.trackerAddress.c_str());
@@ -317,15 +316,13 @@ void WorkingTorrents::start(int position)
                 threadVector.emplace_back([&]()
                 {
                     tracker.update(
-                    torrentList.at(position).get()->statusData.currentState,
+                    torrentList.at(position)->statusData.currentState,
                     clientID, defaultSettings.httpPort, defaultSettings.udpPort,
-                    torrentList.at(position).get()->
-                    hashesData.urlEncodedInfoHash,
-                    torrentList.at(position).get()->
-                    hashesData.infoHash,
-                    torrentList.at(position).get()->statusData.uploaded,
-                    torrentList.at(position).get()->statusData.downloaded(),
-                    torrentList.at(position).get()->statusData.remaining());
+                    torrentList.at(position)->hashesData.urlEncodedInfoHash,
+                    torrentList.at(position)->hashesData.infoHash,
+                    torrentList.at(position)->statusData.uploaded,
+                    torrentList.at(position)->statusData.downloaded(),
+                    torrentList.at(position)->statusData.remaining());
 
                     LOG_F(INFO, "Processed tracker %s",
                           tracker.trackerAddress.c_str());
@@ -360,13 +357,13 @@ void WorkingTorrents::start(int position)
         //else resume peer connections with existing peers
         if (torrentList.at(position)->generalData.uniquePeerList.empty())
         {
-            torrentList.at(position)->generalData.getPeerList();
+            //torrentList.at(position)->generalData.getPeerList();
+            torrentList.at(position)->handlePeerListUpdated();
         }
         else
         {
             auto infoHash = torrentList.at(position)->
                     hashesData.urlEncodedInfoHash;
-
 
             std::unique_lock<std::mutex> mapGuard(mtx_map);
 
@@ -392,7 +389,7 @@ void WorkingTorrents::start(int position)
                     if (std::find(mapHostRange.begin(), mapHostRange.end(),
                                   singlePeer.ipAddress) == mapHostRange.end())
                     {
-                            addPeer(&singlePeer,
+                            addPeer(singlePeer,
                                     torrentList.at(position).get());
                     }
                 }
@@ -421,7 +418,7 @@ void WorkingTorrents::startSeeding(int position)
 }
 
 //peers for downloading
-void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
+void WorkingTorrents::addPeer(peer singlePeer, Torrent* torrent)
 {
     QFuture<void> future = QtConcurrent::run([&]()
     {
@@ -462,7 +459,7 @@ void WorkingTorrents::addPeer(peer* singlePeer, Torrent* torrent)
 
         mapGuard.unlock();
 
-        peerConn->startNew(singlePeer->ipAddress, singlePeer->port);
+        peerConn->startNew(singlePeer.ipAddress, singlePeer.port);
 
         io_context.run();
     });

@@ -75,7 +75,8 @@ void TrackerTimer::wait_then_call(pSet* trackerSet)
                            trackerSet->begin()->second->statusData.remaining());
 
             //update peer list
-            trackerSet->begin()->second->generalData.getPeerList();
+            //trackerSet->begin()->second->generalData.getPeerList();
+            trackerSet->begin()->second->handlePeerListUpdated();
 
             //re-insert element (with updated peer interval)
             trackerSet->emplace(trackerSet->begin()->first,

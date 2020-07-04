@@ -81,7 +81,7 @@ public:
     void startSeeding(int position);
 
     //slots
-    void addPeer(peer* singlePeer, Torrent* torrent);
+    void addPeer(peer singlePeer, Torrent* torrent);
     void handlePieceVerified(Torrent* torrent, int index);
     void handleBlockRequested(Peer::dataRequest request);
     void handleBlockCancelled(Peer::dataRequest request);
