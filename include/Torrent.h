@@ -49,7 +49,7 @@ namespace Bittorrent
 
         //signals
         std::shared_ptr<boost::signals2::signal<void(
-                peer, Torrent*)>> sig_addPeer;
+                peer, std::shared_ptr<Torrent>)>> sig_addPeer;
 
         //piece verification signal
         std::shared_ptr<boost::signals2::signal<void(

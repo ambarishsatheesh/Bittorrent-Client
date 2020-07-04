@@ -390,7 +390,7 @@ void WorkingTorrents::start(int position)
                                   singlePeer.ipAddress) == mapHostRange.end())
                     {
                             addPeer(singlePeer,
-                                    torrentList.at(position).get());
+                                    torrentList.at(position));
                     }
                 }
             }
@@ -418,7 +418,7 @@ void WorkingTorrents::startSeeding(int position)
 }
 
 //peers for downloading
-void WorkingTorrents::addPeer(peer singlePeer, Torrent* torrent)
+void WorkingTorrents::addPeer(peer singlePeer, std::shared_ptr<Torrent> torrent)
 {
     QFuture<void> future = QtConcurrent::run([&]()
     {

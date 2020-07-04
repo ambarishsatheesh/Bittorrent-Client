@@ -11,7 +11,7 @@ namespace Bittorrent
 using tcp = boost::asio::ip::tcp;
 using namespace utility;
 
-Peer::Peer(Torrent* torrent, std::vector<byte>& localID,
+Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
     boost::asio::io_context& io_context, int localPort)
     : sig_disconnected{std::make_shared<boost::signals2::signal<void(
                        Peer*)>>()},
@@ -24,7 +24,7 @@ Peer::Peer(Torrent* torrent, std::vector<byte>& localID,
     sig_blockReceived{std::make_shared<boost::signals2::signal<void(
                            dataPackage)>>()},
     peerHost{""}, peerPort{""}, localID{ localID }, peerID{ "" },
-    torrent{ torrent->getPtr() }, endpointKey(),
+    torrent{ torrent }, endpointKey(),
     isPieceDownloaded(torrent->piecesData.pieceCount),
     isDisconnected{}, isHandshakeSent{}, isPositionSent{},
     isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{},
@@ -35,7 +35,6 @@ Peer::Peer(Torrent* torrent, std::vector<byte>& localID,
     context(io_context), socket(context),
     recBuffer(68)
 {
-
     try
     {
         //open socket, allow reuse of address+port and bind
@@ -1391,8 +1390,8 @@ void Peer::handleHandshake(std::vector<byte> hash, std::string id)
             if (hash == ptr_torrent->hashesData.infoHash)
             {
                 //set this Peer object's associated Torrent object
-                //by assigning a new shared ptr to that Torrent object
-                torrent = ptr_torrent->getPtr();
+                //by assigning the shared ptr to that Torrent object
+                torrent = ptr_torrent;
                 break;
             }
         }

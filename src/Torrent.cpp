@@ -11,7 +11,7 @@ namespace Bittorrent
         : clientRank{0}, generalData(), piecesData(), hashesData(),
           statusData(std::make_shared<TorrentPieces>(piecesData)),
           sig_addPeer{
-              std::make_shared<boost::signals2::signal<void(peer, Torrent*)>>()},
+              std::make_shared<boost::signals2::signal<void(peer, std::shared_ptr<Torrent>)>>()},
           sig_pieceVerified{
               std::make_shared<boost::signals2::signal<void(Torrent*, int)>>()}
     {
@@ -141,7 +141,7 @@ namespace Bittorrent
                 {
                     if (!sig_addPeer->empty())
                     {
-                        sig_addPeer->operator()(singlePeer, this);
+                        sig_addPeer->operator()(singlePeer, getPtr());
                     }
                 }
             }
