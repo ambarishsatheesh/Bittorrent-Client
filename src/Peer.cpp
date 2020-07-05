@@ -5,6 +5,7 @@
 #include <iostream>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/dynamic_bitset.hpp>
+#include <bitset>
 
 namespace Bittorrent
 {
@@ -780,7 +781,7 @@ bool Peer::decodeHave(int& index)
 bool Peer::decodeBitfield(int pieces,
     std::vector<bool>& recIsPieceDownloaded)
 {
-    recIsPieceDownloaded.resize(pieces);
+    recIsPieceDownloaded.reserve(pieces);
 
     //get length of data after header packet
     //if number of pieces is not divisible by 8, the end of the bitfield is
@@ -806,19 +807,16 @@ bool Peer::decodeBitfield(int pieces,
         return false;
     }
 
-    //iterate through bitfield and set piece status based on bit value
-    size_t k = 0;
-    for (size_t i = 5; i < pieces; ++i)
+    std::string binaryAsString;
+    for (size_t i = 5; i < processBuffer.size(); ++i)
     {
-        //create set of bits representing each byte's value
-        boost::dynamic_bitset<> bitArray(8,
-            static_cast<unsigned int>(processBuffer.at(i)));
+        std::bitset<8> bit(i);
+        binaryAsString += bit.to_string();
+    }
 
-        //set bools based on bit values (every 8 bits, restart iterator at 0)
-        for (size_t j = 0; j < bitArray.size(); ++j, ++k)
-        {
-            recIsPieceDownloaded.at(k) = bitArray[bitArray.size() - j - 1];
-        }
+    for (size_t i = 0; i < pieces; ++i)
+    {
+        recIsPieceDownloaded.push_back(binaryAsString.at(i) == '1');
     }
 
     LOG_F(INFO, "(%s:%s) Successfully decoded 'bitfield' message.",
