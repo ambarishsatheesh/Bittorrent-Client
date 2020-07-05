@@ -807,14 +807,14 @@ bool Peer::decodeBitfield(int pieces,
         return false;
     }
 
-    std::string binaryAsString;
+    std::string binaryAsString = "";
     for (size_t i = 5; i < processBuffer.size(); ++i)
     {
-        std::bitset<8> bit(i);
+        std::bitset<8> bit(processBuffer.at(i));
         binaryAsString += bit.to_string();
     }
 
-    for (size_t i = 0; i < pieces; ++i)
+    for (int i = 0; i < pieces; ++i)
     {
         recIsPieceDownloaded.push_back(binaryAsString.at(i) == '1');
     }
@@ -1075,27 +1075,27 @@ std::vector<byte> Peer::encodeBitfield(
     //type byte
     newBitfield.at(4) = static_cast<byte>(messageType.left.at("bitfield"));
 
-    //create bitset based on bools (+ extra 0s at end if numBits > numPieces)
-    boost::dynamic_bitset<> downloadedBitArr(numBits);
-    for (size_t i = 0; i < numBits; ++i)
+    //convert bools to binary in string representation
+    std::string binaryAsString = "";
+    for (int i = 0; i < numPieces; ++i)
     {
-        downloadedBitArr[i] = recIsPieceDownloaded.at(numBits - 1 - i);
+        binaryAsString += recIsPieceDownloaded.at(i) ? '1' : '0';
     }
 
-    //iterate through bitset and convert binary to decimal every 8 bits
-    //store in temporary vector
-    std::vector<byte> tempBitfieldVec(numBytes);
-    std::string bitStr = "";
-    size_t k = 0;
-    for (size_t i = 0; i < numBits; i += 8)
+    //add trailing 0s (as per spec)
+    const int extraBits = (numBits) - numPieces;
+    for (int i = 0; i < extraBits; ++i)
     {
-        for (size_t j = 0; j < 8; ++j, ++k)
-        {
-            bitStr += std::to_string(downloadedBitArr[numBits - k - 1]);
-        }
-        auto numVal = std::stoi(bitStr, nullptr, 2);
-        tempBitfieldVec.at(i / 8) = static_cast<byte>(numVal);
-        bitStr = "";
+        binaryAsString += '0';
+    }
+
+    //covert to byte vector
+    std::vector<byte> tempBitfieldVec;
+    tempBitfieldVec.reserve(numBytes);
+    for (int i = 0; i < binaryAsString.size(); i+=8)
+    {
+        std::bitset<8> x(binaryAsString.substr(i, 8));
+        tempBitfieldVec.push_back(static_cast<int>(x.to_ulong() & 0xFF));
     }
 
     //copy vector to complete bitfield vector
