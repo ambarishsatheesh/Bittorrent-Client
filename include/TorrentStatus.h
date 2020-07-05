@@ -24,7 +24,7 @@ namespace Bittorrent
         void torrentToStatusData();
 
 		//constructor
-        TorrentStatus(TorrentPieces* pieces);
+        TorrentStatus(TorrentPieces& pieces);
 		//no default constructor - requires parameter
 		TorrentStatus() = delete;
 
@@ -34,6 +34,9 @@ namespace Bittorrent
         bool isStarted();
         long long downloaded();
         long long remaining();
+        int pieceCount;
+        int pieceSize;
+        int totalSize;
         long long uploaded;
 
 	private:

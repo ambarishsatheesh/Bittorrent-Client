@@ -2,14 +2,18 @@
 
 namespace Bittorrent
 {
-    TorrentStatus::TorrentStatus(TorrentPieces* pieces)
-        : currentState{currentStatus::stopped}, ptr_piecesData(pieces),
-          uploaded{0}
+    TorrentStatus::TorrentStatus(TorrentPieces& pieces)
+        : currentState{currentStatus::stopped}, ptr_piecesData(&pieces),
+          pieceCount{0}, pieceSize{0}, totalSize{0}, uploaded{0}
 	{
 	}
 
     void TorrentStatus::torrentToStatusData()
     {
+        pieceCount = ptr_piecesData->pieceCount;
+        pieceSize = ptr_piecesData->pieceSize;
+        totalSize = ptr_piecesData->totalSize;
+
         isPieceVerified.resize(ptr_piecesData->pieceCount);
         isBlockAcquired.resize(ptr_piecesData->pieceCount);
 
@@ -27,12 +31,12 @@ namespace Bittorrent
 
     float TorrentStatus::verifiedRatio()
     {
-        return verifiedPiecesCount() / float(ptr_piecesData->pieceCount);
+        return verifiedPiecesCount() / float(pieceCount);
     }
 
     bool TorrentStatus::isCompleted()
     {
-        return verifiedPiecesCount() == ptr_piecesData->pieceCount;
+        return verifiedPiecesCount() == pieceCount;
     }
 
     bool TorrentStatus::isStarted()
@@ -42,11 +46,11 @@ namespace Bittorrent
 
     long long TorrentStatus::downloaded()
     {
-        return ptr_piecesData->pieceSize * verifiedPiecesCount();
+        return pieceSize * verifiedPiecesCount();
     }
 
     long long TorrentStatus::remaining()
 	{
-        return ptr_piecesData->totalSize - downloaded();
+        return totalSize - downloaded();
 	}
 }
