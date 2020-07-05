@@ -134,7 +134,7 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
 
         auto totalBytes = entry->piecesData.totalSize;
 
-        return downloadedBytes/totalBytes;
+        return 100 * (downloadedBytes/totalBytes);
     }
     //Status
     case 5:
