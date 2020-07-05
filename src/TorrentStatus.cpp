@@ -2,11 +2,22 @@
 
 namespace Bittorrent
 {
-    TorrentStatus::TorrentStatus(std::shared_ptr<TorrentPieces> pieces)
+    TorrentStatus::TorrentStatus(TorrentPieces* pieces)
         : currentState{currentStatus::stopped}, ptr_piecesData(pieces),
           uploaded{0}
 	{
 	}
+
+    void TorrentStatus::torrentToStatusData()
+    {
+        isPieceVerified.resize(ptr_piecesData->pieceCount);
+        isBlockAcquired.resize(ptr_piecesData->pieceCount);
+
+        for (int i = 0; i < ptr_piecesData->pieceCount; ++i)
+        {
+            isBlockAcquired.at(i).resize(ptr_piecesData->getBlockCount(i));
+        }
+    }
 
     int TorrentStatus::verifiedPiecesCount()
     {

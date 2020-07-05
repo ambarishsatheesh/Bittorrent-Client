@@ -18,10 +18,13 @@ namespace Bittorrent
 
 		std::vector<std::vector<bool>> isBlockAcquired;
 		std::vector<bool> isPieceVerified;
-        std::shared_ptr<TorrentPieces> ptr_piecesData;
+        TorrentPieces* ptr_piecesData;
+
+        //fill data using decoded data
+        void torrentToStatusData();
 
 		//constructor
-        TorrentStatus(const std::shared_ptr<TorrentPieces> pieces);
+        TorrentStatus(TorrentPieces* pieces);
 		//no default constructor - requires parameter
 		TorrentStatus() = delete;
 
