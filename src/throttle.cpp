@@ -22,12 +22,14 @@ bool Throttle::isThrottled()
                 std::remove_if(
                     transferPacketVec.begin(), transferPacketVec.end(),
                     [&]
-                    (const transferPacket& p){return p.dataTime < cutoff;}));
+                    (const transferPacket& p){return p.dataTime < cutoff;}),
+                transferPacketVec.end());
 
-    return std::accumulate(
-                transferPacketVec.begin(), transferPacketVec.end(), 0,
-                    []
-                (int sum, const transferPacket& p){return sum + p.dataSize;});
+        return std::accumulate(
+                    transferPacketVec.begin(), transferPacketVec.end(), 0,
+                        [&]
+                    (int sum, const transferPacket& p)
+        {return sum + p.dataSize;}) > maxDataSize;
 }
 
 }
