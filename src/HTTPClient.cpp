@@ -84,8 +84,19 @@ void HTTPClient::dataTransmission(bool isAnnounce)
     LOG_F(INFO, "Resolving HTTP tracker (%s:%s)...",
         peerHost.c_str(), peerPort.c_str());
 
-    tcp::resolver resolver{ io_context };
-    auto results = resolver.resolve(peerHost, peerPort);
+    tcp::resolver::results_type results;
+
+    try
+    {
+        tcp::resolver resolver{ io_context };
+        results = resolver.resolve(peerHost, peerPort);
+    }
+    catch (boost::system::error_code ec)
+    {
+        LOG_F(ERROR,
+            "Failed to resolve HTTP tracker %s:%s! Error msg: \"%s\".",
+            peerHost.c_str(), peerPort.c_str(), ec.message().c_str());
+    }
 
     //need to bind object context using "this" for class member functions
     boost::asio::async_connect(socket, results,
@@ -141,7 +152,7 @@ void HTTPClient::handleConnect(const boost::system::error_code& error)
     else
     {
         LOG_F(ERROR,
-            "Failed to resolve HTTP tracker %s:%s! Error msg: \"%s\".",
+            "Failed to connect to HTTP tracker %s:%s! Error msg: \"%s\".",
             peerHost.c_str(), peerPort.c_str(), error.message().c_str());
 
         peerRequestInterval = std::chrono::seconds(1800);

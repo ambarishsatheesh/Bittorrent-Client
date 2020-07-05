@@ -91,8 +91,18 @@ void UDPClient::dataTransmission(bool isAnnounce)
 {
     m_isAnnounce = isAnnounce;
 
-    udp::resolver resolver{ io_context };
-    auto results = resolver.resolve(peerHost, peerPort);
+    boost::asio::ip::udp::resolver::results_type results;
+    try
+    {
+        udp::resolver resolver{ io_context };
+        results = resolver.resolve(peerHost, peerPort);
+    }
+    catch (boost::system::error_code ec)
+    {
+        LOG_F(ERROR,
+            "Failed to resolve UDP tracker %s:%s! Error msg: \"%s\".",
+            peerHost.c_str(), peerPort.c_str(), ec.message().c_str());
+    }
 
     //need to bind object context using "this" for class member functions
     boost::asio::async_connect(socket, results,
@@ -130,7 +140,7 @@ void UDPClient::handleConnect(const boost::system::error_code& error)
     else
     {
         LOG_F(ERROR,
-            "Failed to resolve UDP tracker %s:%s! Error msg: \"%s\".",
+            "Failed to connect to UDP tracker %s:%s! Error msg: \"%s\".",
             peerHost.c_str(), peerPort.c_str(), error.message().c_str());
 
         peerRequestInterval = std::chrono::seconds(1800);
