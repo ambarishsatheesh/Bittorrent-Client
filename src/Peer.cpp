@@ -35,19 +35,7 @@ Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
     strand_(io_context), socket_(io_context),
     recBuffer(68), isAccepted{false}
 {
-    try
-    {
-        //open socket_, allow reuse of address+port and bind
-        socket_.open(tcp::v4());
-        socket_.set_option(tcp::socket::reuse_address(true));
-        socket_.bind(tcp::endpoint(tcp::v4(), tcpPort));
-    }
-    catch (const boost::system::system_error& error)
-    {
-        LOG_F(ERROR, "Failed to bind TCP socket_ to port %d", tcpPort);
-
-        disconnect();
-    }
+    setSocketOptions(tcpPort);
 
     isBlockRequested.resize(torrent->piecesData.pieceCount);
     for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
@@ -98,19 +86,7 @@ Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
     strand_(io_context), socket_(io_context), recBuffer(68), isAccepted{true},
     ptr_torrentList{torrentList}
 {
-    try
-    {
-       //open socket_, allow reuse of address+port and bind
-       socket_.open(tcp::v4());
-       socket_.set_option(tcp::socket::reuse_address(true));
-       socket_.bind(tcp::endpoint(tcp::v4(), tcpPort));
-    }
-    catch (const boost::system::system_error& error)
-    {
-       LOG_F(ERROR, "Failed to bind TCP socket_ to port %d", tcpPort);
-
-       disconnect();
-    }
+    setSocketOptions(tcpPort);
 
     isBlockRequested.resize(torrent->piecesData.pieceCount);
     for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
@@ -133,6 +109,24 @@ Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
     messageType.insert({ "piece", 7 });
     messageType.insert({ "cancel", 8 });
     messageType.insert({ "port", 9 });
+}
+
+//also used when resuming to reopen socket and set options
+void Peer::setSocketOptions(int tcpPort)
+{
+    try
+    {
+       //open socket_, allow reuse of address+port and bind
+       socket_.open(tcp::v4());
+       socket_.set_option(tcp::socket::reuse_address(true));
+       socket_.bind(tcp::endpoint(tcp::v4(), tcpPort));
+    }
+    catch (const boost::system::system_error& error)
+    {
+       LOG_F(ERROR, "Failed to bind TCP socket_ to port %d", tcpPort);
+
+       disconnect();
+    }
 }
 
 boost::asio::ip::tcp::socket& Peer::socket()

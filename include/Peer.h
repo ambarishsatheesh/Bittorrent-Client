@@ -148,6 +148,7 @@ namespace Bittorrent
             std::shared_ptr<tcp::resolver> presolver,
             tcp::resolver::iterator iter);
         void readFromAcceptedPeer();
+        void setSocketOptions(int tcpPort);
 
     private:
         // Strand to ensure the connection's handlers are not called concurrently.

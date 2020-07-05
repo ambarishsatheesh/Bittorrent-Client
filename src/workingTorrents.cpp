@@ -498,6 +498,8 @@ void WorkingTorrents::addPeer(peer singlePeer, std::shared_ptr<Torrent> torrent)
 
 void WorkingTorrents::resumePeer(Peer* peer)
 {
+    peer->setSocketOptions(defaultSettings.tcpPort);
+
     //reset transfer checks
     peer->isHandshakeReceived = false;
     peer->isHandshakeSent = true;
