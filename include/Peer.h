@@ -206,7 +206,7 @@ namespace Bittorrent
 		std::vector<byte> encodeState(int typeVal);
 		std::vector<byte> encodeHave(int index);
 		std::vector<byte> encodeBitfield(
-			std::vector<bool> recIsPieceDownloaded);
+            std::vector<bool> isPieceVerified);
 		std::vector<byte> encodeDataRequest(int index, int offset, 
 			int dataSize);
 		std::vector<byte> encodeCancel(int index, int offset, int dataSize);
@@ -216,7 +216,7 @@ namespace Bittorrent
 		//sending
 		void sendHandShake();
 		void sendChoke();
-		void sendBitfield(std::vector<bool> isPieceDownloaded);
+        void sendBitfield(std::vector<bool> isPieceVerified);
 
 		//receiving
 		void handleMessage();

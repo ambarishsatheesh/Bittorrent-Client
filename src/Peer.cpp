@@ -807,12 +807,18 @@ bool Peer::decodeBitfield(int pieces,
         return false;
     }
 
+    LOG_F(INFO, "(%s:%s) Decoded step A.",
+          peerHost.c_str(), peerPort.c_str());
+
     std::string binaryAsString = "";
     for (size_t i = 5; i < processBuffer.size(); ++i)
     {
         std::bitset<8> bit(processBuffer.at(i));
         binaryAsString += bit.to_string();
     }
+
+    LOG_F(INFO, "(%s:%s) Decoded step B.",
+          peerHost.c_str(), peerPort.c_str());
 
     for (int i = 0; i < pieces; ++i)
     {
@@ -1057,9 +1063,9 @@ std::vector<byte> Peer::encodeHave(int index)
 }
 
 std::vector<byte> Peer::encodeBitfield(
-    std::vector<bool> recIsPieceDownloaded)
+    std::vector<bool> isPieceVerified)
 {
-    const int numPieces = recIsPieceDownloaded.size();
+    const int numPieces = isPieceVerified.size();
     const int numBytes = std::ceil(numPieces / 8.0);
     const int numBits = numBytes * 8;
     const int length = numBytes + 1;
@@ -1075,12 +1081,18 @@ std::vector<byte> Peer::encodeBitfield(
     //type byte
     newBitfield.at(4) = static_cast<byte>(messageType.left.at("bitfield"));
 
+    LOG_F(INFO, "(%s:%s) Encoded first four bytes of 'bitfield' message.",
+          peerHost.c_str(), peerPort.c_str());
+
     //convert bools to binary in string representation
     std::string binaryAsString = "";
     for (int i = 0; i < numPieces; ++i)
     {
-        binaryAsString += recIsPieceDownloaded.at(i) ? '1' : '0';
+        binaryAsString += isPieceVerified.at(i) ? '1' : '0';
     }
+
+    LOG_F(INFO, "(%s:%s) Encoded step A.",
+          peerHost.c_str(), peerPort.c_str());
 
     //add trailing 0s (as per spec)
     const int extraBits = (numBits) - numPieces;
@@ -1088,6 +1100,9 @@ std::vector<byte> Peer::encodeBitfield(
     {
         binaryAsString += '0';
     }
+
+    LOG_F(INFO, "(%s:%s) Encoded step B.",
+          peerHost.c_str(), peerPort.c_str());
 
     //covert to byte vector
     std::vector<byte> tempBitfieldVec;
@@ -1098,9 +1113,15 @@ std::vector<byte> Peer::encodeBitfield(
         tempBitfieldVec.push_back(static_cast<int>(x.to_ulong() & 0xFF));
     }
 
+    LOG_F(INFO, "(%s:%s) Encoded step C.",
+          peerHost.c_str(), peerPort.c_str());
+
     //copy vector to complete bitfield vector
     std::copy(tempBitfieldVec.begin(), tempBitfieldVec.end(),
         newBitfield.begin() + 5);
+
+    LOG_F(INFO, "(%s:%s) Successfully encoded 'bitfield' message.",
+          peerHost.c_str(), peerPort.c_str());
 
     return newBitfield;
 }
@@ -1360,11 +1381,11 @@ void Peer::sendHave(int index)
     }
 }
 
-void Peer::sendBitfield(std::vector<bool> isPieceDownloaded)
+void Peer::sendBitfield(std::vector<bool> isPieceVerified)
 {
     //create temp vec to store string bool, then return all as single string
-    std::vector<std::string> tempVec(isPieceDownloaded.size());
-    for (auto i : isPieceDownloaded)
+    std::vector<std::string> tempVec(isPieceVerified.size());
+    for (auto i : isPieceVerified)
     {
         if (i == 1)
         {
@@ -1383,11 +1404,11 @@ void Peer::sendBitfield(std::vector<bool> isPieceDownloaded)
     //create buffer and send
     if (isAccepted)
     {
-        acc_sendNewBytes((encodeBitfield(isPieceDownloaded)));
+        acc_sendNewBytes((encodeBitfield(isPieceVerified)));
     }
     else
     {
-        sendNewBytes(encodeBitfield(isPieceDownloaded));
+        sendNewBytes(encodeBitfield(isPieceVerified));
     }
 }
 

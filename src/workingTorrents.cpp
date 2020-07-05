@@ -32,6 +32,8 @@ WorkingTorrents::WorkingTorrents()
           threadPool.push_back(thread);
       }
 
+
+
     //Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
     acceptor_.open(tcp::v4());
     acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
@@ -782,6 +784,9 @@ void WorkingTorrents::handlePeerStateChanged(Peer* senderPeer)
 
 void WorkingTorrents::processPeers(Torrent* torrent)
 {
+    LOG_F(INFO, "Processing peers for torrent %s.",
+          torrent->generalData.fileName.c_str());
+
     //locking mutex because this method can be run on multiple threads
     std::lock_guard<std::mutex> processGuard(mtx_process);
 
@@ -858,12 +863,15 @@ void WorkingTorrents::processPeers(Torrent* torrent)
         auto infoHash = torrent->hashesData.urlEncodedInfoHash;
         if (torrent->statusData.isStarted() &&
                 leechersMap.count(infoHash) < defaultSettings.maxSeeders)
-        {
+        {            
             if (peer->isInterestedReceived && peer->isChokeSent)
             {
                 peer->sendUnchoke();
                 leechersMap.emplace(torrent->hashesData.urlEncodedInfoHash,
                                    peer);
+
+                LOG_F(INFO, "Added peer %s:%s to leechers.",
+                      peer->peerHost.c_str(), peer->peerPort.c_str());
             }
         }
 
@@ -875,9 +883,15 @@ void WorkingTorrents::processPeers(Torrent* torrent)
             {
                 seedersMap.emplace(torrent->hashesData.urlEncodedInfoHash,
                                    peer);
+
+                LOG_F(INFO, "Added peer %s:%s to seeders.",
+                      peer->peerHost.c_str(), peer->peerPort.c_str());
             }
         }
     }
+
+    LOG_F(INFO, "Completed processing peers for torrent %s.",
+          torrent->generalData.fileName.c_str());
 }
 
 void WorkingTorrents::processUploads()
