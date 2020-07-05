@@ -62,6 +62,9 @@ namespace Bittorrent
             newTorrent.generalData.torrentToGeneralData(fullFilePath, torrentDict);
             //fill pieces data
             newTorrent.piecesData.torrentToPiecesData(newTorrent.fileList, torrentDict);
+            //fill status data
+            newTorrent.statusData.torrentToStatusData();
+            //fill hashes data
             newTorrent.hashesData.torrentToHashesData(torrentDict);
 
             //encode and create info section for use in new torrent
