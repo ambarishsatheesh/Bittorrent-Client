@@ -226,23 +226,23 @@ void WorkingTorrents::removeTorrent(int position)
 
     auto range = peerConnMap.equal_range(
                 torrentList.at(position)->hashesData.urlEncodedInfoHash);
-    for (auto it = range.first; it != range.second; ++it)
+    for (auto it = range.first; it != range.second;)
     {
-        peerConnMap.erase(it);
+        it = peerConnMap.erase(it);
     }
 
     range = seedersMap.equal_range(
                     torrentList.at(position)->hashesData.urlEncodedInfoHash);
-    for (auto it = range.first; it != range.second; ++it)
+    for (auto it = range.first; it != range.second;)
     {
-        seedersMap.erase(it);
+        it = seedersMap.erase(it);
     }
 
     range = leechersMap.equal_range(
                     torrentList.at(position)->hashesData.urlEncodedInfoHash);
-    for (auto it = range.first; it != range.second; ++it)
+    for (auto it = range.first; it != range.second;)
     {
-        leechersMap.erase(it);
+        it = leechersMap.erase(it);
     }
 
     //remove torrent info from vectors
@@ -500,8 +500,8 @@ void WorkingTorrents::resumePeer(Peer* peer)
 {
     //reset transfer checks
     peer->isHandshakeReceived = false;
-    peer->isHandshakeSent = false;
-    peer->isChokeSent = false;
+    peer->isHandshakeSent = true;
+    peer->isChokeSent = true;
     peer->isChokeReceived = false;
     peer->isInterestedSent = false;
     peer->isInterestedReceived = false;
@@ -639,7 +639,7 @@ void WorkingTorrents::handleBlockRequested(Peer::dataRequest request)
         outgoingBlocks.push_back(request);
     }
 
-    //processUploads();
+    processUploads();
 }
 
 void WorkingTorrents::handleBlockCancelled(Peer::dataRequest request)
@@ -661,7 +661,7 @@ void WorkingTorrents::handleBlockCancelled(Peer::dataRequest request)
         }
     }
 
-    //processUploads();
+    processUploads();
 }
 
 void WorkingTorrents::handleBlockReceived(Peer::dataPackage package)
@@ -705,7 +705,7 @@ void WorkingTorrents::handleBlockReceived(Peer::dataPackage package)
 
     }
 
-    //processDownloads();
+    processDownloads();
 }
 
 void WorkingTorrents::handlePeerDisconnected(Peer* senderPeer)
@@ -722,41 +722,55 @@ void WorkingTorrents::handlePeerDisconnected(Peer* senderPeer)
     auto infoHash = senderPeer->torrent->hashesData.urlEncodedInfoHash;
 
     //remove from peer maps
-    auto range = peerConnMap.equal_range(
-                senderPeer->torrent->hashesData.urlEncodedInfoHash);
+    auto range = peerConnMap.equal_range(infoHash);
 
-    for (auto it = range.first; it != range.second; ++it)
+    for (auto it = range.first; it != range.second;)
     {
         if (it->second->peerHost == senderPeer->peerHost &&
                 it->second->peerPort == senderPeer->peerPort)
         {
-            peerConnMap.erase(it);
+            it = peerConnMap.erase(it);
+        }
+        else
+        {
+            ++it;
         }
     }
 
     range = seedersMap.equal_range(
                     senderPeer->torrent->hashesData.urlEncodedInfoHash);
 
-    for (auto it = range.first; it != range.second; ++it)
+    for (auto it = range.first; it != range.second;)
     {
         if (it->second->peerHost == senderPeer->peerHost &&
                 it->second->peerPort == senderPeer->peerPort)
         {
-            seedersMap.erase(it);
+            it = seedersMap.erase(it);
+        }
+        else
+        {
+            ++it;
         }
     }
 
     range = leechersMap.equal_range(
                     senderPeer->torrent->hashesData.urlEncodedInfoHash);
 
-    for (auto it = range.first; it != range.second; ++it)
+    for (auto it = range.first; it != range.second;)
     {
         if (it->second->peerHost == senderPeer->peerHost &&
                 it->second->peerPort == senderPeer->peerPort)
         {
-            leechersMap.erase(it);
+            it = leechersMap.erase(it);
+        }
+        else
+        {
+            ++it;
         }
     }
+
+    LOG_F(INFO, "(%s:%s) Successfully disconnected from peer.",
+          senderPeer->peerHost.c_str(), senderPeer->peerPort.c_str());
 }
 
 void WorkingTorrents::handlePeerStateChanged(Peer* senderPeer)

@@ -33,7 +33,7 @@ Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
     lastKeepAlive{ std::chrono::high_resolution_clock::time_point::min() },
     uploaded{ 0 }, downloaded{ 0 },
     strand_(io_context), socket_(io_context),
-    recBuffer(68)
+    recBuffer(68), isAccepted{false}
 {
     try
     {
@@ -86,7 +86,7 @@ Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
                        dataRequest)>>()},
     sig_blockReceived{std::make_shared<boost::signals2::signal<void(
                        dataPackage)>>()},
-    localID{ localID }, peerID{ "" },
+    peerHost{""}, peerPort{""}, localID{ localID }, peerID{ "" },
     torrent{ std::make_shared<Torrent>() }, endpointKey(),
     isPieceDownloaded(torrent->piecesData.pieceCount),
     isDisconnected{}, isHandshakeSent{}, isPositionSent{},
@@ -95,7 +95,7 @@ Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
     lastActive{ std::chrono::high_resolution_clock::time_point::min() },
     lastKeepAlive{ std::chrono::high_resolution_clock::time_point::min() },
     uploaded{ 0 }, downloaded{ 0 },
-    strand_(io_context), socket_(io_context), recBuffer(68),
+    strand_(io_context), socket_(io_context), recBuffer(68), isAccepted{true},
     ptr_torrentList{torrentList}
 {
     try
@@ -133,8 +133,6 @@ Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
     messageType.insert({ "piece", 7 });
     messageType.insert({ "cancel", 8 });
     messageType.insert({ "port", 9 });
-
-    isAccepted = true;
 }
 
 boost::asio::ip::tcp::socket& Peer::socket()
@@ -294,9 +292,6 @@ void Peer::handleRead(const boost::system::error_code& ec,
         //handshake message
         if (!isHandshakeReceived)
         {
-            LOG_F(INFO, "(%s:%s) Received handshake.",
-                  peerHost.c_str(), peerPort.c_str());
-
             //process handshake
             processBuffer = recBuffer;
             handleMessage();
@@ -445,7 +440,6 @@ void Peer::handleNewSend(const boost::system::error_code& ec,
         LOG_F(INFO, "(%s:%s) Sent %zd bytes.",
               peerHost.c_str(), peerPort.c_str(),
               sentBytes);
-        std::cout << "Sent " << sentBytes << " bytes"<< "\n";
     }
     else
     {
@@ -459,14 +453,11 @@ void Peer::handleNewSend(const boost::system::error_code& ec,
 
 void Peer::disconnect()
 {
-
-    std::cout << "\n" << "Disconnecting peer..." << "\n";
-
     isDisconnected = true;
     boost::system::error_code ignored_ec;
     socket_.close(ignored_ec);
 
-    LOG_F(INFO, "(%s:%s) Disconnected from peer; "
+    LOG_F(INFO, "(%s:%s) Disconnecting from peer; "
                 "Downloaded %lld, uploaded %lld.",
           peerHost.c_str(), peerPort.c_str(),
           downloaded, uploaded);
@@ -491,6 +482,9 @@ int Peer::getMessageLength()
 
 void Peer::handleMessage()
 {
+    LOG_F(INFO, "(%s:%s) Handling message...",
+          peerHost.c_str(), peerPort.c_str());
+
     //update clock
     lastActive = std::chrono::high_resolution_clock::now();
 
@@ -644,9 +638,14 @@ bool Peer::decodeHandshake(std::vector<byte>& hash, std::string& id)
 
     if (processBuffer.size() != 68 || processBuffer.at(0) != 19)
     {
+
         LOG_F(ERROR, "(%s:%s) Invalid handshake! Must be 68 bytes long and the "
                      "byte value must equal 19.",
               peerHost.c_str(), peerPort.c_str());
+
+        LOG_F(ERROR, "(%s:%s) Handshake size: %zd, length value: %hhu",
+              peerHost.c_str(), peerPort.c_str(),
+              processBuffer.size(), processBuffer.at(0));
 
         return false;
     }
@@ -655,7 +654,7 @@ bool Peer::decodeHandshake(std::vector<byte>& hash, std::string& id)
     std::string protocolStr(processBuffer.begin() + 1,
         processBuffer.begin() + 20);
 
-    if (protocolStr != "Bittorrent protocol")
+    if (protocolStr != "BitTorrent protocol")
     {
         LOG_F(ERROR, "(%s:%s) Invalid handshake! Protocol value must equal "
                      "'Bittorrent protocol'. Received: %s",
@@ -983,8 +982,9 @@ bool Peer::decodePiece(int& index, int& offset, std::vector<byte>& data)
 std::vector<byte> Peer::encodeHandshake(std::vector<byte>& hash,
     std::vector<byte>& id)
 {
+
     std::vector<byte> message(68);
-    std::string protocolStr = "Bittorrent protocol";
+    std::string protocolStr = "BitTorrent protocol";
 
     message.at(0) = static_cast<byte>(19);
 
@@ -992,10 +992,13 @@ std::vector<byte> Peer::encodeHandshake(std::vector<byte>& hash,
         message.begin() + 1);
 
     //bytes 21-28 are already 0 due to initialisation, can skip to byte 29
-    last = std::copy(torrent->hashesData.infoHash.begin(),
-        torrent->hashesData.infoHash.end(), message.begin() + 28);
+    last = std::copy(hash.begin(), hash.end(), message.begin() + 28);
 
-    last = std::copy(localID.begin(), localID.end(), last);
+    last = std::copy(id.begin(), id.end(),  message.begin() + 48);
+
+    LOG_F(ERROR, "(%s:%s) infohash: %s", peerHost.c_str(), peerPort.c_str(), toHex(hash).c_str());
+    LOG_F(ERROR, "(%s:%s) id: %s", peerHost.c_str(), peerPort.c_str(), toHex(id).c_str());
+    LOG_F(ERROR, "(%s:%s) Sent handshake: %s", peerHost.c_str(), peerPort.c_str(), toHex(message).c_str());
 
     return message;
 }
@@ -1474,6 +1477,9 @@ void Peer::handleHandshake(std::vector<byte> hash, std::string id)
         {
             if (hash == ptr_torrent->hashesData.infoHash)
             {
+                LOG_F(ERROR, "(%s:%s) Setting peer torrent...",
+                      peerHost.c_str(), peerPort.c_str());
+
                 //set this Peer object's associated Torrent object
                 //by assigning the shared ptr to that Torrent object
                 torrent = ptr_torrent;

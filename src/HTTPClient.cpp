@@ -91,11 +91,11 @@ void HTTPClient::dataTransmission(bool isAnnounce)
         tcp::resolver resolver{ io_context };
         results = resolver.resolve(peerHost, peerPort);
     }
-    catch (boost::system::error_code ec)
+    catch (boost::system::system_error e)
     {
         LOG_F(ERROR,
             "Failed to resolve HTTP tracker %s:%s! Error msg: \"%s\".",
-            peerHost.c_str(), peerPort.c_str(), ec.message().c_str());
+            peerHost.c_str(), peerPort.c_str(), e.what());
     }
 
     //need to bind object context using "this" for class member functions

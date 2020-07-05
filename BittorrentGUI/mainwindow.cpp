@@ -281,7 +281,7 @@ void MainWindow::initTorrentTable()
     torrentModel = new TorrentTableModel(ioClient, this);
 
     progressDelegate* delegate = new progressDelegate(torrentTable);
-    torrentTable->setItemDelegateForColumn(5, delegate);
+    torrentTable->setItemDelegateForColumn(4, delegate);
 
     //sort/filter
     proxyModel = new TorrentSortFilterProxyModel(ioClient, this);

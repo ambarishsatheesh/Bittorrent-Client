@@ -151,6 +151,13 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
                  statusData.currentState ==
                  TorrentStatus::currentStatus::stopped)
         {
+            if (ioClientModel->
+                    WorkingTorrents.torrentList.at(index.row())->
+                    statusData.downloaded() == 0)
+            {
+                return "Stalled";
+            }
+
             return "Paused";
         }
         else if (ioClientModel->
@@ -165,6 +172,10 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
             }
 
             return "Completed";
+        }
+        else
+        {
+            return "Queued";
         }
     }
     //seeds
