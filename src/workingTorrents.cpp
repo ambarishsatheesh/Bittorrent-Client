@@ -20,8 +20,15 @@ WorkingTorrents::WorkingTorrents()
       uploadThrottle{defaultSettings.maxULSpeed, std::chrono::seconds{1}},
       rand{}, rng{rand()}, peerTimeout{std::chrono::seconds{30}},
       threadPoolSize{5},
-      work{boost::asio::make_work_guard(io_context)}, acceptor_{io_context}
+      work{boost::asio::make_work_guard(io_context)}, acceptor_{io_context},
+      isProcessing{true}, t_processDL{}, t_processUL{}
 {
+    //Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
+    acceptor_.open(tcp::v4());
+    acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+    acceptor_.bind(tcp::endpoint(tcp::v4(), defaultSettings.tcpPort));
+    acceptor_.listen();
+
     // Create a pool of threads to share io_context and run
     //executor_work_guard will keep it running when tasks are not queued
       for (std::size_t i = 0; i < threadPoolSize; ++i)
@@ -32,13 +39,29 @@ WorkingTorrents::WorkingTorrents()
           threadPool.push_back(thread);
       }
 
+      t_processDL = std::thread([this]()
+      {
+          while (isProcessing)
+          {
+              processDownloads();
 
+              std::this_thread::sleep_for(std::chrono::seconds(1));
+          }
+      });
 
-    //Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
-    acceptor_.open(tcp::v4());
-    acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-    acceptor_.bind(tcp::endpoint(tcp::v4(), defaultSettings.tcpPort));
-    acceptor_.listen();
+      t_processUL = std::thread([this]()
+      {
+          while (isProcessing)
+          {
+              processUploads();
+
+              std::this_thread::sleep_for(std::chrono::seconds(1));
+          }
+      });
+
+//      //start network transfer processing threads
+//      t_processDL = std::thread(&WorkingTorrents::start_DLProcessThread, this);
+//      t_processDL = std::thread(&WorkingTorrents::start_ULProcessThread, this);
 }
 
 WorkingTorrents::~WorkingTorrents()
@@ -46,7 +69,22 @@ WorkingTorrents::~WorkingTorrents()
     // Wait for all threads in the pool to exit.
     for (std::size_t i = 0; i < threadPool.size(); ++i)
     {
-        threadPool.at(i)->join();
+        if (threadPool.at(i)->joinable())
+        {
+            threadPool.at(i)->join();
+        }
+    }
+
+    isProcessing = true;
+
+    if (t_processDL.joinable())
+    {
+        t_processDL.join();
+    }
+
+    if (t_processUL.joinable())
+    {
+        t_processUL.join();
     }
 }
 
@@ -64,7 +102,6 @@ std::string WorkingTorrents::isDuplicateTorrent(Torrent* modifiedTorrent)
 
     return "";
 }
-
 
 void WorkingTorrents::addNewTorrent(Torrent* modifiedTorrent)
 {
@@ -896,6 +933,8 @@ void WorkingTorrents::processPeers(Torrent* torrent)
 
 void WorkingTorrents::processUploads()
 {
+    LOG_F(INFO, "Processing uploads...");
+
     std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
 
     Peer::dataRequest tempBlock;
@@ -942,6 +981,8 @@ void WorkingTorrents::processUploads()
 
 void WorkingTorrents::processDownloads()
 {
+    LOG_F(INFO, "Processing downloads...");
+
     std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
 
     Peer::dataPackage tempBlock;
@@ -1211,6 +1252,30 @@ float WorkingTorrents::getPieceRarity(Torrent* torrent, int piece)
 
     //average rarity
     return raritySum / peerConnMap.count(infoHash);
+}
+
+void WorkingTorrents::start_DLProcessThread()
+{
+    loguru::set_thread_name("Process Downloads");
+
+    while (isProcessing)
+    {
+        processDownloads();
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+}
+
+void WorkingTorrents::start_ULProcessThread()
+{
+    loguru::set_thread_name("Process Downloads");
+
+    while (isProcessing)
+    {
+        processUploads();
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
 }
 
 }

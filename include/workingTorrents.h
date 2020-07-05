@@ -137,8 +137,14 @@ private:
                        Torrent* torrent);
     void resumePeer(Peer* peer);
 
+    //threads
+    std::atomic<bool> isProcessing;
     std::vector<std::shared_ptr<std::thread>> threadPool;
+    std::thread t_processDL;
+    std::thread t_processUL;
 
+    void start_DLProcessThread();
+    void start_ULProcessThread();
 };
 
 }
