@@ -49,7 +49,7 @@ Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
     messageType.insert({ "handshake", -2 });
     messageType.insert({ "keepAlive", -1 });
     messageType.insert({ "choke", 0 });
-    messageType.insert({ "unchoke", 0 });
+    messageType.insert({ "unchoke", 1 });
     messageType.insert({ "interested", 2 });
     messageType.insert({ "notInterested", 3 });
     messageType.insert({ "have", 4 });
@@ -483,6 +483,8 @@ void Peer::handleMessage()
     lastActive = std::chrono::high_resolution_clock::now();
 
     int deducedtype = getMessageType(processBuffer);
+
+    LOG_F(INFO, "deducedtype: %d", deducedtype);
 
     if (deducedtype == messageType.left.at("unknown"))
     {
@@ -1469,7 +1471,8 @@ void Peer::handleHandshake(std::vector<byte> hash, std::string id)
     {
         for (auto& ptr_torrent : *ptr_torrentList)
         {
-            if (hash == ptr_torrent->hashesData.infoHash)
+            if (!std::equal(hash.begin(), hash.end(),
+                            torrent->hashesData.infoHash.begin()))
             {
                 LOG_F(ERROR, "(%s:%s) Setting peer torrent...",
                       peerHost.c_str(), peerPort.c_str());
@@ -1495,10 +1498,12 @@ void Peer::handleHandshake(std::vector<byte> hash, std::string id)
                   peerHost.c_str(), peerPort.c_str());
         }
     }
-    else if(hash == torrent->hashesData.infoHash)
+    //operator== seems to give incorrect result with vector<byte>
+    else if(!std::equal(hash.begin(), hash.end(),
+                        torrent->hashesData.infoHash.begin()))
     {
         LOG_F(ERROR, "(%s:%s) Invalid handshake! Incorrect infohash. "
-                     "Expected: %s"
+                     "Expected: %s; "
                      "Received %s.",
               peerHost.c_str(), peerPort.c_str(),
               torrent->hashesData.hexStringInfoHash.c_str(),
