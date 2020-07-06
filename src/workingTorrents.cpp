@@ -21,7 +21,8 @@ WorkingTorrents::WorkingTorrents()
       rand{}, rng{rand()}, peerTimeout{std::chrono::seconds{30}},
       threadPoolSize{10},
       work{boost::asio::make_work_guard(io_context)}, acceptor_{io_context},
-      isProcessing{true}, t_processDL{}, t_processUL{}
+      masterProcessCondition{true}, isProcessing{false},
+      t_processDL{}, t_processUL{}, t_processPeers{}
 {
     //Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
     acceptor_.open(tcp::v4());
@@ -39,31 +40,8 @@ WorkingTorrents::WorkingTorrents()
           threadPool.push_back(thread);
       }
 
-      t_processDL = std::thread([this]()
-      {
-          loguru::set_thread_name("process downloads");
-
-          while (isProcessing)
-          {
-              processDownloads();
-
-              std::this_thread::sleep_for(std::chrono::seconds(1));
-          }
-      });
-
-//      t_processUL = std::thread([this]()
-//      {
-//          while (isProcessing)
-//          {
-//              //processUploads();
-
-//              std::this_thread::sleep_for(std::chrono::seconds(1));
-//          }
-//      });
-
-//      //start network transfer processing threads
-//      t_processDL = std::thread(&WorkingTorrents::start_DLProcessThread, this);
-//      t_processDL = std::thread(&WorkingTorrents::start_ULProcessThread, this);
+      //initiate processing threads
+      initProcessing();
 }
 
 WorkingTorrents::~WorkingTorrents()
@@ -77,7 +55,14 @@ WorkingTorrents::~WorkingTorrents()
         }
     }
 
-    isProcessing = true;
+    masterProcessCondition = false;
+    isProcessing = false;
+    cv.notify_all();
+
+    if (t_processPeers.joinable())
+    {
+        t_processPeers.join();
+    }
 
     if (t_processDL.joinable())
     {
@@ -90,8 +75,66 @@ WorkingTorrents::~WorkingTorrents()
     }
 }
 
+void WorkingTorrents::initProcessing()
+{
+    t_processPeers = std::thread([&]()
+            {
+                loguru::set_thread_name("Process Peers");
+                LOG_F(INFO, "Initiated peers-processing thread.");
+
+                while (masterProcessCondition)
+                {
+                    std::unique_lock<std::mutex> lck(mtx_condition);
+                    cv.wait(lck, [&] {return isProcessing; });
+
+                    std::unique_lock<std::mutex> torListGuard(mtx_torrentList);
+
+                    for (auto torrent : torrentList)
+                    {
+                        processPeers(torrent.get());
+                    }
+
+                    torListGuard.unlock();
+
+                    std::this_thread::sleep_for(std::chrono::seconds(10));
+                }
+            });
+
+    t_processDL = std::thread([&]()
+        {
+            loguru::set_thread_name("Process Downloads");
+            LOG_F(INFO, "Initiated downloads-processing thread.");
+
+            while (masterProcessCondition)
+            {
+                std::unique_lock<std::mutex> lck(mtx_condition);
+                cv.wait(lck, [&] {return isProcessing; });
+
+                processDownloads();
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+        });
+
+    t_processUL = std::thread([&]()
+        {
+            loguru::set_thread_name("Process Uploads");
+            LOG_F(INFO, "Initiated uploads-processing thread.");
+
+            while (masterProcessCondition)
+            {
+                std::unique_lock<std::mutex> lck(mtx_condition);
+                cv.wait(lck, [&] {return isProcessing; });
+
+                //processUploads();
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+        });
+}
+
 std::string WorkingTorrents::isDuplicateTorrent(Torrent* modifiedTorrent)
 {
+    std::lock_guard<std::mutex> torListGuard(mtx_torrentList);
+
     //check if torrent already exists in list
     for (auto torrent : torrentList)
     {
@@ -107,6 +150,8 @@ std::string WorkingTorrents::isDuplicateTorrent(Torrent* modifiedTorrent)
 
 void WorkingTorrents::addNewTorrent(Torrent* modifiedTorrent)
 {
+    std::unique_lock<std::mutex> torListGuard(mtx_torrentList);
+
     torrentList.push_back(std::make_shared<Torrent>(*modifiedTorrent));
 
     //connect signals and slots
@@ -117,6 +162,8 @@ void WorkingTorrents::addNewTorrent(Torrent* modifiedTorrent)
     torrentList.back()->sig_pieceVerified->connect(
                 boost::bind(&WorkingTorrents::handlePieceVerified,
                             this, _1, _2));
+
+    torListGuard.unlock();
 
     //get current time as appropriately formatted string
     addedOnList.push_back(
@@ -171,6 +218,8 @@ void WorkingTorrents::addNewTorrent(Torrent* modifiedTorrent)
 
 void WorkingTorrents::removeTorrent(int position)
 {
+    std::lock_guard<std::mutex> torListGuard(mtx_torrentList);
+
     auto logName = torrentList.at(position)->generalData.fileName;
 
     //stop torrent before removing from list
@@ -296,13 +345,18 @@ void WorkingTorrents::removeTorrent(int position)
 
 void WorkingTorrents::start(int position)
 {
+    std::lock_guard<std::mutex> torListGuard(mtx_torrentList);
+
     std::unique_lock<std::mutex> statusGuard(mtx_status);
 
     //start seeding if torrent is completed
     if (torrentList.at(position)->statusData.currentState ==
             TorrentStatus::currentStatus::completed)
     {
+        statusGuard.unlock();
+
         startSeeding(position);
+
         return;
     }
     //if torrent stopped, start it and process accordingly
@@ -470,16 +524,24 @@ void WorkingTorrents::start(int position)
             }
         }
     }
+
+    startProcessing();
 }
 
 void WorkingTorrents::stop(int position)
 {
+    std::lock_guard<std::mutex> torListGuard(mtx_torrentList);
+
     disableTorrentConnection(torrentList.at(position).get());
+
+    pauseProcessing();
 }
 
 //only allow seeding of one torrent at a time
 void WorkingTorrents::startSeeding(int position)
 {
+    std::lock_guard<std::mutex> torListGuard(mtx_torrentList);
+
     torrentList.at(position)->isSeeding = true;
     acceptNewConnection(torrentList.at(position).get());
 }
@@ -541,6 +603,8 @@ void WorkingTorrents::addPeer(peer singlePeer, std::shared_ptr<Torrent> torrent)
 
 void WorkingTorrents::resumePeer(Peer* peer)
 {
+    LOG_F(INFO, "Attempted to resume peer connection...");
+
     peer->setSocketOptions(defaultSettings.tcpPort);
 
     //reset transfer checks
@@ -589,8 +653,6 @@ void WorkingTorrents::resumePeer(Peer* peer)
                 {
                     peer->connectToNewPeer(ec, results);
                 });
-
-    LOG_F(INFO, "Initiated peer connection resume!");
 }
 
 void WorkingTorrents::acceptNewConnection(Torrent* torrent)
@@ -669,13 +731,13 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
                 TorrentStatus::currentStatus::stopped;
     }
 
+    statusGuard.unlock();
+
     //change seeding status
     if (torrent->isSeeding)
     {
         torrent->isSeeding = 0;
     }
-
-    statusGuard.unlock();
 
     std::lock_guard<std::mutex> mapGuard(mtx_map);
 
@@ -882,6 +944,8 @@ void WorkingTorrents::processPeers(Torrent* torrent)
     //locking mutex because this method can be run on multiple threads
     std::lock_guard<std::mutex> processGuard(mtx_process);
 
+    auto infoHash = torrent->hashesData.urlEncodedInfoHash;
+
     //move peers of specific torrent from map to vector
     //and sort by (descending) pieces required available
     std::vector<std::shared_ptr<Peer>> sortedPeers;
@@ -889,8 +953,7 @@ void WorkingTorrents::processPeers(Torrent* torrent)
     std::unique_lock<std::mutex> mapGuard(mtx_map);
     for (auto it = peerConnMap.begin(); it != peerConnMap.end(); ++it)
     {
-        if (it->second->torrent->hashesData.urlEncodedInfoHash ==
-                torrent->hashesData.urlEncodedInfoHash)
+        if (it->second->torrent->hashesData.urlEncodedInfoHash == infoHash)
         {
             sortedPeers.push_back(it->second);
         }
@@ -981,6 +1044,21 @@ void WorkingTorrents::processPeers(Torrent* torrent)
             }
         }
     }
+
+    mapGuard.lock();
+
+    //if peers are in map but disconnected, try reconnecting
+    auto range = peerConnMap.equal_range(infoHash);
+
+    for (auto it = range.first; it != range.second; ++it)
+    {
+        if (it->second->isDisconnected)
+        {
+            resumePeer(it->second.get());
+        }
+    }
+
+    mapGuard.unlock();
 
     LOG_F(INFO, "Completed processing peers for torrent %s.",
           torrent->generalData.fileName.c_str());
@@ -1160,9 +1238,9 @@ void WorkingTorrents::processDownloads()
 //sort torrents in order of descending ranking
 std::vector<Torrent*> WorkingTorrents::getRankedTorrents()
 {
-    std::lock_guard<std::mutex> rankGuard(mtx_ranking);
-
     std::vector<Torrent*> rankedTorrents;
+
+    std::unique_lock<std::mutex> torListGuard(mtx_torrentList);
 
     std::unique_lock<std::mutex> statusGuard(mtx_status);
 
@@ -1176,6 +1254,8 @@ std::vector<Torrent*> WorkingTorrents::getRankedTorrents()
     }
 
     statusGuard.unlock();
+
+    torListGuard.unlock();
 
     //sort torrents by ranking
     std::sort(rankedTorrents.begin(), rankedTorrents.end(),
@@ -1308,6 +1388,71 @@ float WorkingTorrents::getPieceRarity(Torrent* torrent, int piece)
 
     //average rarity
     return raritySum / peerConnMap.count(infoHash);
+}
+
+void WorkingTorrents::startProcessing()
+{
+    using status = TorrentStatus::currentStatus;
+
+    //if at least one torrent is active, allow processing threads to run
+    //(if not already running)
+    if (!isProcessing)
+    {
+        //no need to lock mtx_torrentList since calling function already locks
+        std::unique_lock<std::mutex> statusGuard(mtx_status);
+
+        auto findActive = std::find_if(torrentList.begin(), torrentList.end(),
+                     [&](const std::shared_ptr<Torrent>& t)
+        {
+            if (t->statusData.currentState == status::started ||
+                    (t->statusData.currentState == status::completed &&
+                     t->isSeeding))
+            {
+                return true;
+            }
+
+        });
+
+        statusGuard.unlock();
+
+        if (findActive != torrentList.end())
+        {
+            isProcessing = true;
+            cv.notify_all();
+        }
+    }
+}
+
+void WorkingTorrents::pauseProcessing()
+{
+    using status = TorrentStatus::currentStatus;
+
+    //if no torrents are active, stop processing threads
+    //(if already running)
+    if (isProcessing)
+    {
+        //no need to lock mtx_torrentList since calling function already locks
+        std::unique_lock<std::mutex> statusGuard(mtx_status);
+
+        auto findActive = std::find_if(torrentList.begin(), torrentList.end(),
+                     [&](const std::shared_ptr<Torrent>& t)
+        {
+            if (t->statusData.currentState == status::started ||
+                    (t->statusData.currentState == status::completed &&
+                     t->isSeeding))
+            {
+                return true;
+            }
+        });
+
+        statusGuard.unlock();
+
+        if (findActive == torrentList.end())
+        {
+            isProcessing = true;
+            cv.notify_all();
+        }
+    }
 }
 
 }

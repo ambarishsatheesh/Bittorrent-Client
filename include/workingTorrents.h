@@ -113,6 +113,9 @@ public:
     ~WorkingTorrents();
 
 private:
+    std::condition_variable cv;
+    std::mutex mtx_condition;
+    std::mutex mtx_torrentList;
     std::mutex mtx_status;
     std::mutex mtx_map;
     std::mutex mtx_seeders;
@@ -138,10 +141,15 @@ private:
     void resumePeer(Peer* peer);
 
     //threads
-    std::atomic<bool> isProcessing;
     std::vector<std::shared_ptr<std::thread>> threadPool;
     std::thread t_processDL;
     std::thread t_processUL;
+    std::thread t_processPeers;
+    void initProcessing();
+    void startProcessing();
+    void pauseProcessing();
+    bool masterProcessCondition;
+    bool isProcessing;
 };
 
 }
