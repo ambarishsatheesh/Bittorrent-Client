@@ -27,6 +27,7 @@ Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
     peerHost{""}, peerPort{""}, localID{ localID }, peerID{ "" },
     torrent{ torrent }, endpointKey(),
     isPieceDownloaded(torrent->piecesData.pieceCount),
+    disconnectTime{std::chrono::high_resolution_clock::time_point::max()},
     isDisconnected{ false }, isHandshakeSent{ false }, isBitfieldSent{ false },
     isChokeSent{ true }, isInterestedSent{ false }, isHandshakeReceived{ false },
     isChokeReceived{ true }, isInterestedReceived{ false },
@@ -78,6 +79,7 @@ Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
     peerHost{""}, peerPort{""}, localID{ localID }, peerID{ "" },
     torrent{ std::make_shared<Torrent>() }, endpointKey(),
     isPieceDownloaded(torrent->piecesData.pieceCount),
+    disconnectTime{std::chrono::high_resolution_clock::time_point::max()},
     isDisconnected{ false }, isHandshakeSent{ false }, isBitfieldSent{ false },
     isChokeSent{ true }, isInterestedSent{ false }, isHandshakeReceived{ false },
     isChokeReceived{ true }, isInterestedReceived{ false },
@@ -228,7 +230,7 @@ void Peer::handleNewConnect(const boost::system::error_code& ec,
 {
     if (!ec)
     {
-        LOG_F(INFO, "(%s:%s) Connected.", peerHost.c_str(), peerPort.c_str());
+//        LOG_F(INFO, "(%s:%s) Connected.", peerHost.c_str(), peerPort.c_str());
 
         isDisconnected = false;
         endpointKey = endpoint;
@@ -302,8 +304,8 @@ void Peer::handleRead(const boost::system::error_code& ec,
         //use header data to find remaining message length
         else if (receivedBytes == 4)
         {
-            LOG_F(INFO, "(%s:%s) Received message header.",
-                  peerHost.c_str(), peerPort.c_str());
+//            LOG_F(INFO, "(%s:%s) Received message header.",
+//                  peerHost.c_str(), peerPort.c_str());
 
             processBuffer = recBuffer;
             int messageLength = getMessageLength();
@@ -332,8 +334,8 @@ void Peer::handleRead(const boost::system::error_code& ec,
         //rest of the message
         else
         {
-            LOG_F(INFO, "(%s:%s) Received message body.",
-                  peerHost.c_str(), peerPort.c_str());
+//            LOG_F(INFO, "(%s:%s) Received message body.",
+//                  peerHost.c_str(), peerPort.c_str());
 
             //insert rest of message after stored header
             processBuffer.insert(processBuffer.begin() + 4,
@@ -388,9 +390,9 @@ void Peer::handleNewSend(const boost::system::error_code& ec,
 
     if (!ec)
     {
-        LOG_F(INFO, "(%s:%s) Sent %d bytes.",
-              peerHost.c_str(), peerPort.c_str(),
-              static_cast<int>(sentBytes));
+//        LOG_F(INFO, "(%s:%s) Sent %d bytes.",
+//              peerHost.c_str(), peerPort.c_str(),
+//              static_cast<int>(sentBytes));
     }
     else
     {
@@ -405,6 +407,8 @@ void Peer::handleNewSend(const boost::system::error_code& ec,
 void Peer::disconnect()
 {
     isDisconnected = true;
+    disconnectTime = std::chrono::high_resolution_clock::now();
+
     boost::system::error_code ec;
     socket_.close(ec);
     if (ec)
@@ -439,8 +443,8 @@ int Peer::getMessageLength()
 
 void Peer::handleMessage()
 {
-    LOG_F(INFO, "(%s:%s) Handling message...",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Handling message...",
+//          peerHost.c_str(), peerPort.c_str());
 
     //update clock
     lastActive = std::chrono::high_resolution_clock::now();
@@ -453,8 +457,8 @@ void Peer::handleMessage()
     }
     else if (deducedtype == messageType.left.at("handshake"))
     {
-        LOG_F(INFO, "(%s:%s) Received 'handshake' message.",
-              peerHost.c_str(), peerPort.c_str());
+//        LOG_F(INFO, "(%s:%s) Received 'handshake' message.",
+//              peerHost.c_str(), peerPort.c_str());
 
         std::vector<byte> hash;
         std::string id;
@@ -467,8 +471,8 @@ void Peer::handleMessage()
     else if (deducedtype == messageType.left.at("keepAlive")
         && decodeKeepAlive())
     {
-        LOG_F(INFO, "(%s:%s) Received 'keep-alive' message.",
-              peerHost.c_str(), peerPort.c_str());
+//        LOG_F(INFO, "(%s:%s) Received 'keep-alive' message.",
+//              peerHost.c_str(), peerPort.c_str());
 
         handleKeepAlive();
         return;
@@ -476,8 +480,8 @@ void Peer::handleMessage()
     else if (deducedtype == messageType.left.at("choke")
         && decodeChoke())
     {
-        LOG_F(INFO, "(%s:%s) Received 'choke' message.",
-              peerHost.c_str(), peerPort.c_str());
+//        LOG_F(INFO, "(%s:%s) Received 'choke' message.",
+//              peerHost.c_str(), peerPort.c_str());
 
         handleChoke();
         return;
@@ -485,8 +489,8 @@ void Peer::handleMessage()
     else if (deducedtype == messageType.left.at("unchoke")
         && decodeUnchoke())
     {
-        LOG_F(INFO, "(%s:%s) Received 'unchoke' message.",
-              peerHost.c_str(), peerPort.c_str());
+//        LOG_F(INFO, "(%s:%s) Received 'unchoke' message.",
+//              peerHost.c_str(), peerPort.c_str());
 
         handleUnchoke();
         return;
@@ -494,8 +498,8 @@ void Peer::handleMessage()
     else if (deducedtype == messageType.left.at("interested")
         && decodeInterested())
     {
-        LOG_F(INFO, "(%s:%s) Received 'interested' message.",
-              peerHost.c_str(), peerPort.c_str());
+//        LOG_F(INFO, "(%s:%s) Received 'interested' message.",
+//              peerHost.c_str(), peerPort.c_str());
 
         handleInterested();
         return;
@@ -503,16 +507,16 @@ void Peer::handleMessage()
     else if (deducedtype == messageType.left.at("notInterested")
         && decodeNotInterested())
     {
-        LOG_F(INFO, "(%s:%s) Received 'not interested' message.",
-              peerHost.c_str(), peerPort.c_str());
+//        LOG_F(INFO, "(%s:%s) Received 'not interested' message.",
+//              peerHost.c_str(), peerPort.c_str());
 
         handleNotInterested();
         return;
     }
     else if (deducedtype == messageType.left.at("have"))
     {
-        LOG_F(INFO, "(%s:%s) Received 'have' message.",
-              peerHost.c_str(), peerPort.c_str());
+//        LOG_F(INFO, "(%s:%s) Received 'have' message.",
+//              peerHost.c_str(), peerPort.c_str());
 
         int index;
         if (decodeHave(index))
@@ -526,8 +530,8 @@ void Peer::handleMessage()
         std::vector<bool> recIsPieceDownloaded;
         if (decodeBitfield(isPieceDownloaded.size(), recIsPieceDownloaded))
         {
-            LOG_F(INFO, "(%s:%s) Received 'bitfield' message.",
-                  peerHost.c_str(), peerPort.c_str());
+//            LOG_F(INFO, "(%s:%s) Received 'bitfield' message.",
+//                  peerHost.c_str(), peerPort.c_str());
 
             handleBitfield(recIsPieceDownloaded);
             return;
@@ -535,8 +539,8 @@ void Peer::handleMessage()
     }
     else if (deducedtype == messageType.left.at("request"))
     {
-        LOG_F(INFO, "(%s:%s) Received 'request' message.",
-              peerHost.c_str(), peerPort.c_str());
+//        LOG_F(INFO, "(%s:%s) Received 'request' message.",
+//              peerHost.c_str(), peerPort.c_str());
 
         int index;
         int offset;
@@ -549,8 +553,8 @@ void Peer::handleMessage()
     }
     else if (deducedtype == messageType.left.at("cancel"))
     {
-        LOG_F(INFO, "(%s:%s) Received 'cancel' message.",
-              peerHost.c_str(), peerPort.c_str());
+//        LOG_F(INFO, "(%s:%s) Received 'cancel' message.",
+//              peerHost.c_str(), peerPort.c_str());
 
         int index;
         int offset;
@@ -563,8 +567,8 @@ void Peer::handleMessage()
     }
     else if (deducedtype == messageType.left.at("piece"))
     {
-        LOG_F(INFO, "(%s:%s) Received 'piece' message.",
-              peerHost.c_str(), peerPort.c_str());
+//        LOG_F(INFO, "(%s:%s) Received 'piece' message.",
+//              peerHost.c_str(), peerPort.c_str());
 
         int index;
         int offset;
@@ -620,8 +624,8 @@ bool Peer::decodeHandshake(std::vector<byte>& hash, std::string& id)
     hash = { processBuffer.begin() + 28, processBuffer.begin() + 48 };
     id = { processBuffer.begin() + 48, processBuffer.end()};
 
-    LOG_F(INFO, "(%s:%s) Successfully decoded 'handshake' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'handshake' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     return true;
 }
@@ -645,8 +649,8 @@ bool Peer::decodeKeepAlive()
         return false;
     }
 
-    LOG_F(INFO, "(%s:%s) Successfully decoded 'keep-alive' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'keep-alive' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     return true;
 }
@@ -694,9 +698,9 @@ bool Peer::decodeState(int typeVal)
         return false;
     }
 
-    LOG_F(INFO, "(%s:%s) Successfully decoded 'state' message of type %s.",
-          peerHost.c_str(), peerPort.c_str(),
-          messageType.right.at(typeVal).c_str());
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'state' message of type %s.",
+//          peerHost.c_str(), peerPort.c_str(),
+//          messageType.right.at(typeVal).c_str());
 
     return true;
 }
@@ -728,8 +732,8 @@ bool Peer::decodeHave(int& index)
         index |= processBuffer.at(i);
     }
 
-    LOG_F(INFO, "(%s:%s) Successfully decoded 'have' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'have' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     return index;
 }
@@ -763,8 +767,8 @@ bool Peer::decodeBitfield(int pieces,
         return false;
     }
 
-    LOG_F(INFO, "(%s:%s) Decoded step A.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Decoded step A.",
+//          peerHost.c_str(), peerPort.c_str());
 
     std::string binaryAsString = "";
     for (size_t i = 5; i < processBuffer.size(); ++i)
@@ -773,16 +777,16 @@ bool Peer::decodeBitfield(int pieces,
         binaryAsString += bit.to_string();
     }
 
-    LOG_F(INFO, "(%s:%s) Decoded step B.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Decoded step B.",
+//          peerHost.c_str(), peerPort.c_str());
 
     for (int i = 0; i < pieces; ++i)
     {
         recIsPieceDownloaded.push_back(binaryAsString.at(i) == '1');
     }
 
-    LOG_F(INFO, "(%s:%s) Successfully decoded 'bitfield' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'bitfield' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     return true;
 }
@@ -830,8 +834,8 @@ bool Peer::decodeDataRequest(int& index, int& offset, int& dataSize)
         dataSize |= processBuffer.at(i);
     }
 
-    LOG_F(INFO, "(%s:%s) Successfully decoded 'request' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'request' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     return true;
 }
@@ -879,8 +883,8 @@ bool Peer::decodeCancel(int& index, int& offset, int& dataSize)
         dataSize |= processBuffer.at(i);
     }
 
-    LOG_F(INFO, "(%s:%s) Successfully decoded 'cancel' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'cancel' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     return true;
 }
@@ -929,8 +933,8 @@ bool Peer::decodePiece(int& index, int& offset, std::vector<byte>& data)
     std::copy(processBuffer.begin() + 13, processBuffer.end(),
         data.begin());
 
-    LOG_F(INFO, "(%s:%s) Successfully decoded piece data message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Successfully decoded piece data message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     return true;
 }
@@ -1033,9 +1037,6 @@ std::vector<byte> Peer::encodeBitfield(
     //type byte
     newBitfield.at(4) = static_cast<byte>(messageType.left.at("bitfield"));
 
-    LOG_F(INFO, "(%s:%s) Encoded first four bytes of 'bitfield' message.",
-          peerHost.c_str(), peerPort.c_str());
-
     //convert bools to binary in string representation
     std::string binaryAsString = "";
     for (int i = 0; i < numPieces; ++i)
@@ -1043,18 +1044,12 @@ std::vector<byte> Peer::encodeBitfield(
         binaryAsString += isPieceVerified.at(i) ? '1' : '0';
     }
 
-    LOG_F(INFO, "(%s:%s) Encoded step A.",
-          peerHost.c_str(), peerPort.c_str());
-
     //add trailing 0s (as per spec)
     const int extraBits = (numBits) - numPieces;
     for (int i = 0; i < extraBits; ++i)
     {
         binaryAsString += '0';
     }
-
-    LOG_F(INFO, "(%s:%s) Encoded step B.",
-          peerHost.c_str(), peerPort.c_str());
 
     //covert to byte vector
     std::vector<byte> tempBitfieldVec;
@@ -1065,15 +1060,12 @@ std::vector<byte> Peer::encodeBitfield(
         tempBitfieldVec.push_back(static_cast<int>(x.to_ulong() & 0xFF));
     }
 
-    LOG_F(INFO, "(%s:%s) Encoded step C.",
-          peerHost.c_str(), peerPort.c_str());
-
     //copy vector to complete bitfield vector
     std::copy(tempBitfieldVec.begin(), tempBitfieldVec.end(),
         newBitfield.begin() + 5);
 
-    LOG_F(INFO, "(%s:%s) Successfully encoded 'bitfield' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Successfully encoded 'bitfield' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     return newBitfield;
 }
@@ -1184,8 +1176,8 @@ void Peer::sendHandShake()
         return;
     }
 
-    LOG_F(INFO, "(%s:%s) Sending 'handshake' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Sending 'handshake' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
     sendNewBytes(encodeHandshake(torrent->hashesData.infoHash, localID));
@@ -1201,8 +1193,8 @@ void Peer::sendKeepAlive()
         return;
     }
 
-    LOG_F(INFO, "(%s:%s) Sending 'keep-alive' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Sending 'keep-alive' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
     if (isAccepted)
@@ -1224,8 +1216,8 @@ void Peer::sendChoke()
         return;
     }
 
-    LOG_F(INFO, "(%s:%s) Sending 'choke' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Sending 'choke' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
     if (isAccepted)
@@ -1247,8 +1239,8 @@ void Peer::sendUnchoke()
         return;
     }
 
-    LOG_F(INFO, "(%s:%s) Sending 'unchoke' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Sending 'unchoke' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
     if (isAccepted)
@@ -1270,8 +1262,8 @@ void Peer::sendInterested()
         return;
     }
 
-    LOG_F(INFO, "(%s:%s) Sending 'interested' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Sending 'interested' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
     sendNewBytes(encodeInterested());
@@ -1286,8 +1278,8 @@ void Peer::sendNotInterested()
         return;
     }
 
-    LOG_F(INFO, "(%s:%s) Sending 'not interested' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Sending 'not interested' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
     sendNewBytes(encodeNotInterested());
@@ -1297,8 +1289,8 @@ void Peer::sendNotInterested()
 
 void Peer::sendHave(int index)
 {
-    LOG_F(INFO, "(%s:%s) Sending 'have' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Sending 'have' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
     sendNewBytes(encodeHave(index));
@@ -1321,8 +1313,8 @@ void Peer::sendBitfield(std::vector<bool> isPieceVerified)
     }
     std::string bitfieldStr = boost::algorithm::join(tempVec, "");
 
-    LOG_F(INFO, "(%s:%s) Sending 'bitfield' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Sending 'bitfield' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
     sendNewBytes(encodeBitfield(isPieceVerified));
@@ -1332,8 +1324,8 @@ void Peer::sendBitfield(std::vector<bool> isPieceVerified)
 
 void Peer::sendDataRequest(int index, int offset, int dataSize)
 {
-    LOG_F(INFO, "(%s:%s) Sending 'request' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Sending 'request' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
     sendNewBytes(encodeDataRequest(index, offset, dataSize));
@@ -1341,8 +1333,8 @@ void Peer::sendDataRequest(int index, int offset, int dataSize)
 
 void Peer::sendCancel(int index, int offset, int dataSize)
 {
-    LOG_F(INFO, "(%s:%s) Sending 'cancel' message.",
-          peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "(%s:%s) Sending 'cancel' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
     sendNewBytes(encodeCancel(index, offset, dataSize));
@@ -1350,11 +1342,10 @@ void Peer::sendCancel(int index, int offset, int dataSize)
 
 void Peer::sendPiece(int index, int offset, std::vector<byte> data)
 {
-    LOG_F(INFO, "(%s:%s) Sending piece data... Index: %d, Offset: %d, "
-                "data size: %d.",
-          peerHost.c_str(), peerPort.c_str(), index, offset,
-          static_cast<int>(data.size()));
-
+//    LOG_F(INFO, "(%s:%s) Sending piece data... Index: %d, Offset: %d, "
+//                "data size: %d.",
+//          peerHost.c_str(), peerPort.c_str(), index, offset,
+//          static_cast<int>(data.size()));
 
     //create buffer and send
     sendNewBytes(encodePiece(index, offset, data));
@@ -1388,11 +1379,11 @@ void Peer::handleHandshake(std::vector<byte> hash, std::string id)
     {
         for (auto& ptr_torrent : *ptr_torrentList)
         {
-            if (!std::equal(hash.begin(), hash.end(),
+            if (std::equal(hash.begin(), hash.end(),
                             torrent->hashesData.infoHash.begin()))
             {
-                LOG_F(ERROR, "(%s:%s) Setting peer torrent...",
-                      peerHost.c_str(), peerPort.c_str());
+//                LOG_F(INFO, "(%s:%s) Setting peer torrent...",
+//                      peerHost.c_str(), peerPort.c_str());
 
                 //set this Peer object's associated Torrent object
                 //by assigning the shared ptr to that Torrent object
@@ -1526,9 +1517,9 @@ void Peer::handleBitfield(std::vector<bool> recIsPieceDownloaded)
 
 void Peer::handleDataRequest(int index, int offset, int dataSize)
 {
-    LOG_F(INFO, "(%s:%s) Handling 'request' message... Index: %d; "
-                "offset: %d; data size: %d",
-          peerHost.c_str(), peerPort.c_str(), index, offset, dataSize);
+//    LOG_F(INFO, "(%s:%s) Handling 'request' message... Index: %d; "
+//                "offset: %d; data size: %d",
+//          peerHost.c_str(), peerPort.c_str(), index, offset, dataSize);
 
     dataRequest newDataRequest = { this, index, offset, dataSize, false };
 

@@ -90,6 +90,7 @@ namespace Bittorrent
 		std::vector<bool> isPieceDownloaded;
 
 		//status info
+        std::chrono::high_resolution_clock::time_point disconnectTime;
 		bool isDisconnected;
 		bool isHandshakeSent;
         bool isBitfieldSent;
