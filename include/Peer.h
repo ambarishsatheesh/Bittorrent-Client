@@ -144,10 +144,10 @@ namespace Bittorrent
         //ASIO
         boost::asio::ip::tcp::socket& socket();
         //start connection to resolved peer endpoints
-        void connectToNewPeer(boost::system::error_code const& ec,
-            std::shared_ptr<tcp::resolver> presolver,
-            tcp::resolver::iterator iter);
+        void connectToNewPeer(const boost::system::error_code& ec,
+            tcp::resolver::results_type results);
         void readFromAcceptedPeer();
+        void startNewRead();
         void setSocketOptions(int tcpPort);
 
     private:
@@ -166,18 +166,16 @@ namespace Bittorrent
 
 		//established connection functions - maybe separate class?
 		bool isAccepted;	//flag to use async funcs with shared_ptr
-		void acc_sendNewBytes(std::vector<byte> sendBuffer);
 
 		//new connection methods
 		void handleNewConnect(const boost::system::error_code& ec,
-			tcp::resolver::results_type::iterator endpointItr);
-		void startNewRead();
+            const tcp::endpoint& endpoint);
 		void handleRead(const boost::system::error_code& ec,
 			std::size_t receivedBytes);
 		int getMessageLength();
 		void sendNewBytes(std::vector<byte> sendBuffer);
 		void handleNewSend(const boost::system::error_code& ec,
-			std::size_t receivedBytes);
+            std::size_t receivedBytes, std::shared_ptr<std::vector<byte>> message);
 
 		//decoding
 		bool decodeHandshake(std::vector<byte>& hash, std::string& id);

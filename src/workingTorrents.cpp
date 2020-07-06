@@ -19,7 +19,7 @@ WorkingTorrents::WorkingTorrents()
       downloadThrottle{defaultSettings.maxDLSpeed, std::chrono::seconds{1}},
       uploadThrottle{defaultSettings.maxULSpeed, std::chrono::seconds{1}},
       rand{}, rng{rand()}, peerTimeout{std::chrono::seconds{30}},
-      threadPoolSize{5},
+      threadPoolSize{10},
       work{boost::asio::make_work_guard(io_context)}, acceptor_{io_context},
       isProcessing{true}, t_processDL{}, t_processUL{}
 {
@@ -41,6 +41,8 @@ WorkingTorrents::WorkingTorrents()
 
       t_processDL = std::thread([this]()
       {
+          loguru::set_thread_name("process downloads");
+
           while (isProcessing)
           {
               processDownloads();
@@ -49,15 +51,15 @@ WorkingTorrents::WorkingTorrents()
           }
       });
 
-      t_processUL = std::thread([this]()
-      {
-          while (isProcessing)
-          {
-              processUploads();
+//      t_processUL = std::thread([this]()
+//      {
+//          while (isProcessing)
+//          {
+//              //processUploads();
 
-              std::this_thread::sleep_for(std::chrono::seconds(1));
-          }
-      });
+//              std::this_thread::sleep_for(std::chrono::seconds(1));
+//          }
+//      });
 
 //      //start network transfer processing threads
 //      t_processDL = std::thread(&WorkingTorrents::start_DLProcessThread, this);
@@ -215,7 +217,7 @@ void WorkingTorrents::removeTorrent(int position)
         }
     }
 
-    //remove infohash associated with removed torrent f\rom the
+    //remove infohash associated with removed torrent from the
     //torrent map used for filtering
     for (auto it = trackerTorrentMap.begin(),
            end = trackerTorrentMap.end(); it != end;)
@@ -485,8 +487,6 @@ void WorkingTorrents::startSeeding(int position)
 //peers for downloading
 void WorkingTorrents::addPeer(peer singlePeer, std::shared_ptr<Torrent> torrent)
 {
-    LOG_F(INFO, "Added new peer (%s)...", singlePeer.ipAddress.c_str());
-
     auto peerConn = std::make_shared<Peer>(torrent, clientID, io_context,
                                        defaultSettings.tcpPort);
 
@@ -526,11 +526,15 @@ void WorkingTorrents::addPeer(peer singlePeer, std::shared_ptr<Torrent> torrent)
     auto presolver = std::make_shared<tcp::resolver>(io_context);
 
     //resolve peer and start connect
-    presolver->async_resolve(tcp::resolver::query(singlePeer.ipAddress, singlePeer.port),
-        [&peerConn, presolver](auto&& ec, auto iter)
-        {
-            peerConn->connectToNewPeer(ec, presolver, iter);
-        });
+    presolver->async_resolve(
+                tcp::resolver::query(singlePeer.ipAddress, singlePeer.port),
+                [&peerConn]
+                (const boost::system::error_code& ec,
+                const tcp::resolver::results_type results)
+                {
+                    peerConn->connectToNewPeer(ec, results);
+                });
+
 
     LOG_F(INFO, "Successfully added new peer!");
 }
@@ -548,14 +552,45 @@ void WorkingTorrents::resumePeer(Peer* peer)
     peer->isInterestedReceived = false;
     peer->isDisconnected = false;
 
+    //re-connect signals to slots
+    peer->sig_blockRequested->connect(
+                boost::bind(
+                    &WorkingTorrents::handleBlockRequested,
+                    this, _1));
+
+    peer->sig_blockCancelled->connect(
+                boost::bind(
+                    &WorkingTorrents::handleBlockCancelled,
+                    this, _1));
+
+    peer->sig_blockReceived->connect(
+                boost::bind(
+                    &WorkingTorrents::handleBlockReceived,
+                    this, _1));
+
+    peer->sig_disconnected->connect(
+                boost::bind(
+                    &WorkingTorrents::handlePeerDisconnected,
+                    this, _1));
+
+    peer->sig_stateChanged->connect(
+                boost::bind(
+                    &WorkingTorrents::handlePeerStateChanged,
+                    this, _1));
+
     auto presolver = std::make_shared<tcp::resolver>(io_context);
 
     //resolve peer and start connect
-    presolver->async_resolve(tcp::resolver::query(peer->peerHost, peer->peerPort),
-        [&](auto&& ec, auto iter)
-        {
-            peer->connectToNewPeer(ec, presolver, iter);
-        });
+    presolver->async_resolve(
+                tcp::resolver::query(peer->peerHost, peer->peerPort),
+                [&peer]
+                (const boost::system::error_code& ec,
+                const tcp::resolver::results_type results)
+                {
+                    peer->connectToNewPeer(ec, results);
+                });
+
+    LOG_F(INFO, "Initiated peer connection resume!");
 }
 
 void WorkingTorrents::acceptNewConnection(Torrent* torrent)
@@ -567,12 +602,12 @@ void WorkingTorrents::acceptNewConnection(Torrent* torrent)
     {
         acceptor_.async_accept(peerConn->socket(),
               boost::bind(&WorkingTorrents::handle_accept, this,
-                boost::asio::placeholders::error, peerConn.get(), torrent));
+                boost::asio::placeholders::error, peerConn, torrent));
     }
 }
 
 void WorkingTorrents::handle_accept(const boost::system::error_code& ec,
-                                    Peer* peerConn, Torrent* torrent)
+                                    std::shared_ptr<Peer> peerConn, Torrent* torrent)
 {
   if (!ec)
   {
@@ -613,7 +648,7 @@ void WorkingTorrents::handle_accept(const boost::system::error_code& ec,
       mapGuard.unlock();
 
       //start reading
-      peerConn->readFromAcceptedPeer();
+      peerConn->startNewRead();
 
       LOG_F(INFO, "Successfully accepted new connection from peer!");
   }
@@ -642,6 +677,8 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
 
     statusGuard.unlock();
 
+    std::lock_guard<std::mutex> mapGuard(mtx_map);
+
     auto range = peerConnMap.equal_range(
                 torrent->hashesData.urlEncodedInfoHash);
 
@@ -653,6 +690,8 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
 
 void WorkingTorrents::handlePieceVerified(Torrent* torrent, int piece)
 {
+    LOG_F(INFO, "Handling verified piece...");
+
     processPeers(torrent);
 
     std::lock_guard<std::mutex> guard(mtx_map);
@@ -680,73 +719,85 @@ void WorkingTorrents::handleBlockRequested(Peer::dataRequest request)
         outgoingBlocks.push_back(request);
     }
 
-    processUploads();
+    //processUploads();
 }
 
 void WorkingTorrents::handleBlockCancelled(Peer::dataRequest request)
 {
-    //block scope for lock_guard so that processUploads() can be called
-    //separately elsewhere while retaining its own lock
+    std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
+
+    //flag block for cancelling (processed later in processUploads())
+    for (auto& block : outgoingBlocks)
     {
-        std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
-
-        //flag block for cancelling (processed later in processUploads())
-        for (auto& block : outgoingBlocks)
+        if (block != request)
         {
-            if (block != request)
-            {
-                continue;
-            }
-
-            block.isCancelled = true;
+            continue;
         }
-    }
 
-    processUploads();
+        block.isCancelled = true;
+    }
 }
 
 void WorkingTorrents::handleBlockReceived(Peer::dataPackage package)
 {
+    LOG_F(INFO, "Handling received block...");
+
+    std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
+
+    //add to deque for processing
+    incomingBlocks.push_back(package);
+
+    //reset block requested
+    package.sourcePeer->isBlockRequested.at(package.piece).at(package.block)
+            = false;
+
+    std::unique_lock<std::mutex> mapGuard(mtx_map);
+    auto range = peerConnMap.equal_range(
+                package.sourcePeer->torrent->
+                hashesData.urlEncodedInfoHash);
+    mapGuard.unlock();
+
+    for (auto it = range.first; it != range.second; ++it)
     {
-        std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
-
-        //add to deque for processing
-        incomingBlocks.push_back(package);
-
-        //reset block requested
-        package.sourcePeer->isBlockRequested.at(package.piece).at(package.block)
-                = false;
-
-        std::unique_lock<std::mutex> mapGuard(mtx_map);
-        auto range = peerConnMap.equal_range(
-                    package.sourcePeer->torrent->
-                    hashesData.urlEncodedInfoHash);
-        mapGuard.unlock();
-
-        for (auto it = range.first; it != range.second; ++it)
+        //ignore peer if block is not requested
+        //(includes peer from argument due to reset above)
+        if (!it->second->
+                isBlockRequested.at(package.piece).at(package.block))
         {
-            //ignore peer if block is not requested
-            //(includes peer from argument due to reset above)
-            if (!it->second->
-                    isBlockRequested.at(package.piece).at(package.block))
-            {
-                continue;
-            }
-
-            it->second->sendCancel(package.piece,
-                                   package.block *
-                                   package.sourcePeer->torrent->
-                                   piecesData.blockSize,
-                                   package.sourcePeer->torrent->
-                                   piecesData.blockSize);
-
-            it->second->isBlockRequested.at(package.piece).at(package.block)
-                    = false;
+            continue;
         }
 
+        it->second->sendCancel(package.piece,
+                               package.block *
+                               package.sourcePeer->torrent->
+                               piecesData.blockSize,
+                               package.sourcePeer->torrent->
+                               piecesData.blockSize);
+
+        it->second->isBlockRequested.at(package.piece).at(package.block)
+                = false;
     }
 
-    processDownloads();
+    Peer::dataPackage tempBlock;
+
+    //write received data to disk only if block has not been acquired already
+    while (!incomingBlocks.empty())
+    {
+        LOG_F(INFO, "Writing to disk...");
+
+        tempBlock = incomingBlocks.front();
+        incomingBlocks.pop_front();
+
+        if (!tempBlock.sourcePeer->torrent->
+                statusData.isBlockAcquired
+                .at(tempBlock.piece).at(tempBlock.block))
+        {
+            writeBlock(*tempBlock.sourcePeer->torrent, tempBlock.piece,
+                       tempBlock.block, tempBlock.data);
+        }
+    }
+
+    LOG_F(INFO, "Finished handling received block...");
 }
 
 void WorkingTorrents::handlePeerDisconnected(Peer* senderPeer)
@@ -760,25 +811,14 @@ void WorkingTorrents::handlePeerDisconnected(Peer* senderPeer)
 
     std::lock_guard<std::mutex> mapGuard(mtx_map);
 
+    //store info so it can be used after peer has been deleted
+    auto tempHost = senderPeer->peerHost;
+    auto tempPort = senderPeer->peerPort;
     auto infoHash = senderPeer->torrent->hashesData.urlEncodedInfoHash;
 
-    //remove from peer maps
-    auto range = peerConnMap.equal_range(infoHash);
-
-    for (auto it = range.first; it != range.second;)
-    {
-        if (it->second->peerHost == senderPeer->peerHost &&
-                it->second->peerPort == senderPeer->peerPort)
-        {
-            it = peerConnMap.erase(it);
-        }
-        else
-        {
-            ++it;
-        }
-    }
-
-    range = seedersMap.equal_range(
+    //remove from seeders/leechers maps
+    //(don't remove from peerConnMap so object is kept alive)
+    auto range = seedersMap.equal_range(
                     senderPeer->torrent->hashesData.urlEncodedInfoHash);
 
     for (auto it = range.first; it != range.second;)
@@ -810,8 +850,23 @@ void WorkingTorrents::handlePeerDisconnected(Peer* senderPeer)
         }
     }
 
+//    range = peerConnMap.equal_range(infoHash);
+
+//    for (auto it = range.first; it != range.second;)
+//    {
+//        if (it->second->peerHost == senderPeer->peerHost &&
+//                it->second->peerPort == senderPeer->peerPort)
+//        {
+//            it = peerConnMap.erase(it);
+//        }
+//        else
+//        {
+//            ++it;
+//        }
+//    }
+
     LOG_F(INFO, "(%s:%s) Successfully disconnected from peer.",
-          senderPeer->peerHost.c_str(), senderPeer->peerPort.c_str());
+          tempHost.c_str(), tempPort.c_str());
 }
 
 void WorkingTorrents::handlePeerStateChanged(Peer* senderPeer)
@@ -868,7 +923,7 @@ void WorkingTorrents::processPeers(Torrent* torrent)
         }
 
         //peer not fully set up yet
-        if (!peer->isHandshakeSent || ! peer->isHandshakeReceived)
+        if (!peer->isHandshakeSent || !peer->isHandshakeReceived)
         {
             continue;
         }
@@ -900,7 +955,7 @@ void WorkingTorrents::processPeers(Torrent* torrent)
         auto infoHash = torrent->hashesData.urlEncodedInfoHash;
         if (torrent->statusData.isStarted() &&
                 leechersMap.count(infoHash) < defaultSettings.maxSeeders)
-        {            
+        {
             if (peer->isInterestedReceived && peer->isChokeSent)
             {
                 peer->sendUnchoke();
@@ -981,26 +1036,9 @@ void WorkingTorrents::processUploads()
 
 void WorkingTorrents::processDownloads()
 {
-    LOG_F(INFO, "Processing downloads...");
+//    std::unique_lock<std::mutex> incomingGuard(mtx_incoming);
 
-    std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
-
-    Peer::dataPackage tempBlock;
-
-    //write received data to disk only if block has not been acquired already
-    while (!incomingBlocks.empty())
-    {
-        tempBlock = incomingBlocks.front();
-        incomingBlocks.pop_front();
-
-        if (!tempBlock.sourcePeer->torrent->
-                statusData.isBlockAcquired
-                .at(tempBlock.piece).at(tempBlock.block))
-        {
-            writeBlock(*tempBlock.sourcePeer->torrent, tempBlock.piece,
-                       tempBlock.block, tempBlock.data);
-        }
-    }
+//    incomingGuard.unlock();
 
     //order torrents by descending ranking
     auto rankedTorrents = getRankedTorrents();
@@ -1023,6 +1061,8 @@ void WorkingTorrents::processDownloads()
             //skip if already have piece
             if (torrent->statusData.isPieceVerified.at(piece))
             {
+                LOG_F(INFO, "Already have piece %d.", piece);
+
                 continue;
             }
 
@@ -1033,6 +1073,8 @@ void WorkingTorrents::processDownloads()
                 //skip if seeder doesn't have the piece
                 if (!seeder->isPieceDownloaded.at(piece))
                 {
+                    LOG_F(INFO, "Seeder doesn't have piece %d.", piece);
+
                     continue;
                 }
 
@@ -1044,12 +1086,16 @@ void WorkingTorrents::processDownloads()
                     if (torrent->
                             statusData.isBlockAcquired.at(piece).at(block))
                     {
+                        LOG_F(INFO, "Already aquired block %d", block);
+
                         continue;
                     }
 
                     //skip if throttled
                     if (downloadThrottle.isThrottled())
                     {
+                        LOG_F(INFO, "Download throttled!");
+
                         continue;
                     }
 
@@ -1085,6 +1131,9 @@ void WorkingTorrents::processDownloads()
                     int blockSize = torrent->piecesData.getBlockSize(
                                 piece, block);
 
+                    LOG_F(INFO, "Requesting piece %d, block %d...", piece,
+                          block);
+
                     seeder->sendDataRequest(
                                 piece,
                                 block * torrent->piecesData.blockSize,
@@ -1095,10 +1144,17 @@ void WorkingTorrents::processDownloads()
 
                     //update info
                     seeder->isBlockRequested.at(piece).at(block) = true;
+
+                    auto percentDL = 100 * (torrent->statusData.downloaded()/torrent->statusData.totalSize);
+                    LOG_F(INFO, "Downloaded: %d%%", static_cast<int>(percentDL));
+
+                    LOG_F(INFO, "Finished processing block download.");
                 }
             }
         }
     }
+
+    LOG_F(INFO, "Finished processing download batch.");
 }
 
 //sort torrents in order of descending ranking
@@ -1165,7 +1221,7 @@ std::vector<int> WorkingTorrents::getRankedPieces(Torrent* torrent)
 
     std::vector<indexScores> indexScores(torrent->piecesData.pieceCount);
 
-    for (int i = 0; i < indexScores.size(); ++i)
+    for (size_t i = 0; i < indexScores.size(); ++i)
     {
         indexScores.at(i).index = i;
         indexScores.at(i).score = getPieceScore(torrent, i);
@@ -1254,32 +1310,4 @@ float WorkingTorrents::getPieceRarity(Torrent* torrent, int piece)
     return raritySum / peerConnMap.count(infoHash);
 }
 
-void WorkingTorrents::start_DLProcessThread()
-{
-    loguru::set_thread_name("Process Downloads");
-
-    while (isProcessing)
-    {
-        processDownloads();
-
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
 }
-
-void WorkingTorrents::start_ULProcessThread()
-{
-    loguru::set_thread_name("Process Downloads");
-
-    while (isProcessing)
-    {
-        processUploads();
-
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-}
-
-}
-
-
-
-

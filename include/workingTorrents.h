@@ -133,7 +133,7 @@ private:
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work;
     tcp::acceptor acceptor_;
 
-    void handle_accept(const boost::system::error_code& ec, Peer* peerConn,
+    void handle_accept(const boost::system::error_code& ec, std::shared_ptr<Peer> peerConn,
                        Torrent* torrent);
     void resumePeer(Peer* peer);
 
@@ -142,9 +142,6 @@ private:
     std::vector<std::shared_ptr<std::thread>> threadPool;
     std::thread t_processDL;
     std::thread t_processUL;
-
-    void start_DLProcessThread();
-    void start_ULProcessThread();
 };
 
 }
