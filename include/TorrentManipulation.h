@@ -6,6 +6,8 @@
 #include "encodeVisitor.h"
 #include "sha1.h"
 
+#include <mutex>
+#include <cstdio>
 
 namespace Bittorrent
 {
@@ -15,7 +17,10 @@ namespace Bittorrent
 	//need to declare inline for each function?
 
 	namespace torrentManipulation
-	{
+    {
+
+        static std::mutex mtx_file;
+
 		//forward declare
         std::string encode(const value& torrent);
         Torrent toTorrentObj(const char* fullFilePath,
@@ -258,9 +263,10 @@ namespace Bittorrent
 				{
 					buffer.clear();
 					return buffer;
-					/*throw std::invalid_argument("The file path \"" + filePath +
-						"\" does not exist!");*/
 				}
+
+                //lock mutex
+                std::lock_guard<std::mutex> writeLock(mtx_file);
 
 				const auto fStart = std::max(static_cast<long long>(0),
 					start - file.fileOffset);
@@ -300,16 +306,22 @@ namespace Bittorrent
 				}
 
 				std::string filePath = torrent.generalData.downloadDirectory +
-					file.filePath;
+                    file.filePath;
 
-				const char* cstrPath = filePath.c_str();
-
-				std::string dir = getFileDirectory(cstrPath);
+                //create dir if it doesn't exist
+                std::string dir = getFileDirectory(filePath.c_str());
 				if (!boost::filesystem::is_directory(dir))
 				{
 					boost::filesystem::create_directory(dir);
 				}
 
+                //create file if it doesn't exist
+                if (!boost::filesystem::exists(filePath))
+                {
+                    std::ofstream(filePath.c_str());
+                }
+
+                //get write positions
 				const auto fStart = std::max(static_cast<long long>(0),
 					start - file.fileOffset);
 				const auto fEnd = std::min(end - static_cast<long long>(file.fileOffset),
@@ -318,14 +330,30 @@ namespace Bittorrent
 				const auto bStart = std::max(static_cast<long long>(0),
 					file.fileOffset - start);
 
-                std::ifstream stream(filePath, std::ios::binary);
-				//set position of next character to be extracted to fStart
-				stream.seekg(fStart, std::ifstream::beg);
-				//set offset in buffer at which to begin storing read data
-				auto bufferStart = &buffer.at(bStart);
-				//extract fLength characters from stream (starting at fStart) 
-				//into buffer (starting at bufferStart)
-				stream.read(reinterpret_cast<char*>(bufferStart), fLength);
+                //lock mutex
+                std::lock_guard<std::mutex> writeLock(mtx_file);
+
+                //open file in update (+binary) mode so write doesn't
+                //truncate file
+                FILE* f = fopen(filePath.c_str(), "r+b");
+                if (!f)
+                {
+                    LOG_F(ERROR, "Could not open the file to write "
+                                 "contents to disk!");
+                    return;
+                }
+
+                // use "unbuffered mode" since this is random access
+                setbuf(f, nullptr);
+
+                // move to offset from beginning of file
+                fseek(f, fStart, SEEK_SET);
+
+                // write data from bStart, for fLength bytes
+                fwrite(&buffer[bStart], sizeof(byte), fLength, f);
+
+                // disconnect from the file
+                fclose(f);
 			}
 		}
 
@@ -359,6 +387,9 @@ namespace Bittorrent
 			//if piece passes verification, fill relevant vectors
 			if (isVerified)
 			{
+                LOG_F(INFO, "Piece %d verified for torrent %s!", piece,
+                      torrent.generalData.fileName.c_str());
+
 				torrent.statusData.isPieceVerified.at(piece) = true;
 
 				for (size_t i = 0; i <
@@ -375,6 +406,9 @@ namespace Bittorrent
 
 				return;
 			}
+
+            LOG_F(WARNING, "Piece %d failed verification for torrent!", piece,
+                  torrent.generalData.fileName.c_str());
 
 			//check if all the blocks in a piece have been acquired
 			//if they have (and piece fails verification above), 
