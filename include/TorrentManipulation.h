@@ -407,9 +407,6 @@ namespace Bittorrent
 				return;
 			}
 
-            LOG_F(WARNING, "Piece %d failed verification for torrent!", piece,
-                  torrent.generalData.fileName.c_str());
-
 			//check if all the blocks in a piece have been acquired
 			//if they have (and piece fails verification above), 
 			//reload entire piece
@@ -425,6 +422,10 @@ namespace Bittorrent
 				{
 					torrent.statusData.isBlockAcquired[piece][i] = false;
 				}
+
+                LOG_F(WARNING, "Piece %d failed verification for torrent %s. "
+                               "Reloading entire piece.",
+                      piece, torrent.generalData.fileName.c_str());
 			}
 		}
 
