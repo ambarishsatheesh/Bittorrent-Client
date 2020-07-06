@@ -378,6 +378,13 @@ namespace Bittorrent
 			torrent.statusData.isBlockAcquired.at(piece).at(block) = true;
             torrent.statusData.acquiredBlocksCount++;
 
+            //testing purposes
+            if (torrent.statusData.acquiredBlocksCount % 500 == 0)
+            {
+                LOG_F(WARNING, "Acquired block count: %d",
+                      torrent.statusData.acquiredBlocksCount);
+            }
+
 			verify(torrent, piece);
 		}
 
@@ -396,11 +403,14 @@ namespace Bittorrent
 
 				torrent.statusData.isPieceVerified.at(piece) = true;
 
+                //testing purposes
+                LOG_F(WARNING, "Acquired piece count: %d",
+                      torrent.statusData.verifiedPiecesCount());
+
 				for (size_t i = 0; i <
 					(torrent.statusData.isBlockAcquired.at(piece)).size(); ++i)
 				{
                     torrent.statusData.isBlockAcquired.at(piece).at(i) = true;
-                    torrent.statusData.acquiredBlocksCount++;
 				}
 
 				//if slots are connected to signal, call slots
