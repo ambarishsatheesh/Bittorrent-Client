@@ -36,7 +36,9 @@ namespace Bittorrent
         long long remaining();
         int pieceCount;
         int pieceSize;
+        int blockSize;
         int totalSize;
+        long acquiredBlocksCount;
         long long uploaded;
 
 	private:

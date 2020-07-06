@@ -373,7 +373,11 @@ namespace Bittorrent
 		{
 			write(torrent, (piece * torrent.piecesData.pieceSize) +
 				(block * torrent.piecesData.blockSize), buffer);
+
+            //update block info
 			torrent.statusData.isBlockAcquired.at(piece).at(block) = true;
+            torrent.statusData.acquiredBlocksCount++;
+
 			verify(torrent, piece);
 		}
 
@@ -384,7 +388,7 @@ namespace Bittorrent
 			//check if piece hash info matches currently generated hash
             bool isVerified = (!hash.empty() && hash == torrent.piecesData.pieces.at(piece));
 
-			//if piece passes verification, fill relevant vectors
+            //if piece passes verification, fill relevant data
 			if (isVerified)
 			{
                 LOG_F(INFO, "Piece %d verified for torrent %s!", piece,
@@ -395,7 +399,8 @@ namespace Bittorrent
 				for (size_t i = 0; i <
 					(torrent.statusData.isBlockAcquired.at(piece)).size(); ++i)
 				{
-					torrent.statusData.isBlockAcquired[piece][i] = true;
+                    torrent.statusData.isBlockAcquired.at(piece).at(i) = true;
+                    torrent.statusData.acquiredBlocksCount++;
 				}
 
 				//if slots are connected to signal, call slots
@@ -411,8 +416,7 @@ namespace Bittorrent
 			//if they have (and piece fails verification above), 
 			//reload entire piece
 			torrent.statusData.isPieceVerified.at(piece) = false;
-			if (
-				std::all_of(
+			if (std::all_of(
 					torrent.statusData.isBlockAcquired.at(piece).begin(), 
 					torrent.statusData.isBlockAcquired.at(piece).end(),
 					[](bool v) {return v; }))
@@ -421,6 +425,7 @@ namespace Bittorrent
 					i < torrent.statusData.isBlockAcquired.at(piece).size(); ++i)
 				{
 					torrent.statusData.isBlockAcquired[piece][i] = false;
+                    torrent.statusData.acquiredBlocksCount--;
 				}
 
                 LOG_F(WARNING, "Piece %d failed verification for torrent %s. "
