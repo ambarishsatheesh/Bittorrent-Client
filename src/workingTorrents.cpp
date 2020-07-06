@@ -493,11 +493,11 @@ void WorkingTorrents::start(int position)
                 auto range = peerConnMap.equal_range(infoHash);
 
                 //push map values into vector so they can be searched
-                std::vector<Peer*> mapPeerRange;
+                std::vector<std::shared_ptr<Peer>> mapPeerRange;
 
                 for (auto it = range.first; it != range.second; ++it)
                 {
-                    mapPeerRange.push_back(it->second.get());
+                    mapPeerRange.push_back(it->second);
                 }
 
                 mapGuard.unlock();
@@ -507,9 +507,13 @@ void WorkingTorrents::start(int position)
                 {
                     //create new Peer object if not in peerConnMap
                     //else resume connection
-                    auto itr_find = std::find_if(mapPeerRange.begin(), mapPeerRange.end(),
-                                              [&singlePeer](const Peer* p){
-                        return p->peerHost == singlePeer.ipAddress;});
+                    auto itr_find =
+                            std::find_if(mapPeerRange.begin(), mapPeerRange.end(),
+                                         [&singlePeer]
+                                         (const std::shared_ptr<Peer>& p)
+                    {
+                        return p->peerHost == singlePeer.ipAddress;
+                    });
 
                     if (itr_find == mapPeerRange.end())
                     {
@@ -594,26 +598,28 @@ void WorkingTorrents::addPeer(peer singlePeer, std::shared_ptr<Torrent> torrent)
                 (const boost::system::error_code& ec,
                 const tcp::resolver::results_type results)
                 {
-                    peerConn->connectToNewPeer(ec, results);
+                    peerConn->connectToPeer(ec, results);
                 });
 
 
     LOG_F(INFO, "Successfully added new peer!");
 }
 
-void WorkingTorrents::resumePeer(Peer* peer)
+void WorkingTorrents::resumePeer(std::shared_ptr<Peer> peer)
 {
-    LOG_F(INFO, "Attempted to resume peer connection...");
+    LOG_F(INFO, "(%s:%s) Attempted to resume peer connection...",
+          peer->peerHost.c_str(), peer->peerPort.c_str());
 
     peer->setSocketOptions(defaultSettings.tcpPort);
 
     //reset transfer checks
     peer->isHandshakeReceived = false;
-    peer->isHandshakeSent = true;
+    peer->isHandshakeSent = false;
     peer->isChokeSent = true;
-    peer->isChokeReceived = false;
+    peer->isChokeReceived = true;
     peer->isInterestedSent = false;
     peer->isInterestedReceived = false;
+    peer->isBitfieldSent = false;
     peer->isDisconnected = false;
 
     //re-connect signals to slots
@@ -644,15 +650,8 @@ void WorkingTorrents::resumePeer(Peer* peer)
 
     auto presolver = std::make_shared<tcp::resolver>(io_context);
 
-    //resolve peer and start connect
-    presolver->async_resolve(
-                tcp::resolver::query(peer->peerHost, peer->peerPort),
-                [&peer]
-                (const boost::system::error_code& ec,
-                const tcp::resolver::results_type results)
-                {
-                    peer->connectToNewPeer(ec, results);
-                });
+    //resolve peer and restart connection
+    peer->restartResolve(presolver);
 }
 
 void WorkingTorrents::acceptNewConnection(Torrent* torrent)
@@ -710,7 +709,7 @@ void WorkingTorrents::handle_accept(const boost::system::error_code& ec,
       mapGuard.unlock();
 
       //start reading
-      peerConn->startNewRead();
+      peerConn->readFromAcceptedPeer();
 
       LOG_F(INFO, "Successfully accepted new connection from peer!");
   }
@@ -1045,20 +1044,20 @@ void WorkingTorrents::processPeers(Torrent* torrent)
         }
     }
 
-    mapGuard.lock();
+//    mapGuard.lock();
 
-    //if peers are in map but disconnected, try reconnecting
-    auto range = peerConnMap.equal_range(infoHash);
+//    //if peers are in map but disconnected, try reconnecting
+//    auto range = peerConnMap.equal_range(infoHash);
 
-    for (auto it = range.first; it != range.second; ++it)
-    {
-        if (it->second->isDisconnected)
-        {
-            resumePeer(it->second.get());
-        }
-    }
+//    for (auto it = range.first; it != range.second; ++it)
+//    {
+//        if (it->second->isDisconnected)
+//        {
+//            resumePeer(it->second);
+//        }
+//    }
 
-    mapGuard.unlock();
+//    mapGuard.unlock();
 
     LOG_F(INFO, "Completed processing peers for torrent %s.",
           torrent->generalData.fileName.c_str());

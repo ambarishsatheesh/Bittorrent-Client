@@ -27,8 +27,8 @@ Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
     peerHost{""}, peerPort{""}, localID{ localID }, peerID{ "" },
     torrent{ torrent }, endpointKey(),
     isPieceDownloaded(torrent->piecesData.pieceCount),
-    isDisconnected{}, isHandshakeSent{}, isPositionSent{},
-    isChokeSent{ true }, isInterestedSent{ false }, isHandshakeReceived{},
+    isDisconnected{ false }, isHandshakeSent{ false }, isBitfieldSent{ false },
+    isChokeSent{ true }, isInterestedSent{ false }, isHandshakeReceived{ false },
     isChokeReceived{ true }, isInterestedReceived{ false },
     lastActive{ std::chrono::high_resolution_clock::now() },
     lastKeepAlive{ std::chrono::high_resolution_clock::time_point::min() },
@@ -78,8 +78,8 @@ Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
     peerHost{""}, peerPort{""}, localID{ localID }, peerID{ "" },
     torrent{ std::make_shared<Torrent>() }, endpointKey(),
     isPieceDownloaded(torrent->piecesData.pieceCount),
-    isDisconnected{}, isHandshakeSent{}, isPositionSent{},
-    isChokeSent{ true }, isInterestedSent{ false }, isHandshakeReceived{},
+    isDisconnected{ false }, isHandshakeSent{ false }, isBitfieldSent{ false },
+    isChokeSent{ true }, isInterestedSent{ false }, isHandshakeReceived{ false },
     isChokeReceived{ true }, isInterestedReceived{ false },
     lastActive{ std::chrono::high_resolution_clock::now() },
     lastKeepAlive{ std::chrono::high_resolution_clock::time_point::min() },
@@ -193,7 +193,17 @@ int Peer::blocksRequested()
     return sum;
 }
 
-void Peer::connectToNewPeer(const boost::system::error_code& ec,
+void Peer::restartResolve(std::shared_ptr<tcp::resolver> presolver)
+{
+    presolver->async_resolve(
+                tcp::resolver::query(peerHost, peerPort),
+                boost::asio::bind_executor(strand_,
+                boost::bind(&Peer::connectToPeer, shared_from_this(),
+                            boost::asio::placeholders::error,
+                            boost::asio::placeholders::results)));
+}
+
+void Peer::connectToPeer(const boost::system::error_code& ec,
                             const tcp::resolver::results_type results)
 {
     if (!ec)
@@ -220,6 +230,7 @@ void Peer::handleNewConnect(const boost::system::error_code& ec,
     {
         LOG_F(INFO, "(%s:%s) Connected.", peerHost.c_str(), peerPort.c_str());
 
+        isDisconnected = false;
         endpointKey = endpoint;
 
         //prepare read buffer for handshake
@@ -304,14 +315,7 @@ void Peer::handleRead(const boost::system::error_code& ec,
                 recBuffer.clear();
                 recBuffer.resize(4);
 
-                if (isAccepted)
-                {
-                    readFromAcceptedPeer();
-                }
-                else
-                {
-                    startNewRead();
-                }
+                startNewRead();
 
                 //process keep alive message
                 handleMessage();
@@ -322,14 +326,7 @@ void Peer::handleRead(const boost::system::error_code& ec,
                 recBuffer.clear();
                 recBuffer.resize(messageLength);
 
-                if (isAccepted)
-                {
-                    readFromAcceptedPeer();
-                }
-                else
-                {
-                    startNewRead();
-                }
+                startNewRead();
             }
         }
         //rest of the message
@@ -349,14 +346,7 @@ void Peer::handleRead(const boost::system::error_code& ec,
             recBuffer.clear();
             recBuffer.resize(4);
 
-            if (isAccepted)
-            {
-                readFromAcceptedPeer();
-            }
-            else
-            {
-                startNewRead();
-            }
+            startNewRead();
         }
     }
     else
@@ -1336,6 +1326,8 @@ void Peer::sendBitfield(std::vector<bool> isPieceVerified)
 
     //create buffer and send
     sendNewBytes(encodeBitfield(isPieceVerified));
+
+    isBitfieldSent = true;
 }
 
 void Peer::sendDataRequest(int index, int offset, int dataSize)

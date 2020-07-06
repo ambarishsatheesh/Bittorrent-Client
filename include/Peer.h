@@ -92,7 +92,7 @@ namespace Bittorrent
 		//status info
 		bool isDisconnected;
 		bool isHandshakeSent;
-		bool isPositionSent;
+        bool isBitfieldSent;
 		bool isChokeSent;
         bool isInterestedSent;
 		bool isHandshakeReceived;
@@ -143,9 +143,15 @@ namespace Bittorrent
 
         //ASIO
         boost::asio::ip::tcp::socket& socket();
+        //restart connection with peer
+        void restartResolve(std::shared_ptr<tcp::resolver> presolver);
+        void handleRestartResolve(const boost::system::error_code& ec,
+                                 const tcp::resolver::results_type results);
+
         //start connection to resolved peer endpoints
-        void connectToNewPeer(const boost::system::error_code& ec,
-            tcp::resolver::results_type results);
+        void connectToPeer(const boost::system::error_code& ec,
+                              tcp::resolver::results_type results);
+
         void readFromAcceptedPeer();
         void startNewRead();
         void setSocketOptions(int tcpPort);

@@ -138,7 +138,7 @@ private:
 
     void handle_accept(const boost::system::error_code& ec, std::shared_ptr<Peer> peerConn,
                        Torrent* torrent);
-    void resumePeer(Peer* peer);
+    void resumePeer(std::shared_ptr<Peer> peer);
 
     //threads
     std::vector<std::shared_ptr<std::thread>> threadPool;
