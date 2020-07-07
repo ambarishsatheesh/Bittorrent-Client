@@ -378,13 +378,6 @@ namespace Bittorrent
 			torrent.statusData.isBlockAcquired.at(piece).at(block) = true;
             torrent.statusData.acquiredBlocksCount++;
 
-            //testing purposes
-            if (torrent.statusData.acquiredBlocksCount % 500 == 0)
-            {
-                LOG_F(WARNING, "Acquired block count: %d",
-                      torrent.statusData.acquiredBlocksCount);
-            }
-
 			verify(torrent, piece);
 		}
 
@@ -398,14 +391,7 @@ namespace Bittorrent
             //if piece passes verification, fill relevant data
 			if (isVerified)
 			{
-                LOG_F(INFO, "Piece %d verified for torrent %s!", piece,
-                      torrent.generalData.fileName.c_str());
-
 				torrent.statusData.isPieceVerified.at(piece) = true;
-
-                //testing purposes
-                LOG_F(WARNING, "Acquired piece count: %d",
-                      torrent.statusData.verifiedPiecesCount());
 
 				for (size_t i = 0; i <
 					(torrent.statusData.isBlockAcquired.at(piece)).size(); ++i)
