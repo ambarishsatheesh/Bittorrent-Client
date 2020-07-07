@@ -1,8 +1,9 @@
 QT       += core gui
 QT       += concurrent
 QT       += testlib
-
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+QT       += charts
+greaterThan(QT_MAJOR_VERSION, 4): QT       += widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT       += printsupport
 
 CONFIG += c++14
 
@@ -43,6 +44,7 @@ SOURCES += \
     generalinfomodel.cpp \
     main.cpp \
     mainwindow.cpp \
+    qcustomplot.cpp \
     settingsdialog.cpp \
     tableModel.cpp \
     torrentheadercheckbox.cpp \
@@ -81,6 +83,7 @@ HEADERS += \
     createtorrent.h \
     generalinfomodel.h \
     mainwindow.h \
+    qcustomplot.h \
     settingsdialog.h \
     storedPrevTorrents.h \
     tableModel.h \
@@ -94,7 +97,8 @@ FORMS += \
     createtorrent.ui \
     generalInfoTab.ui \
     mainwindow.ui \
-    settingsdialog.ui
+    settingsdialog.ui \
+    transferSpeed.ui
 
 INCLUDEPATH += ../include/
 INCLUDEPATH += $$PWD/../../../Boostmingw/boost_1_73_0
