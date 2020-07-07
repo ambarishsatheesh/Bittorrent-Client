@@ -306,6 +306,12 @@ void MainWindow::initTorrentTable()
     connect(torrentModel, &TorrentTableModel::duplicateTorrentSig, this,
             &MainWindow::duplicateTorrentSlot);
 
+    //connect model dataChanged signal to viewport repaint
+    //(allows real-time view updates)
+    connect(torrentModel, &TorrentTableModel::dataChanged, torrentTable,
+            [&]
+            () { torrentTable->viewport()->repaint();});
+
     m_dockWidget1->setWidget(torrentTable);
 }
 
@@ -366,6 +372,12 @@ void MainWindow::initGeneralInfo()
     generalInfoMapper->addMapping(generalInfoTab->peers_val, 17, "text");
 
     m_dockWidget2->setWidget(generalInfoTab->generalBox);
+
+    //connect model dataChanged signal to view update
+    //(allows real-time view updates)
+    connect(generalDataModel, &generalInfoModel::dataChanged, generalInfoTab->generalBox,
+            [&]
+            () { generalInfoTab->generalBox->update();});
 }
 
 void MainWindow::initContentTree()
