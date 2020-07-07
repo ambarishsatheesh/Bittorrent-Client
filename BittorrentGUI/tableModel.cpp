@@ -9,8 +9,16 @@ namespace Bittorrent
 {
 
 TorrentTableModel::TorrentTableModel(Client* client, QPointer<QObject> parent)
-    : QAbstractTableModel(parent), ioClientModel(client)
+    : QAbstractTableModel(parent), ioClientModel(client), timer{new QTimer(this)}
 {
+    //timer to refresh table every second
+    connect(timer, &QTimer::timeout , this, &TorrentTableModel::timerHit);
+    timer->start(1000);
+}
+
+void TorrentTableModel::timerHit()
+{
+    emit dataChanged(QModelIndex(), QModelIndex(), {Qt::DisplayRole});
 }
 
 int TorrentTableModel::rowCount(const QModelIndex &parent) const
@@ -107,9 +115,6 @@ bool TorrentTableModel::setData(const QModelIndex &index,
 QVariant TorrentTableModel::generateData(const QModelIndex &index) const
 {
     using namespace utility;
-
-    auto entry = ioClientModel->WorkingTorrents.torrentList.at(index.row());
-
     switch (index.column())
     {
     //Added on
@@ -122,17 +127,27 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
                 WorkingTorrents.torrentList.at(index.row())->clientRank;
     //Name
     case 2:
-        return QString::fromStdString(entry->generalData.fileName);
+        return QString::fromStdString(
+                    ioClientModel->
+                    WorkingTorrents.torrentList.at(index.row())->
+                    generalData.fileName);
     //Size
     case 3:
         return QString::fromStdString(
-                    humanReadableBytes(entry->piecesData.totalSize));
+                    humanReadableBytes(
+                        ioClientModel->
+                        WorkingTorrents.torrentList.at(index.row())->
+                        piecesData.totalSize));
     //Progress
     case 4:
     {
-        auto downloadedBytes = entry->statusData.downloaded();
+        auto downloadedBytes = ioClientModel->
+                WorkingTorrents.torrentList.at(index.row())->
+                statusData.downloaded();
 
-        auto totalBytes = entry->piecesData.totalSize;
+        auto totalBytes = ioClientModel->
+                WorkingTorrents.torrentList.at(index.row())->
+                piecesData.totalSize;
 
         return 100 * (downloadedBytes/totalBytes);
     }
@@ -188,8 +203,11 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
         return 0;
     //download speed
     case 8:
-        //implement properly
-        return 0;
+        return QString::fromStdString(
+                    humanReadableBytes(
+                        ioClientModel->
+                        WorkingTorrents.torrentList.at(index.row())->
+                        statusData.downloadSpeed)) + "/s";
     //upload speed
     case 9:
         //implement properly
@@ -201,10 +219,15 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
     //Ratio
     case 11:
     {
-        auto downloadedBytes = entry->statusData.downloaded();
+        auto downloadedBytes = ioClientModel->
+                WorkingTorrents.torrentList.at(index.row())->
+                statusData.downloaded();
+
         if (downloadedBytes != 0)
         {
-            return entry->statusData.uploaded / downloadedBytes;
+            return ioClientModel->
+                    WorkingTorrents.torrentList.at(index.row())->
+                    statusData.uploaded / downloadedBytes;
         }
         return 0;
     }
@@ -214,12 +237,18 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
         return 0;
     //Downloaded
     case 13:
-        return QString::fromStdString(humanReadableBytes(entry->
-                statusData.downloaded()));
+        return QString::fromStdString(
+                    humanReadableBytes(
+                        ioClientModel->
+                        WorkingTorrents.torrentList.at(index.row())->
+                        statusData.downloaded()));
     //Uploaded
     case 14:
-        return QString::fromStdString(humanReadableBytes(entry->
-                statusData.uploaded));
+        return QString::fromStdString(
+                    humanReadableBytes(
+                        ioClientModel->
+                        WorkingTorrents.torrentList.at(index.row())->
+                        statusData.uploaded));
     //Time Active
     case 15:
         //implement properly

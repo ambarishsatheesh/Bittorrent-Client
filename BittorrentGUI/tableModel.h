@@ -10,6 +10,7 @@
 #include <QTimer>
 #include <QPointer>
 #include <QObject>
+#include <QTimer>
 
 namespace Bittorrent
 {
@@ -45,6 +46,9 @@ signals:
 
 private:
     Client* ioClientModel;
+
+    QPointer<QTimer> timer;
+    void timerHit();
 
 };
 

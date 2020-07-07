@@ -18,16 +18,24 @@ public:
     void paint(QPainter *painter, const QStyleOptionViewItem &option,
         const QModelIndex &index) const
     {
-        QStyleOptionProgressBar progressBarOption;
-        progressBarOption.rect = option.rect;
-        progressBarOption.minimum = 0;
-        progressBarOption.maximum = 100;
-        progressBarOption.progress = index.data().toInt();
-        progressBarOption.text = QString::number(progressBarOption.progress) + "%";
-        progressBarOption.textVisible = true;
+        if (index.column() == 4)
+        {
+            QStyleOptionProgressBar progressBarOption;
+            progressBarOption.rect = option.rect;
+            progressBarOption.minimum = 0;
+            progressBarOption.maximum = 100;
+            progressBarOption.progress = index.data().toInt();
+            progressBarOption.text = QString::number(progressBarOption.progress) + "%";
+            progressBarOption.textVisible = true;
 
-        QApplication::style()->drawControl(QStyle::CE_ProgressBar,
-            &progressBarOption, painter);
+            QApplication::style()->drawControl(QStyle::CE_ProgressBar,
+                &progressBarOption, painter);
+        }
+        else
+        {
+            //Otherwise call the default delegate
+            QStyledItemDelegate::paint(painter, option, index);
+        }
     }
 
 };
