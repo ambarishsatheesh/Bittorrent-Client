@@ -81,8 +81,8 @@ void HTTPClient::dataTransmission(bool isAnnounce)
 
     m_isAnnounce = isAnnounce;
 
-    LOG_F(INFO, "Resolving HTTP tracker (%s:%s)...",
-        peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO, "Resolving HTTP tracker (%s:%s)...",
+//        peerHost.c_str(), peerPort.c_str());
 
     tcp::resolver::results_type results;
 
@@ -103,8 +103,8 @@ void HTTPClient::dataTransmission(bool isAnnounce)
         boost::bind(&HTTPClient::handleConnect, this,
             boost::asio::placeholders::error));
 
-    //set 10 second total deadline timer for all asynchronous operations
-    run(std::chrono::seconds(3));
+    //set 1 second total deadline timer for all asynchronous operations
+    run(std::chrono::seconds(1));
 }
 
 void HTTPClient::handleConnect(const boost::system::error_code& error)
@@ -114,14 +114,14 @@ void HTTPClient::handleConnect(const boost::system::error_code& error)
         /*remoteEndpoint = endpoint_itr->endpoint();*/
         remoteEndpoint = socket.remote_endpoint();
 
-        LOG_F(INFO, "Resolved HTTP tracker endpoint! Endpoint: %s:%hu (%s:%s).",
-            remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
-            peerHost.c_str(), peerPort.c_str());
+//        LOG_F(INFO, "Resolved HTTP tracker endpoint! Endpoint: %s:%hu (%s:%s).",
+//            remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
+//            peerHost.c_str(), peerPort.c_str());
 
         //use interval value to check if we have announced before
         if (m_isAnnounce)
         {
-            LOG_F(INFO, "Starting HTTP announce request...");
+//            LOG_F(INFO, "Starting HTTP announce request...");
 
             announceRequest();
         }
@@ -133,7 +133,7 @@ void HTTPClient::handleConnect(const boost::system::error_code& error)
             auto ancPos = target.find("announce");
             if (ancPos == 1)
             {
-                LOG_F(INFO, "Starting HTTP scrape request...");
+//                LOG_F(INFO, "Starting HTTP scrape request...");
 
                 target.replace(ancPos, 8, "scrape");
                 scrapeRequest();
@@ -176,12 +176,12 @@ void HTTPClient::handleScrapeSend(const boost::system::error_code& error)
 {
     if (!error)
     {
-        LOG_F(INFO,
-            "Sent HTTP scrape request to tracker %s:%hu (%s:%s); "
-            "Status: %s; Scrape URL: %s.",
-            remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
-            peerHost.c_str(), peerPort.c_str(),
-            error.message().c_str(), target.c_str());
+//        LOG_F(INFO,
+//            "Sent HTTP scrape request to tracker %s:%hu (%s:%s); "
+//            "Status: %s; Scrape URL: %s.",
+//            remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
+//            peerHost.c_str(), peerPort.c_str(),
+//            error.message().c_str(), target.c_str());
 
         http::async_read(socket, recBuffer, res,
             boost::bind(&HTTPClient::handleScrapeReceive, this,
@@ -207,12 +207,12 @@ void HTTPClient::handleScrapeReceive(const boost::system::error_code& error,
 {
     if (!error)
     {
-        LOG_F(INFO,
-            "Received HTTP scrape response from tracker %s:%hu (%s:%s); "
-            "Status: %s; Bytes received: %d.",
-            remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
-            peerHost.c_str(), peerPort.c_str(),
-            error.message().c_str(), static_cast<int>(bytesTransferred));
+//        LOG_F(INFO,
+//            "Received HTTP scrape response from tracker %s:%hu (%s:%s); "
+//            "Status: %s; Bytes received: %d.",
+//            remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
+//            peerHost.c_str(), peerPort.c_str(),
+//            error.message().c_str(), static_cast<int>(bytesTransferred));
 
         handleScrapeResp();
     }
@@ -257,23 +257,23 @@ void HTTPClient::handleScrapeResp()
         return;
     }
 
-    LOG_F(INFO,
-        "Successful scrape GET request to tracker %s:%hu (%s:%s)! Status code:"
-        "%s.",
-        remoteEndpoint.address().to_string().c_str(),
-        remoteEndpoint.port(),
-        peerHost.c_str(), peerPort.c_str(),
-        result.c_str());
+//    LOG_F(INFO,
+//        "Successful scrape GET request to tracker %s:%hu (%s:%s)! Status code:"
+//        "%s.",
+//        remoteEndpoint.address().to_string().c_str(),
+//        remoteEndpoint.port(),
+//        peerHost.c_str(), peerPort.c_str(),
+//        result.c_str());
 
     //get and store body
     std::string body{ boost::asio::buffers_begin(res.body().data()),
                 boost::asio::buffers_end(res.body().data()) };
 
-    LOG_F(INFO,
-        "Tracker (%s:%hu - %s:%s) scrape response body: %s.",
-        remoteEndpoint.address().to_string().c_str(),
-        remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str(),
-        body.c_str());
+//    LOG_F(INFO,
+//        "Tracker (%s:%hu - %s:%s) scrape response body: %s.",
+//        remoteEndpoint.address().to_string().c_str(),
+//        remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str(),
+//        body.c_str());
 
     valueDictionary info = boost::get<valueDictionary>(Decoder::decode(body));
 
@@ -329,10 +329,10 @@ void HTTPClient::handleScrapeResp()
             //set flag
             isFail = false;
 
-            LOG_F(INFO,
-                "Updated peer info using tracker (%s:%hu - %s%s) scrape response!",
-                remoteEndpoint.address().to_string().c_str(),
-                remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
+//            LOG_F(INFO,
+//                "Updated peer info using tracker (%s:%hu - %s%s) scrape response!",
+//                remoteEndpoint.address().to_string().c_str(),
+//                remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
         }
         else
         {
@@ -363,12 +363,12 @@ void HTTPClient::handleAnnounceSend(const boost::system::error_code& error)
 {
     if (!error)
     {
-        LOG_F(INFO,
-            "Sent HTTP announce request to tracker %s:%hu (%s:%s); "
-            "Status: %s; Announce URL: %s.",
-            remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
-            peerHost.c_str(), peerPort.c_str(),
-            error.message().c_str(), target.c_str());
+//        LOG_F(INFO,
+//            "Sent HTTP announce request to tracker %s:%hu (%s:%s); "
+//            "Status: %s; Announce URL: %s.",
+//            remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
+//            peerHost.c_str(), peerPort.c_str(),
+//            error.message().c_str(), target.c_str());
 
         http::async_read(socket, recBuffer, res,
             boost::bind(&HTTPClient::handleAnnounceReceive, this,
@@ -396,12 +396,12 @@ void HTTPClient::handleAnnounceReceive(const boost::system::error_code& error,
 {
     if (!error)
     {
-        LOG_F(INFO,
-            "Received HTTP announce response from tracker %s:%hu (%s:%s); "
-            "Status: %s; Bytes received: %d.",
-            remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
-            peerHost.c_str(), peerPort.c_str(),
-            error.message().c_str(), static_cast<int>(bytesTransferred));
+//        LOG_F(INFO,
+//            "Received HTTP announce response from tracker %s:%hu (%s:%s); "
+//            "Status: %s; Bytes received: %d.",
+//            remoteEndpoint.address().to_string().c_str(), remoteEndpoint.port(),
+//            peerHost.c_str(), peerPort.c_str(),
+//            error.message().c_str(), static_cast<int>(bytesTransferred));
 
         handleAnnounceResp();
     }
@@ -447,22 +447,22 @@ void HTTPClient::handleAnnounceResp()
         return;
     }
 
-    LOG_F(INFO,
-        "Successful announce GET request to tracker %s:%hu (%s:%s)! "
-        "Status code: %s.",
-        remoteEndpoint.address().to_string().c_str(),
-        remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str(),
-        result.c_str());
+//    LOG_F(INFO,
+//        "Successful announce GET request to tracker %s:%hu (%s:%s)! "
+//        "Status code: %s.",
+//        remoteEndpoint.address().to_string().c_str(),
+//        remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str(),
+//        result.c_str());
 
     //get and store body
     std::string body{ boost::asio::buffers_begin(res.body().data()),
                 boost::asio::buffers_end(res.body().data()) };
 
-    LOG_F(INFO,
-        "Tracker (%s:%hu - %s:%s) announce response body: %s.",
-        remoteEndpoint.address().to_string().c_str(),
-        remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str(),
-        body.c_str());
+//    LOG_F(INFO,
+//        "Tracker (%s:%hu - %s:%s) announce response body: %s.",
+//        remoteEndpoint.address().to_string().c_str(),
+//        remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str(),
+//        body.c_str());
 
     valueDictionary info = boost::get<valueDictionary>(Decoder::decode(body));
 
@@ -556,11 +556,11 @@ void HTTPClient::handleAnnounceResp()
                 //set flag
                 isFail = false;
 
-                LOG_F(INFO,
-                    "Updated peer info using tracker (%s:%hu - %s:%s) announce "
-                    "response (compact)!",
-                    remoteEndpoint.address().to_string().c_str(),
-                    remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
+//                LOG_F(INFO,
+//                    "Updated peer info using tracker (%s:%hu - %s:%s) announce "
+//                    "response (compact)!",
+//                    remoteEndpoint.address().to_string().c_str(),
+//                    remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
             }
             //non-compact uses a list of dictionaries
             else
@@ -592,11 +592,11 @@ void HTTPClient::handleAnnounceResp()
                 //set flag
                 isFail = false;
 
-                LOG_F(INFO,
-                    "Updated peer info using tracker (%s:%hu - %s:%s) announce "
-                    "response (non-compact)!",
-                    remoteEndpoint.address().to_string().c_str(),
-                    remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
+//                LOG_F(INFO,
+//                    "Updated peer info using tracker (%s:%hu - %s:%s) announce "
+//                    "response (non-compact)!",
+//                    remoteEndpoint.address().to_string().c_str(),
+//                    remoteEndpoint.port(), peerHost.c_str(), peerPort.c_str());
             }
         }
     }

@@ -215,18 +215,6 @@ namespace Bittorrent
         {
             return;
         }
-
-        //update request time
-        lastPeerRequest = std::chrono::high_resolution_clock::now();
-
-        std::cout << "\n" << "Received peer information from " << trackerAddress << "\n";
-        std::cout << "Peer count:  " << peerList.size() << "\n";
-        std::cout << "Peers: ";
-        for (auto peer : peerList)
-        {
-            std::cout << "IP Address: " << peer.ipAddress << ", Port: " <<
-                peer.port << "\n";
-        }
     }
 
     void trackerObj::resetLastRequest()
