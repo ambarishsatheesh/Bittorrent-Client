@@ -5,7 +5,9 @@ namespace Bittorrent
     TorrentStatus::TorrentStatus(TorrentPieces& pieces)
         : currentState{currentStatus::stopped}, ptr_piecesData(&pieces),
           pieceCount{0}, pieceSize{0}, blockSize{0}, totalSize{0},
-          acquiredBlocksCount{0}, downloadSpeed{0}, uploaded{0}
+          acquiredBlocksCount{0}, uploaded{0}, dataIntervalTotal{0},
+          lastReceivedTime{std::chrono::high_resolution_clock::time_point::min()},
+          downloadSpeed{0}
 	{
 	}
 
