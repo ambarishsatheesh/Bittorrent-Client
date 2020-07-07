@@ -35,10 +35,14 @@ public:
     QVariant data(const QModelIndex &index,
                   int role = Qt::DisplayRole) const override;
     QVariant generateData(const QModelIndex &index) const;
+    void update();
 
 private:
     Client* ioClient;
     int columnSize;
+
+    QPointer<QTimer> timer;
+    void timerHit();
 };
 
 #endif // GENERALINFOMODEL_H
