@@ -30,7 +30,7 @@ int TorrentTableModel::rowCount(const QModelIndex &parent) const
 
 int TorrentTableModel::columnCount(const QModelIndex &parent) const
 {
-    return parent.isValid() ? 0 : 15;
+    return parent.isValid() ? 0 : 14;
 }
 
 QVariant TorrentTableModel::data(const QModelIndex &index, int role) const
@@ -90,8 +90,6 @@ QVariant TorrentTableModel::headerData(int section,
             return QString("Downloaded");
         case 13:
             return QString("Uploaded");
-        case 14:
-            return QString("Time Active");
         default:
             break;
         }
@@ -232,10 +230,6 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
     case 13:
         return QString::fromStdString(humanReadableBytes(
                                           torrent->statusData.uploaded));
-    //Time Active
-    case 14:
-        //implement properly
-        return 0;
     default:
         break;
     }
