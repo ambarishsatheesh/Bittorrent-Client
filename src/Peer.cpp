@@ -199,10 +199,16 @@ void Peer::restartResolve(std::shared_ptr<tcp::resolver> presolver)
 {
     presolver->async_resolve(
                 tcp::resolver::query(peerHost, peerPort),
-                boost::asio::bind_executor(strand_,
-                boost::bind(&Peer::connectToPeer, shared_from_this(),
-                            boost::asio::placeholders::error,
-                            boost::asio::placeholders::results)));
+                [presolver, self = shared_from_this()]
+                (const boost::system::error_code& ec,
+                const tcp::resolver::results_type results)
+                {
+                    self->connectToPeer(ec, results);
+                });
+//                boost::asio::bind_executor(strand_,
+//                boost::bind(&Peer::connectToPeer, shared_from_this(),
+//                            boost::asio::placeholders::error,
+//                            boost::asio::placeholders::results)));
 }
 
 void Peer::connectToPeer(const boost::system::error_code& ec,
