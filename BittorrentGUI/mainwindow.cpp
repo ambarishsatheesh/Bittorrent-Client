@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "tableModel.h"
-#include "progressDelegate.h"
 #include "Decoder.h"
 #include "loguru.h"
 
@@ -279,9 +278,6 @@ void MainWindow::initTorrentTable()
     torrentTable->setContextMenuPolicy(Qt::CustomContextMenu);
 
     torrentModel = new TorrentTableModel(ioClient, this);
-
-    progressDelegate* delegate = new progressDelegate();
-    torrentTable->setItemDelegateForColumn(4, delegate);
 
     //sort/filter
     proxyModel = new TorrentSortFilterProxyModel(ioClient, this);
