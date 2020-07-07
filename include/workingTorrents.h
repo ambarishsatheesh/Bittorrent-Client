@@ -145,8 +145,6 @@ private:
     //threads
     std::vector<std::shared_ptr<std::thread>> threadPool;
     std::thread t_processDL;
-    std::thread t_processDL2;
-    std::thread t_processDL3;
     std::thread t_processUL;
     std::thread t_processPeers;
     void initProcessing();

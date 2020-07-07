@@ -12,7 +12,7 @@ namespace Bittorrent
 using namespace torrentManipulation;
 
 WorkingTorrents::WorkingTorrents()
-    : defaultSettings{80, 6689, 6682, 4194300, 512000, 5, 5},
+    : defaultSettings{80, 6689, 6682, 8388600, 1024000, 5, 5},
       trackerTimer{std::make_unique<TrackerTimer>(
                        clientID, defaultSettings.httpPort,
                        defaultSettings.udpPort, defaultSettings.tcpPort)},
@@ -23,8 +23,8 @@ WorkingTorrents::WorkingTorrents()
       rand{}, rng{rand()}, peerTimeout{std::chrono::seconds{30}},
       threadPoolSize{15},
       work{boost::asio::make_work_guard(io_context)}, acceptor_{io_context},
-      masterProcessCondition{true}, isProcessing{false},
-      t_processDL{}, t_processDL2{}, t_processDL3{}, t_processUL{}, t_processPeers{}
+      t_processDL{}, t_processUL{}, t_processPeers{},
+      masterProcessCondition{true}, isProcessing{false}
 {
     //Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
     acceptor_.open(tcp::v4());
@@ -105,36 +105,6 @@ void WorkingTorrents::initProcessing()
     t_processDL = std::thread([&]()
         {
             loguru::set_thread_name("Process Downloads 1");
-            LOG_F(INFO, "Initiated downloads-processing thread.");
-
-            while (masterProcessCondition)
-            {
-                std::unique_lock<std::mutex> lck(mtx_condition);
-                cv.wait(lck, [&] {return isProcessing; });
-
-                processDownloads();
-                //std::this_thread::sleep_for(std::chrono::seconds(1));
-            }
-        });
-
-    t_processDL2 = std::thread([&]()
-        {
-            loguru::set_thread_name("Process Downloads 2");
-            LOG_F(INFO, "Initiated downloads-processing thread.");
-
-            while (masterProcessCondition)
-            {
-                std::unique_lock<std::mutex> lck(mtx_condition);
-                cv.wait(lck, [&] {return isProcessing; });
-
-                processDownloads();
-                //std::this_thread::sleep_for(std::chrono::seconds(1));
-            }
-        });
-
-    t_processDL3 = std::thread([&]()
-        {
-            loguru::set_thread_name("Process Downloads 3");
             LOG_F(INFO, "Initiated downloads-processing thread.");
 
             while (masterProcessCondition)
@@ -760,24 +730,24 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
     {
         torrent->statusData.currentState =
                 TorrentStatus::currentStatus::stopped;
-    }
 
-    statusGuard.unlock();
+        statusGuard.unlock();
 
-    //change seeding status
-    if (torrent->isSeeding)
-    {
-        torrent->isSeeding = 0;
-    }
+        //change seeding status
+        if (torrent->isSeeding)
+        {
+            torrent->isSeeding = 0;
+        }
 
-    std::lock_guard<std::mutex> mapGuard(mtx_map);
+        std::lock_guard<std::mutex> mapGuard(mtx_map);
 
-    auto range = peerConnMap.equal_range(
-                torrent->hashesData.urlEncodedInfoHash);
+        auto range = peerConnMap.equal_range(
+                    torrent->hashesData.urlEncodedInfoHash);
 
-    for (auto it = range.first; it != range.second; ++it)
-    {
-        it->second->disconnect();
+        for (auto it = range.first; it != range.second; ++it)
+        {
+            it->second->disconnect();
+        }
     }
 }
 
@@ -1164,10 +1134,6 @@ void WorkingTorrents::processUploads()
 
 void WorkingTorrents::processDownloads()
 {
-//    std::unique_lock<std::mutex> incomingGuard(mtx_incoming);
-
-//    incomingGuard.unlock();
-
     //order torrents by descending ranking
     auto rankedTorrents = getRankedTorrents();
 
@@ -1222,8 +1188,6 @@ void WorkingTorrents::processDownloads()
                     //skip if throttled
                     if (downloadThrottle.isThrottled())
                     {
-                        LOG_F(INFO, "Download throttled!");
-
                         continue;
                     }
 
@@ -1233,7 +1197,7 @@ void WorkingTorrents::processDownloads()
 //                        continue;
 //                    }
 
-                    std::unique_lock<std::mutex> mapGuard(mtx_map);
+                    //std::unique_lock<std::mutex> mapGuard(mtx_map);
 
                     //only request block from one peer at a time
 //                    auto range = peerConnMap.equal_range(
@@ -1268,6 +1232,7 @@ void WorkingTorrents::processDownloads()
                                 blockSize);
 
                     //add expected data size to throttle bucket
+                    //(i.e. throttle requests)
                     downloadThrottle.add(blockSize);
 
                     //update info
