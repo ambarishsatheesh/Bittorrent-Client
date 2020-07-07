@@ -68,9 +68,9 @@ void HTTPClient::close()
 
     socket.close();
 
-    LOG_F(INFO,
-        "Closed HTTP socket used for tracker update (%s:%s).",
-        peerHost.c_str(), peerPort.c_str());
+//    LOG_F(INFO,
+//        "Closed HTTP socket used for tracker update (%s:%s).",
+//        peerHost.c_str(), peerPort.c_str());
 }
 
 void HTTPClient::dataTransmission(bool isAnnounce)
