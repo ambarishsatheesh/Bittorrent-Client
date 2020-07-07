@@ -39,6 +39,7 @@ namespace Bittorrent
         int blockSize;
         int totalSize;
         long acquiredBlocksCount;
+        int downloadSpeed;
         long long uploaded;
 
 	private:
