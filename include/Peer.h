@@ -15,12 +15,12 @@
 
 namespace Bittorrent
 {
-	using boost::asio::ip::tcp;
+    using boost::asio::ip::tcp;
 
-	class Peer
-		: public std::enable_shared_from_this<Peer>
-	{
-	public:
+    class Peer
+        : public std::enable_shared_from_this<Peer>
+    {
+    public:
         struct dataPackage
         {
             Peer* sourcePeer;
@@ -77,46 +77,46 @@ namespace Bittorrent
         //general variables
         std::string peerHost;
         std::string peerPort;
-		boost::bimap<std::string, int> messageType;
+        boost::bimap<std::string, int> messageType;
 
-		std::vector<byte> localID;
-		std::string peerID;
+        std::vector<byte> localID;
+        std::string peerID;
 
-		std::shared_ptr<Torrent> torrent;
+        std::shared_ptr<Torrent> torrent;
 
-		tcp::endpoint endpointKey;
+        tcp::endpoint endpointKey;
 
-		//how many pieces the peer has downloaded
-		std::vector<bool> isPieceDownloaded;
+        //how many pieces the peer has downloaded
+        std::vector<bool> isPieceDownloaded;
 
-		//status info
+        //status info
         std::chrono::high_resolution_clock::time_point disconnectTime;
-		bool isDisconnected;
-		bool isHandshakeSent;
+        bool isDisconnected;
+        bool isHandshakeSent;
         bool isBitfieldSent;
-		bool isChokeSent;
+        bool isChokeSent;
         bool isInterestedSent;
-		bool isHandshakeReceived;
+        bool isHandshakeReceived;
         bool isChokeReceived;
         bool isInterestedReceived;
-		std::vector<std::vector<bool>> isBlockRequested;
-		
+        std::vector<std::vector<bool>> isBlockRequested;
+
         std::chrono::high_resolution_clock::time_point lastActive;
         std::chrono::high_resolution_clock::time_point lastKeepAlive;
 
-		long long uploaded;
-		long long downloaded;
+        long long uploaded;
+        long long downloaded;
 
         //asio context
         //boost::asio::io_context& context;
 
-		//delete default constructor
-		Peer() = delete;
-		//client-opened connection constructors
+        //delete default constructor
+        Peer() = delete;
+        //client-opened connection constructors
         Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
             boost::asio::io_context& io_context, int tcpPort);
-		//peer-opened connection constructor
-		//need io_context here to initialise timers
+        //peer-opened connection constructor
+        //need io_context here to initialise timers
         Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
              std::vector<byte>& localID, boost::asio::io_context& io_context,
              int tcpPort);
@@ -163,85 +163,84 @@ namespace Bittorrent
         //tcp data
         tcp::socket socket_;
 
-		//TCP transmission buffers
-		std::vector<byte> processBuffer;
-		std::vector<byte> recBuffer;
+        //TCP transmission buffers
+        std::vector<byte> processBuffer;
+        std::vector<byte> recBuffer;
 
         //ptr to working torrent list so accepted peer connection can
         //associate handshake infohash with torrent from the list
         std::vector<std::shared_ptr<Torrent>>* ptr_torrentList;
 
-		//established connection functions - maybe separate class?
-		bool isAccepted;	//flag to use async funcs with shared_ptr
+        //established connection functions - maybe separate class?
+        bool isAccepted;	//flag to use async funcs with shared_ptr
 
-		//new connection methods
-		void handleNewConnect(const boost::system::error_code& ec,
+        //new connection methods
+        void handleNewConnect(const boost::system::error_code& ec,
             const tcp::endpoint& endpoint);
-		void handleRead(const boost::system::error_code& ec,
-			std::size_t receivedBytes);
-		int getMessageLength();
-		void sendNewBytes(std::vector<byte> sendBuffer);
-		void handleNewSend(const boost::system::error_code& ec,
+        void handleRead(const boost::system::error_code& ec,
+            std::size_t receivedBytes);
+        int getMessageLength();
+        void sendNewBytes(std::vector<byte> sendBuffer);
+        void handleNewSend(const boost::system::error_code& ec,
             std::size_t receivedBytes, std::shared_ptr<std::vector<byte>> message);
 
-		//decoding
-		bool decodeHandshake(std::vector<byte>& hash, std::string& id);
-		bool decodeKeepAlive();
-		bool decodeChoke();
-		bool decodeUnchoke();
-		bool decodeInterested();
-		bool decodeNotInterested();
-		bool decodeState(int typeVal);
-		bool decodeHave(int& index);
-		bool decodeBitfield(int pieces, 
-			std::vector<bool>& recIsPieceDownloaded);
-		bool decodeDataRequest(int& index, int& offset, int& dataSize);
-		bool decodeCancel(int& index, int& offset, int& dataSize);
-		bool decodePiece(int& index, int& offset, std::vector<byte>& data);
+        //decoding
+        bool decodeHandshake(std::vector<byte>& hash, std::string& id);
+        bool decodeKeepAlive();
+        bool decodeChoke();
+        bool decodeUnchoke();
+        bool decodeInterested();
+        bool decodeNotInterested();
+        bool decodeState(int typeVal);
+        bool decodeHave(int& index);
+        bool decodeBitfield(int pieces,
+            std::vector<bool>& recIsPieceDownloaded);
+        bool decodeDataRequest(int& index, int& offset, int& dataSize);
+        bool decodeCancel(int& index, int& offset, int& dataSize);
+        bool decodePiece(int& index, int& offset, std::vector<byte>& data);
 
 
-		//encoding
-		std::vector<byte> encodeHandshake(std::vector<byte>& hash,
-			std::vector<byte>& id);
-		std::vector<byte> encodeKeepAlive();
-		std::vector<byte> encodeChoke();
-		std::vector<byte> encodeUnchoke();
-		std::vector<byte> encodeInterested();
-		std::vector<byte> encodeNotInterested();
-		std::vector<byte> encodeState(int typeVal);
-		std::vector<byte> encodeHave(int index);
-		std::vector<byte> encodeBitfield(
+        //encoding
+        std::vector<byte> encodeHandshake(std::vector<byte>& hash,
+            std::vector<byte>& id);
+        std::vector<byte> encodeKeepAlive();
+        std::vector<byte> encodeChoke();
+        std::vector<byte> encodeUnchoke();
+        std::vector<byte> encodeInterested();
+        std::vector<byte> encodeNotInterested();
+        std::vector<byte> encodeState(int typeVal);
+        std::vector<byte> encodeHave(int index);
+        std::vector<byte> encodeBitfield(
             std::vector<bool> isPieceVerified);
-		std::vector<byte> encodeDataRequest(int index, int offset, 
-			int dataSize);
-		std::vector<byte> encodeCancel(int index, int offset, int dataSize);
-		std::vector<byte> encodePiece(int index, int offset, 
-			std::vector<byte> data);
+        std::vector<byte> encodeDataRequest(int index, int offset,
+            int dataSize);
+        std::vector<byte> encodeCancel(int index, int offset, int dataSize);
+        std::vector<byte> encodePiece(int index, int offset,
+            std::vector<byte> data);
 
-		//sending
-		void sendHandShake();
-		void sendChoke();
+        //sending
+        void sendHandShake();
+        void sendChoke();
         void sendBitfield(std::vector<bool> isPieceVerified);
 
-		//receiving
-		void handleMessage();
-		int getMessageType(std::vector<byte> data);
-		void handleHandshake(std::vector<byte> hash, std::string id);
-		void handleKeepAlive();
-		void handleChoke();
-		void handleUnchoke();
-		void handleInterested();
-		void handleNotInterested();
-		void handleHave(int index);
-		void handleBitfield(std::vector<bool> recIsPieceDownloaded);
-		void handleDataRequest(int index, int offset, int dataSize);
-		void handleCancel(int index, int offset, int dataSize);
-		void handlePiece(int index, int offset, std::vector<byte> data);
-		//no DHT port stuff for now
-		//void handlePort(int port);
-	};
+        //receiving
+        void handleMessage();
+        int getMessageType(std::vector<byte> data);
+        void handleHandshake(std::vector<byte> hash, std::string id);
+        void handleKeepAlive();
+        void handleChoke();
+        void handleUnchoke();
+        void handleInterested();
+        void handleNotInterested();
+        void handleHave(int index);
+        void handleBitfield(std::vector<bool> recIsPieceDownloaded);
+        void handleDataRequest(int index, int offset, int dataSize);
+        void handleCancel(int index, int offset, int dataSize);
+        void handlePiece(int index, int offset, std::vector<byte> data);
+        //no DHT port stuff for now
+        //void handlePort(int port);
+    };
 }
 
 
 #endif // PEER_H
-
