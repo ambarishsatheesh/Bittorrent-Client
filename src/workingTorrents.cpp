@@ -18,11 +18,13 @@ WorkingTorrents::WorkingTorrents()
                        defaultSettings.udpPort, defaultSettings.tcpPort)},
       downloadThrottle{defaultSettings.maxDLSpeed, std::chrono::seconds{1}},
       uploadThrottle{defaultSettings.maxULSpeed, std::chrono::seconds{1}},
+      dataReceivedTime{std::chrono::high_resolution_clock::time_point::min()},
+      dataPreviousTotal{0},
       rand{}, rng{rand()}, peerTimeout{std::chrono::seconds{30}},
-      threadPoolSize{10},
+      threadPoolSize{15},
       work{boost::asio::make_work_guard(io_context)}, acceptor_{io_context},
       masterProcessCondition{true}, isProcessing{false},
-      t_processDL{}, t_processUL{}, t_processPeers{}
+      t_processDL{}, t_processDL2{}, t_processDL3{}, t_processUL{}, t_processPeers{}
 {
     //Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
     acceptor_.open(tcp::v4());
@@ -102,7 +104,37 @@ void WorkingTorrents::initProcessing()
 
     t_processDL = std::thread([&]()
         {
-            loguru::set_thread_name("Process Downloads");
+            loguru::set_thread_name("Process Downloads 1");
+            LOG_F(INFO, "Initiated downloads-processing thread.");
+
+            while (masterProcessCondition)
+            {
+                std::unique_lock<std::mutex> lck(mtx_condition);
+                cv.wait(lck, [&] {return isProcessing; });
+
+                processDownloads();
+                //std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+        });
+
+    t_processDL2 = std::thread([&]()
+        {
+            loguru::set_thread_name("Process Downloads 2");
+            LOG_F(INFO, "Initiated downloads-processing thread.");
+
+            while (masterProcessCondition)
+            {
+                std::unique_lock<std::mutex> lck(mtx_condition);
+                cv.wait(lck, [&] {return isProcessing; });
+
+                processDownloads();
+                //std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+        });
+
+    t_processDL3 = std::thread([&]()
+        {
+            loguru::set_thread_name("Process Downloads 3");
             LOG_F(INFO, "Initiated downloads-processing thread.");
 
             while (masterProcessCondition)
@@ -594,7 +626,7 @@ void WorkingTorrents::addPeer(peer singlePeer, std::shared_ptr<Torrent> torrent)
     //resolve peer and start connect
     presolver->async_resolve(
                 tcp::resolver::query(singlePeer.ipAddress, singlePeer.port),
-                [&peerConn]
+                [presolver, &peerConn]
                 (const boost::system::error_code& ec,
                 const tcp::resolver::results_type results)
                 {
@@ -802,6 +834,28 @@ void WorkingTorrents::handleBlockCancelled(Peer::dataRequest request)
 void WorkingTorrents::handleBlockReceived(Peer::dataPackage package)
 {
 //    LOG_F(INFO, "Handling received block...");
+
+    //crude download speed calc
+    if (std::chrono::high_resolution_clock::now() >
+            dataReceivedTime + std::chrono::seconds{2})
+    {
+        auto dataDelta = package.sourcePeer->
+                torrent->statusData.downloaded() - dataPreviousTotal;
+
+        auto timeDelta =
+                std::chrono::duration_cast<std::chrono::seconds>(
+                    std::chrono::high_resolution_clock::now() -
+                    dataReceivedTime);
+
+        package.sourcePeer->torrent->statusData.downloadSpeed =
+                static_cast<int>(dataDelta) /
+                static_cast<int>(timeDelta.count());
+
+        //update time and data
+        dataReceivedTime = std::chrono::high_resolution_clock::now();
+        dataPreviousTotal = package.sourcePeer->
+                torrent->statusData.downloaded() + package.data.size();
+    }
 
     std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
 
@@ -1174,32 +1228,32 @@ void WorkingTorrents::processDownloads()
                     }
 
                     //only request one block from each seeder at a time
-                    if (seeder->blocksRequested() > 0)
-                    {
-                        continue;
-                    }
+//                    if (seeder->blocksRequested() > 0)
+//                    {
+//                        continue;
+//                    }
 
                     std::unique_lock<std::mutex> mapGuard(mtx_map);
 
                     //only request block from one peer at a time
-                    auto range = peerConnMap.equal_range(
-                                torrent->hashesData.urlEncodedInfoHash);
-                    int count = 0;
+//                    auto range = peerConnMap.equal_range(
+//                                torrent->hashesData.urlEncodedInfoHash);
+//                    int count = 0;
 
-                    for (auto it = range.first; it != range.second; ++it)
-                    {
-                        if (it->second->isBlockRequested.at(piece).at(block))
-                        {
-                            ++count;
-                        }
-                    }
+//                    for (auto it = range.first; it != range.second; ++it)
+//                    {
+//                        if (it->second->isBlockRequested.at(piece).at(block))
+//                        {
+//                            ++count;
+//                        }
+//                    }
 
-                    mapGuard.unlock();
+//                    mapGuard.unlock();
 
-                    if (count > 0)
-                    {
-                        continue;
-                    }
+//                    if (count > 0)
+//                    {
+//                        continue;
+//                    }
 
                     //send data request to peer
                     int blockSize = torrent->piecesData.getBlockSize(
@@ -1218,11 +1272,6 @@ void WorkingTorrents::processDownloads()
 
                     //update info
                     seeder->isBlockRequested.at(piece).at(block) = true;
-
-//                    auto percentDL = 100 * (torrent->statusData.downloaded()/torrent->statusData.totalSize);
-//                    LOG_F(INFO, "Downloaded: %d%%", static_cast<int>(percentDL));
-
-//                    LOG_F(INFO, "Finished processing block download.");
                 }
             }
         }

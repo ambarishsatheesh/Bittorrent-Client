@@ -94,6 +94,8 @@ public:
     void processPeers(Torrent* torrent);
     void processUploads();
     void processDownloads();
+    std::chrono::high_resolution_clock::time_point dataReceivedTime;
+    long long dataPreviousTotal;
 
     //ranking
     std::random_device rand;
@@ -143,6 +145,8 @@ private:
     //threads
     std::vector<std::shared_ptr<std::thread>> threadPool;
     std::thread t_processDL;
+    std::thread t_processDL2;
+    std::thread t_processDL3;
     std::thread t_processUL;
     std::thread t_processPeers;
     void initProcessing();
@@ -150,6 +154,7 @@ private:
     void pauseProcessing();
     bool masterProcessCondition;
     bool isProcessing;
+
 };
 
 }
