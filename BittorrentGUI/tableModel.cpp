@@ -13,12 +13,12 @@ TorrentTableModel::TorrentTableModel(Client* client, QPointer<QObject> parent)
 {
     //timer to refresh table every second
     connect(timer, &QTimer::timeout , this, &TorrentTableModel::timerHit);
-    timer->start(1000);
+    timer->start(2000);
 }
 
 void TorrentTableModel::timerHit()
 {
-    emit dataChanged(QModelIndex(), QModelIndex(), {Qt::DisplayRole});
+    emit this->dataChanged(QModelIndex(), QModelIndex());
 }
 
 int TorrentTableModel::rowCount(const QModelIndex &parent) const
@@ -30,7 +30,7 @@ int TorrentTableModel::rowCount(const QModelIndex &parent) const
 
 int TorrentTableModel::columnCount(const QModelIndex &parent) const
 {
-    return parent.isValid() ? 0 : 16;
+    return parent.isValid() ? 0 : 15;
 }
 
 QVariant TorrentTableModel::data(const QModelIndex &index, int role) const
@@ -87,12 +87,10 @@ QVariant TorrentTableModel::headerData(int section,
         case 11:
             return QString("Ratio");
         case 12:
-            return QString("Tracker");
-        case 13:
             return QString("Downloaded");
-        case 14:
+        case 13:
             return QString("Uploaded");
-        case 15:
+        case 14:
             return QString("Time Active");
         default:
             break;
@@ -115,6 +113,10 @@ bool TorrentTableModel::setData(const QModelIndex &index,
 QVariant TorrentTableModel::generateData(const QModelIndex &index) const
 {
     using namespace utility;
+
+    std::shared_ptr<Torrent> torrent =
+            ioClientModel->WorkingTorrents.torrentList.at(index.row());
+
     switch (index.column())
     {
     //Added on
@@ -123,33 +125,19 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
                     WorkingTorrents.addedOnList.at(index.row());
     //Priority
     case 1:
-        return ioClientModel->
-                WorkingTorrents.torrentList.at(index.row())->clientRank;
+        return torrent->clientRank;
     //Name
     case 2:
-        return QString::fromStdString(
-                    ioClientModel->
-                    WorkingTorrents.torrentList.at(index.row())->
-                    generalData.fileName);
+        return QString::fromStdString(torrent->generalData.fileName);
     //Size
     case 3:
-        return QString::fromStdString(
-                    humanReadableBytes(
-                        ioClientModel->
-                        WorkingTorrents.torrentList.at(index.row())->
-                        piecesData.totalSize));
+        return QString::fromStdString(humanReadableBytes(torrent->
+                                                         piecesData.totalSize));
     //Progress
     case 4:
     {
-        auto downloadedBytes = ioClientModel->
-                WorkingTorrents.torrentList.at(index.row())->
-                statusData.downloaded();
-
-        auto totalBytes = ioClientModel->
-                WorkingTorrents.torrentList.at(index.row())->
-                piecesData.totalSize;
-
-        return 100 * (downloadedBytes/totalBytes);
+        return 100 * (torrent->statusData.downloaded() /
+                      torrent->piecesData.totalSize);
     }
     //Status
     case 5:
@@ -161,27 +149,20 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
         {
             return "Downloading";
         }
-        else if (ioClientModel->
-                 WorkingTorrents.torrentList.at(index.row())->
-                 statusData.currentState ==
+        else if (torrent->statusData.currentState ==
                  TorrentStatus::currentStatus::stopped)
         {
-            if (ioClientModel->
-                    WorkingTorrents.torrentList.at(index.row())->
-                    statusData.downloaded() == 0)
+            if (torrent->statusData.downloadSpeed == 0)
             {
                 return "Stalled";
             }
 
             return "Paused";
         }
-        else if (ioClientModel->
-                 WorkingTorrents.torrentList.at(index.row())->
-                 statusData.currentState ==
+        else if (torrent->statusData.currentState ==
                  TorrentStatus::currentStatus::completed)
         {
-            if (ioClientModel->
-                    WorkingTorrents.torrentList.at(index.row())->isSeeding)
+            if (torrent->isSeeding)
             {
                 return "Seeding";
             }
@@ -195,62 +176,64 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
     }
     //seeds
     case 6:
-        //implement properly
-        return 0;
+    {
+        return ioClientModel->WorkingTorrents.seedersMap.count(
+                    torrent->hashesData.urlEncodedInfoHash);
+    }
     //peers
     case 7:
-        //implement properly
-        return 0;
+        return ioClientModel->WorkingTorrents.leechersMap.count(
+                    torrent->hashesData.urlEncodedInfoHash);
     //download speed
     case 8:
-        return QString::fromStdString(
-                    humanReadableBytes(
-                        ioClientModel->
-                        WorkingTorrents.torrentList.at(index.row())->
-                        statusData.downloadSpeed)) + "/s";
+        return QString::fromStdString(humanReadableBytes(
+                                          torrent->
+                                          statusData.downloadSpeed)) + "/s";
     //upload speed
     case 9:
         //implement properly
         return 0;
     //ETA
     case 10:
-        //implement properly
-        return 0;
+    {
+        if (torrent->statusData.currentState ==
+                TorrentStatus::currentStatus::completed ||
+                torrent->statusData.currentState ==
+                                TorrentStatus::currentStatus::stopped ||
+                torrent->statusData.downloaded() == 0 ||
+                torrent->statusData.downloadSpeed == 0)
+        {
+            return QString("\u221E");
+        }
+        else
+        {
+            return QDateTime::currentDateTime().addSecs(
+                        torrent->statusData.remaining() /
+                        torrent->statusData.downloadSpeed).toString(
+                        "hh:mm:ss dd/MM/yyyy");
+        }
+    }
     //Ratio
     case 11:
     {
-        auto downloadedBytes = ioClientModel->
-                WorkingTorrents.torrentList.at(index.row())->
-                statusData.downloaded();
-
-        if (downloadedBytes != 0)
+        if (torrent->statusData.downloaded() != 0)
         {
             return ioClientModel->
                     WorkingTorrents.torrentList.at(index.row())->
-                    statusData.uploaded / downloadedBytes;
+                    statusData.uploaded / torrent->statusData.downloaded();
         }
         return 0;
     }
-    //Tracker
-    case 12:
-        //implement properly
-        return 0;
     //Downloaded
-    case 13:
-        return QString::fromStdString(
-                    humanReadableBytes(
-                        ioClientModel->
-                        WorkingTorrents.torrentList.at(index.row())->
-                        statusData.downloaded()));
+    case 12:
+        return QString::fromStdString(humanReadableBytes(
+                                          torrent->statusData.downloaded()));
     //Uploaded
-    case 14:
-        return QString::fromStdString(
-                    humanReadableBytes(
-                        ioClientModel->
-                        WorkingTorrents.torrentList.at(index.row())->
-                        statusData.uploaded));
+    case 13:
+        return QString::fromStdString(humanReadableBytes(
+                                          torrent->statusData.uploaded));
     //Time Active
-    case 15:
+    case 14:
         //implement properly
         return 0;
     default:

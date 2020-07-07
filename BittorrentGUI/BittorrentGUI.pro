@@ -81,7 +81,6 @@ HEADERS += \
     createtorrent.h \
     generalinfomodel.h \
     mainwindow.h \
-    progressDelegate.h \
     settingsdialog.h \
     storedPrevTorrents.h \
     tableModel.h \
