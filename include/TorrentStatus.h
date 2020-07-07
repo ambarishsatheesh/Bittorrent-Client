@@ -39,8 +39,12 @@ namespace Bittorrent
         int blockSize;
         int totalSize;
         long acquiredBlocksCount;
-        int downloadSpeed;
         long long uploaded;
+
+        //speed calculation
+        long long dataIntervalTotal;
+        std::chrono::high_resolution_clock::time_point lastReceivedTime;
+        int downloadSpeed;
 
 	private:
 	};

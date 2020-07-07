@@ -12,7 +12,7 @@ namespace Bittorrent
 using namespace torrentManipulation;
 
 WorkingTorrents::WorkingTorrents()
-    : defaultSettings{80, 6689, 6682, 8388600, 1024000, 5, 5},
+    : defaultSettings{80, 6689, 6682, 8388600, 1024000, 40, 40},
       trackerTimer{std::make_unique<TrackerTimer>(
                        clientID, defaultSettings.httpPort,
                        defaultSettings.udpPort, defaultSettings.tcpPort)},
@@ -347,8 +347,6 @@ void WorkingTorrents::removeTorrent(int position)
 
 void WorkingTorrents::start(int position)
 {
-    std::lock_guard<std::mutex> torListGuard(mtx_torrentList);
-
     std::unique_lock<std::mutex> statusGuard(mtx_status);
 
     //start seeding if torrent is completed
@@ -803,29 +801,12 @@ void WorkingTorrents::handleBlockCancelled(Peer::dataRequest request)
 
 void WorkingTorrents::handleBlockReceived(Peer::dataPackage package)
 {
-//    LOG_F(INFO, "Handling received block...");
+    //update interval data variable
+    package.sourcePeer->torrent->statusData.dataIntervalTotal +=
+            package.data.size();
 
     //crude download speed calc
-    if (std::chrono::high_resolution_clock::now() >
-            dataReceivedTime + std::chrono::seconds{2})
-    {
-        auto dataDelta = package.sourcePeer->
-                torrent->statusData.downloaded() - dataPreviousTotal;
-
-        auto timeDelta =
-                std::chrono::duration_cast<std::chrono::seconds>(
-                    std::chrono::high_resolution_clock::now() -
-                    dataReceivedTime);
-
-        package.sourcePeer->torrent->statusData.downloadSpeed =
-                static_cast<int>(dataDelta) /
-                static_cast<int>(timeDelta.count());
-
-        //update time and data
-        dataReceivedTime = std::chrono::high_resolution_clock::now();
-        dataPreviousTotal = package.sourcePeer->
-                torrent->statusData.downloaded() + package.data.size();
-    }
+    calcDownloadSpeed(package);
 
     std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
 
@@ -868,8 +849,6 @@ void WorkingTorrents::handleBlockReceived(Peer::dataPackage package)
     //write received data to disk only if block has not been acquired already
     while (!incomingBlocks.empty())
     {
-//        LOG_F(INFO, "Writing to disk...");
-
         tempBlock = incomingBlocks.front();
         incomingBlocks.pop_front();
 
@@ -881,8 +860,6 @@ void WorkingTorrents::handleBlockReceived(Peer::dataPackage package)
                        tempBlock.block, tempBlock.data);
         }
     }
-
-//    LOG_F(INFO, "Finished handling received block...");
 }
 
 void WorkingTorrents::handlePeerDisconnected(Peer* senderPeer)
@@ -971,111 +948,93 @@ void WorkingTorrents::processPeers(Torrent* torrent)
 
     //move peers of specific torrent from map to vector
     //and sort by (descending) pieces required available
-    std::vector<std::shared_ptr<Peer>> sortedPeers;
-
-    std::unique_lock<std::mutex> mapGuard(mtx_map);
-    for (auto it = peerConnMap.begin(); it != peerConnMap.end(); ++it)
-    {
-        if (it->second->torrent->hashesData.urlEncodedInfoHash == infoHash)
-        {
-            sortedPeers.push_back(it->second);
-        }
-    }
-    mapGuard.unlock();
-
-    std::sort(sortedPeers.begin(), sortedPeers.end(),
-              [&](
-              const std::shared_ptr<Peer>& p1,
-              const std::shared_ptr<Peer>& p2)
-    {
-        return p1->piecesRequiredAvailable() > p2->piecesRequiredAvailable();
-    });
+    auto sortedPeers = sortPeers(torrent);
 
     //processing
     for (auto& peer : sortedPeers)
     {
-        if (!peer->isDisconnected)
-        {
-            //if nullptr, continue
-            if (!torrent)
-            {
-                continue;
-            }
-
-            //peer connection timed out
-            if (std::chrono::high_resolution_clock::now() >
-                    peer->lastActive + peerTimeout)
-            {
-                peer->disconnect();
-                continue;
-            }
-
-            //peer not fully set up yet
-            if (!peer->isHandshakeSent || !peer->isHandshakeReceived)
-            {
-                continue;
-            }
-
-            //send interested message if we want to request data
-            if (peer->torrent->statusData.isCompleted())
-            {
-                peer->sendNotInterested();
-            }
-            else
-            {
-                peer->sendInterested();
-            }
-
-            //torrent completed so can disconnect
-            if (peer->isCompleted() && peer->torrent->statusData.isCompleted())
-            {
-                peer->disconnect();
-                continue;
-            }
-
-            //periodic message to keep peer connection alive
-            //method has a check to prevent spamming
-            peer->sendKeepAlive();
-
-            std::lock_guard<std::mutex> seedersGuard(mtx_seeders);
-
-            //allow leeching
-            auto infoHash = torrent->hashesData.urlEncodedInfoHash;
-            if (torrent->statusData.isStarted() &&
-                    leechersMap.count(infoHash) < defaultSettings.maxSeeders)
-            {
-                if (peer->isInterestedReceived && peer->isChokeSent)
-                {
-                    peer->sendUnchoke();
-                    leechersMap.emplace(torrent->hashesData.urlEncodedInfoHash,
-                                       peer);
-
-                    LOG_F(INFO, "Added peer %s:%s to leechers.",
-                          peer->peerHost.c_str(), peer->peerPort.c_str());
-                }
-            }
-
-            //if peer is unchoked, add them to seeders
-            if (!torrent->statusData.isCompleted() &&
-                    seedersMap.count(infoHash) < defaultSettings.maxSeeders)
-            {
-                if (!peer->isChokeReceived)
-                {
-                    seedersMap.emplace(torrent->hashesData.urlEncodedInfoHash,
-                                       peer);
-
-                    LOG_F(INFO, "Added peer %s:%s to seeders.",
-                          peer->peerHost.c_str(), peer->peerPort.c_str());
-                }
-            }
-        }
-        else
+        if (peer->isDisconnected)
         {
             //try reconnecting after some time has passed
             if (peer->disconnectTime + std::chrono::seconds{30} <
                     std::chrono::high_resolution_clock::now())
             {
                 resumePeer(peer);
+            }
+
+            continue;
+        }
+
+        //if nullptr, continue
+        if (!torrent)
+        {
+            continue;
+        }
+
+        //peer connection timed out
+        if (std::chrono::high_resolution_clock::now() >
+                peer->lastActive + peerTimeout)
+        {
+            peer->disconnect();
+            continue;
+        }
+
+        //peer not fully set up yet
+        if (!peer->isHandshakeSent || !peer->isHandshakeReceived)
+        {
+            continue;
+        }
+
+        //send interested message if we want to request data
+        if (peer->torrent->statusData.isCompleted())
+        {
+            peer->sendNotInterested();
+        }
+        else
+        {
+            peer->sendInterested();
+        }
+
+        //torrent completed so can disconnect
+        if (peer->isCompleted() && peer->torrent->statusData.isCompleted())
+        {
+            peer->disconnect();
+            continue;
+        }
+
+        //periodic message to keep peer connection alive
+        //method has a check to prevent spamming
+        peer->sendKeepAlive();
+
+        std::lock_guard<std::mutex> seedersGuard(mtx_seeders);
+
+        //allow leeching
+        auto infoHash = torrent->hashesData.urlEncodedInfoHash;
+        if (torrent->statusData.isStarted() &&
+                leechersMap.count(infoHash) < defaultSettings.maxSeeders)
+        {
+            if (peer->isInterestedReceived && peer->isChokeSent)
+            {
+                peer->sendUnchoke();
+                leechersMap.emplace(torrent->hashesData.urlEncodedInfoHash,
+                                   peer);
+
+                LOG_F(INFO, "Added peer %s:%s to leechers.",
+                      peer->peerHost.c_str(), peer->peerPort.c_str());
+            }
+        }
+
+        //if peer is unchoked, add them to seeders
+        if (!torrent->statusData.isCompleted() &&
+                seedersMap.count(infoHash) < defaultSettings.maxSeeders)
+        {
+            if (!peer->isChokeReceived)
+            {
+                seedersMap.emplace(torrent->hashesData.urlEncodedInfoHash,
+                                   peer);
+
+                LOG_F(INFO, "Added peer %s:%s to seeders.",
+                      peer->peerHost.c_str(), peer->peerPort.c_str());
             }
         }
     }
@@ -1464,5 +1423,67 @@ void WorkingTorrents::pauseProcessing()
         }
     }
 }
+
+peerMap::iterator WorkingTorrents::searchValPeerMap(peerMap* map,
+                                                     std::string host)
+{
+    auto find_itr = std::find_if(map->begin(), map->end(), [&]
+                 (const std::unordered_multimap<std::string,
+                 std::shared_ptr<Peer>>::value_type& s)
+    {
+        return s.second->peerHost == host;
+    });
+
+    return find_itr;
+}
+
+std::vector<std::shared_ptr<Peer>> WorkingTorrents::sortPeers(Torrent* torrent)
+{
+    std::vector<std::shared_ptr<Peer>> sortedPeers;
+
+    auto infoHash = torrent->hashesData.urlEncodedInfoHash;
+
+    for (auto it = peerConnMap.begin(); it != peerConnMap.end(); ++it)
+    {
+        if (it->second->torrent->hashesData.urlEncodedInfoHash == infoHash)
+        {
+            sortedPeers.push_back(it->second);
+        }
+    }
+
+    std::sort(sortedPeers.begin(), sortedPeers.end(),
+              [&](
+              const std::shared_ptr<Peer>& p1,
+              const std::shared_ptr<Peer>& p2)
+    {
+        return p1->piecesRequiredAvailable() > p2->piecesRequiredAvailable();
+    });
+
+    return sortedPeers;
+
+}
+
+void WorkingTorrents::calcDownloadSpeed(const Peer::dataPackage& package)
+{
+    if (std::chrono::high_resolution_clock::now() >=
+            package.sourcePeer->torrent->statusData.lastReceivedTime +
+            std::chrono::seconds{3})
+    {
+        auto timeDelta = std::chrono::duration_cast<std::chrono::seconds>(
+                    std::chrono::high_resolution_clock::now() -
+                    package.sourcePeer->torrent->statusData.lastReceivedTime);
+
+        package.sourcePeer->torrent->statusData.downloadSpeed =
+        static_cast<int>(package.sourcePeer->torrent->
+                         statusData.dataIntervalTotal /
+                static_cast<int>(timeDelta.count()));
+
+        //update tracking variables
+        package.sourcePeer->torrent->statusData.lastReceivedTime =
+                std::chrono::high_resolution_clock::now();
+        package.sourcePeer->torrent->statusData.dataIntervalTotal = 0;
+    }
+}
+
 
 }

@@ -16,6 +16,7 @@
 
 namespace Bittorrent
 {
+using peerMap = std::unordered_multimap<std::string, std::shared_ptr<Peer>>;
 
 class WorkingTorrents
 {
@@ -55,19 +56,17 @@ public:
     std::unique_ptr<TrackerTimer> trackerTimer;
 
     std::vector<std::shared_ptr<Torrent>> torrentList;
-    //std::vector<std::shared_ptr<Torrent>> runningTorrents;
 
     //map of peer connections (torrent infohash as key)
-    std::unordered_multimap<std::string, std::shared_ptr<Peer>> peerConnMap;
-    std::unordered_multimap<std::string, std::shared_ptr<Peer>> seedersMap;
-    std::unordered_multimap<std::string, std::shared_ptr<Peer>> leechersMap;
-
-    //sorted peers for processing in order of pieces available
-    std::vector<std::shared_ptr<Peer>> sortedPeers;
+    peerMap peerConnMap;
+    peerMap seedersMap;
+    peerMap leechersMap;
 
     //unique trackers
     QMap<QString, int> infoTrackerMap;
     QMap<QString, std::set<QString>> trackerTorrentMap;
+
+    //std::vector<std::shared_ptr<Peer>> sortedPeers;
 
     //torrent processing
     std::string isDuplicateTorrent(Torrent* modifiedtorrent);
@@ -124,6 +123,7 @@ private:
     std::mutex mtx_process;
     std::mutex mtx_outgoing;
     std::mutex mtx_incoming;
+    std::mutex mtx_torList;
 
     std::chrono::duration<int> peerTimeout;
     std::size_t threadPoolSize;
@@ -152,6 +152,12 @@ private:
     void pauseProcessing();
     bool masterProcessCondition;
     bool isProcessing;
+
+    //utility
+    peerMap::iterator searchValPeerMap(peerMap* map, std::string host);
+    std::vector<std::shared_ptr<Peer>> sortPeers(Torrent* torrent);
+    void calcDownloadSpeed(const Peer::dataPackage& package);
+    void postProcessTrackers(int position);
 
 };
 
