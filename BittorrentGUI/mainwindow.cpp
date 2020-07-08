@@ -36,8 +36,9 @@ void logCallback(void* user_data, const loguru::Message& message)
 MainWindow::MainWindow(Client* client, QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow),
       generalInfoTab(new Ui::generalInfo),
-      ioClient(client), isFirstTorrentHeaderMenu{true},
-      isFirstTorrentTableMenuData{true},
+      transferSpeed(new Ui::transferSpeedWindow),
+      ioClient(client), timeTicker(new QCPAxisTickerTime),
+      isFirstTorrentHeaderMenu{true}, isFirstTorrentTableMenuData{true},
       isFirstTorrentTableMenuOutside{true},
       addTorrentDialog{nullptr}, addTorInfoDialog{nullptr},
       createTorDialog{nullptr}, settingsDialog{nullptr}
@@ -45,6 +46,7 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     //initialise ui forms
     ui->setupUi(this);
     generalInfoTab->setupUi(this);
+    transferSpeed->setupUi(this);
 
     //connect menu add torrent action to slot because default one is buggy
     connect(ui->actionAdd_NewTorrent, &QAction::triggered,
@@ -54,6 +56,8 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
 
     //initialise windows
     initWindows();
+
+    initSpeedInfo();
 
     //initialise log tab
     initLogTab();
@@ -140,6 +144,77 @@ void MainWindow::initWindows()
     m_dockWidget2->show();
     m_dockWidget2->raise();
 }
+
+void MainWindow::initSpeedInfo()
+{
+    transferSpeed->customPlot->addGraph(); // blue line
+    transferSpeed->customPlot->graph(0)->setPen(QPen(QColor(40, 110, 255)));
+    transferSpeed->customPlot->addGraph(); // red line
+    transferSpeed->customPlot->graph(1)->setPen(QPen(QColor(255, 110, 40)));
+
+    //axes data
+    transferSpeed->customPlot->xAxis->setTicker(timeTicker);
+    transferSpeed->customPlot->axisRect()->setupFullAxesBox();
+    transferSpeed->customPlot->xAxis->setRange(0, 4000);
+
+    //axes labels
+    transferSpeed->customPlot->yAxis->setLabel("Transfer Speed (Kib/s)");
+    transferSpeed->customPlot->xAxis->setLabel("Time");
+    transferSpeed->customPlot->xAxis->setTickLabels(false);
+
+    //legend
+    transferSpeed->customPlot->legend->setVisible(true);
+    transferSpeed->customPlot->graph(0)->setName("Total Download Speed");
+    transferSpeed->customPlot->graph(1)->setName("Total Upload Speed");
+
+    //interaction
+    transferSpeed->customPlot->setInteraction(QCP::iRangeDrag, true);
+    transferSpeed->customPlot->axisRect()->
+            setRangeDrag(Qt::Horizontal);
+
+    //timer that repeatedly calls realtimeDataSlot() with selected row
+    connect(&dataTimer, &QTimer::timeout, this, &MainWindow::realtimeDataSlot);
+    dataTimer.start(0);
+
+    m_dockWidget5->setWidget(transferSpeed->customPlot);
+}
+
+void MainWindow::realtimeDataSlot()
+{
+    // calculate two new data points:
+    double key = time.elapsed() / 1000.0; // time elapsed since start in seconds
+    static double lastPointKey = 0;
+
+    //make sure torrent list isnt empty
+    if (key - lastPointKey > 0.5 &&
+            !ioClient->WorkingTorrents.torrentList.empty())
+    {
+        int dlSpeedSum =
+                std::accumulate(ioClient->WorkingTorrents.torrentList.begin(),
+                                ioClient->WorkingTorrents.torrentList.end(), 0,
+                                [](int sum, std::shared_ptr<Torrent>& t)
+                {
+                    return sum + t->statusData.downloadSpeed;
+                });
+
+      // add download speed
+      transferSpeed->customPlot->graph(0)->addData(key, dlSpeedSum / 1024);
+
+      //add upload speed
+//      transferSpeed->customPlot->graph(1)->addData(
+//                  key, qCos(key)+qrand()/(double)RAND_MAX*0.5*qSin(key/0.4364));
+
+      // rescale value (vertical) axis to fit the current data:
+      transferSpeed->customPlot->yAxis->rescale(true);
+
+      lastPointKey = key;
+    }
+
+    // make key axis range scroll with the data (at a constant range size of 8):
+    transferSpeed->customPlot->xAxis->setRange(key, 24, Qt::AlignRight);
+    transferSpeed->customPlot->replot();
+}
+
 
 void MainWindow::initLogTab()
 {
@@ -476,8 +551,6 @@ void MainWindow::torrentSelected(const QItemSelection &selected,
 
         //set general info mapper to relevant row
         generalInfoMapper->setCurrentIndex(row);
-
-        //emit trackerTableVec.at(row).trackerModel->dataChanged(QModelIndex(), QModelIndex());
     }
 }
 

@@ -1467,7 +1467,7 @@ void WorkingTorrents::calcDownloadSpeed(const Peer::dataPackage& package)
 {
     if (std::chrono::high_resolution_clock::now() >=
             package.sourcePeer->torrent->statusData.lastReceivedTime +
-            std::chrono::seconds{3})
+            std::chrono::seconds{1})
     {
         auto timeDelta = std::chrono::duration_cast<std::chrono::seconds>(
                     std::chrono::high_resolution_clock::now() -
