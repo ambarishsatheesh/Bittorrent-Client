@@ -76,7 +76,7 @@ public:
     //torrent functionality
     void start(int position);
     void stop(int position);
-    void startSeeding(int position);
+    void startSeeding(Torrent* torrent);
 
     //slots
     void addPeer(peer singlePeer, std::shared_ptr<Torrent> torrent);
@@ -109,6 +109,9 @@ public:
     //non slot peer-related methods
     void disableTorrentConnection(Torrent* torrent);
     void acceptNewConnection(Torrent *torrent);
+
+    //public utility
+    void verifyTorrent(Torrent* torrent);
 
     WorkingTorrents();
     ~WorkingTorrents();
@@ -147,6 +150,7 @@ private:
     std::thread t_processDL;
     std::thread t_processUL;
     std::thread t_processPeers;
+    std::thread t_checkComplete;
     void initProcessing();
     void startProcessing();
     void pauseProcessing();
@@ -156,9 +160,8 @@ private:
     //utility
     peerMap::iterator searchValPeerMap(peerMap* map, std::string host);
     std::vector<std::shared_ptr<Peer>> sortPeers(Torrent* torrent);
-    void calcDownloadSpeed(const Peer::dataPackage& package);
-    void postProcessTrackers(int position);
-
+    void calcDownloadSpeed(Torrent* torrent);
+    void updateTrackers(Torrent* torrent);
 };
 
 }

@@ -213,24 +213,6 @@ void WorkingTorrents::addNewTorrent(Torrent* modifiedTorrent)
 
     LOG_F(INFO, "Added Torrent '%s' to client!",
           modifiedTorrent->generalData.fileName.c_str());
-
-    //verify torrent in case its files already exist (partly or fully)
-    //and mark as complete if all pieces are verified
-    modifiedTorrent->statusData.isVerifying = true;
-
-    for (size_t i = 0; i < modifiedTorrent->piecesData.pieces.size();
-         ++i)
-    {
-        verify(*modifiedTorrent, i);
-    }
-
-    modifiedTorrent->statusData.isVerifying = false;
-
-    if (modifiedTorrent->statusData.isCompleted())
-    {
-        modifiedTorrent->statusData.currentState =
-                    TorrentStatus::currentStatus::completed;
-    }
 }
 
 void WorkingTorrents::removeTorrent(int position)
@@ -362,6 +344,8 @@ void WorkingTorrents::removeTorrent(int position)
 
 void WorkingTorrents::start(int position)
 {
+    verifyTorrent(torrentList.at(position).get());
+
     std::unique_lock<std::mutex> statusGuard(mtx_status);
 
     //start seeding if torrent is completed
@@ -383,94 +367,94 @@ void WorkingTorrents::start(int position)
 
         statusGuard.unlock();
 
-        std::vector<std::thread> threadVector;
+        updateTrackers(torrentList.at(position).get());
 
         //run initial tracker updates in separate threads
         //if tracker list has more than 5 torrents,
         //process 5 trackers at a time
-        if (torrentList.at(position)->generalData.trackerList.size() > 5)
-        {
-            int count = 0;
+//        if (torrentList.at(position)->generalData.trackerList.size() > 5)
+//        {
+//            int count = 0;
 
-            for (auto& tracker :
-                 torrentList.at(position)->generalData.trackerList)
-            {
-                //check if recently requested trackers
-                if (std::chrono::high_resolution_clock::now() <
-                        tracker.lastPeerRequest + std::chrono::minutes{5})
-                {
-                    continue;
-                }
+//            for (auto& tracker :
+//                 torrentList.at(position)->generalData.trackerList)
+//            {
+//                //check if recently requested trackers
+//                if (std::chrono::high_resolution_clock::now() <
+//                        tracker.lastPeerRequest + std::chrono::minutes{5})
+//                {
+//                    continue;
+//                }
 
-                threadVector.emplace_back([&]()
-                {
-                    tracker.update(
-                    torrentList.at(position)->statusData.currentState,
-                    clientID, defaultSettings.httpPort, defaultSettings.udpPort,
-                    torrentList.at(position)->hashesData.urlEncodedInfoHash,
-                    torrentList.at(position)->hashesData.infoHash,
-                    torrentList.at(position)->statusData.uploaded,
-                    torrentList.at(position)->statusData.downloaded(),
-                    torrentList.at(position)->statusData.remaining());
+//                threadVector.emplace_back([&]()
+//                {
+//                    tracker.update(
+//                    torrentList.at(position)->statusData.currentState,
+//                    clientID, defaultSettings.httpPort, defaultSettings.udpPort,
+//                    torrentList.at(position)->hashesData.urlEncodedInfoHash,
+//                    torrentList.at(position)->hashesData.infoHash,
+//                    torrentList.at(position)->statusData.uploaded,
+//                    torrentList.at(position)->statusData.downloaded(),
+//                    torrentList.at(position)->statusData.remaining());
 
-                    LOG_F(INFO, "Processed tracker %s",
-                          tracker.trackerAddress.c_str());
-                });
+//                    LOG_F(INFO, "Processed tracker %s",
+//                          tracker.trackerAddress.c_str());
+//                });
 
-                count++;
+//                count++;
 
-                //every 5 threads, join threads and clear thread vector to
-                //limit number of concurrent threads
-                if (count == 4 ||
-                        tracker.trackerAddress == torrentList.at(position)->
-                        generalData.trackerList.back().trackerAddress)
-                {
-                    for (auto& thread : threadVector)
-                    {
-                        if (thread.joinable())
-                        {
-                            thread.join();
-                        }
-                    }
-                    threadVector.clear();
-                    count = 0;
-                }
-            }
-        }
-        else
-        {
-            for (auto& tracker :
-                 torrentList.at(position)->generalData.trackerList)
-            {
-                if (std::chrono::high_resolution_clock::now() <
-                        tracker.lastPeerRequest + std::chrono::minutes{5})
-                {
-                    continue;
-                }
+//                //every 5 threads, join threads and clear thread vector to
+//                //limit number of concurrent threads
+//                if (count == 4 ||
+//                        tracker.trackerAddress == torrentList.at(position)->
+//                        generalData.trackerList.back().trackerAddress)
+//                {
+//                    for (auto& thread : threadVector)
+//                    {
+//                        if (thread.joinable())
+//                        {
+//                            thread.join();
+//                        }
+//                    }
+//                    threadVector.clear();
+//                    count = 0;
+//                }
+//            }
+//        }
+//        else
+//        {
+//            for (auto& tracker :
+//                 torrentList.at(position)->generalData.trackerList)
+//            {
+//                if (std::chrono::high_resolution_clock::now() <
+//                        tracker.lastPeerRequest + std::chrono::minutes{5})
+//                {
+//                    continue;
+//                }
 
-                threadVector.emplace_back([&]()
-                {
-                    tracker.update(
-                    torrentList.at(position)->statusData.currentState,
-                    clientID, defaultSettings.httpPort, defaultSettings.udpPort,
-                    torrentList.at(position)->hashesData.urlEncodedInfoHash,
-                    torrentList.at(position)->hashesData.infoHash,
-                    torrentList.at(position)->statusData.uploaded,
-                    torrentList.at(position)->statusData.downloaded(),
-                    torrentList.at(position)->statusData.remaining());
+//                threadVector.emplace_back([&]()
+//                {
+//                    tracker.update(
+//                    torrentList.at(position)->statusData.currentState,
+//                    clientID, defaultSettings.httpPort, defaultSettings.udpPort,
+//                    torrentList.at(position)->hashesData.urlEncodedInfoHash,
+//                    torrentList.at(position)->hashesData.infoHash,
+//                    torrentList.at(position)->statusData.uploaded,
+//                    torrentList.at(position)->statusData.downloaded(),
+//                    torrentList.at(position)->statusData.remaining());
 
-                    LOG_F(INFO, "Processed tracker %s",
-                          tracker.trackerAddress.c_str());
-                });
-            }
-            for (auto& thread : threadVector)
-            {
-                if (thread.joinable())
-                {
-                    thread.join();
-                }
-            }
-        }
+//                    LOG_F(INFO, "Processed tracker %s",
+//                          tracker.trackerAddress.c_str());
+//                });
+//            }
+//            for (auto& thread : threadVector)
+//            {
+//                if (thread.joinable())
+//                {
+//                    thread.join();
+//                }
+//            }
+//        }
 
         for (auto& tracker : torrentList.at(position)->
              generalData.trackerList)
@@ -547,9 +531,116 @@ void WorkingTorrents::start(int position)
     startProcessing();
 }
 
+void WorkingTorrents::updateTrackers(Torrent* torrent)
+{
+    std::vector<std::thread> threadVector;
+
+    //run initial tracker updates in separate threads
+    //if tracker list has more than 5 torrents,
+    //process 5 trackers at a time
+    if (torrent->generalData.trackerList.size() > 5)
+    {
+        int count = 0;
+
+        for (auto& tracker : torrent->generalData.trackerList)
+        {
+            //check if recently requested trackers
+            if (std::chrono::high_resolution_clock::now() <
+                    tracker.lastPeerRequest + std::chrono::minutes{5})
+            {
+                continue;
+            }
+
+            threadVector.emplace_back([&]()
+            {
+                tracker.update(
+                torrent->statusData.currentState,
+                clientID, defaultSettings.httpPort, defaultSettings.udpPort,
+                torrent->hashesData.urlEncodedInfoHash,
+                torrent->hashesData.infoHash,
+                torrent->statusData.uploaded,
+                torrent->statusData.downloaded(),
+                torrent->statusData.remaining());
+            });
+
+            count++;
+
+            //every 5 threads, join threads and clear thread vector to
+            //limit number of concurrent threads
+            if (count == 4 ||
+                    tracker.trackerAddress == torrent->
+                    generalData.trackerList.back().trackerAddress)
+            {
+                for (auto& thread : threadVector)
+                {
+                    if (thread.joinable())
+                    {
+                        thread.join();
+                    }
+                }
+                threadVector.clear();
+                count = 0;
+            }
+        }
+    }
+    else
+    {
+        for (auto& tracker : torrent->generalData.trackerList)
+        {
+            if (std::chrono::high_resolution_clock::now() <
+                    tracker.lastPeerRequest + std::chrono::minutes{5})
+            {
+                continue;
+            }
+
+            threadVector.emplace_back([&]()
+            {
+                tracker.update(
+                torrent->statusData.currentState,
+                clientID, defaultSettings.httpPort, defaultSettings.udpPort,
+                torrent->hashesData.urlEncodedInfoHash,
+                torrent->hashesData.infoHash,
+                torrent->statusData.uploaded,
+                torrent->statusData.downloaded(),
+                torrent->statusData.remaining());
+            });
+        }
+        for (auto& thread : threadVector)
+        {
+            if (thread.joinable())
+            {
+                thread.join();
+            }
+        }
+    }
+}
+
+void WorkingTorrents::verifyTorrent(Torrent* torrent)
+{
+    //verify torrent in case its files already exist (partly or fully)
+    //and mark as complete if all pieces are verified
+    torrent->statusData.isVerifying = true;
+
+    for (size_t i = 0; i < torrent->piecesData.pieces.size();
+         ++i)
+    {
+        verify(*torrent, i);
+    }
+
+    torrent->statusData.isVerifying = false;
+
+    if (torrent->statusData.isCompleted())
+    {
+        torrent->statusData.currentState =
+                    TorrentStatus::currentStatus::completed;
+    }
+}
+
 void WorkingTorrents::stop(int position)
 {
     std::lock_guard<std::mutex> torListGuard(mtx_torrentList);
+
+    updateTrackers(torrentList.at(position).get());
 
     disableTorrentConnection(torrentList.at(position).get());
 
@@ -560,6 +651,9 @@ void WorkingTorrents::stop(int position)
 void WorkingTorrents::startSeeding(Torrent* torrent)
 {
     torrent->statusData.isSeeding = true;
+
+    updateTrackers(torrent);
+
     acceptNewConnection(torrent);
 }
 
@@ -816,9 +910,6 @@ void WorkingTorrents::handleBlockReceived(Peer::dataPackage package)
     package.sourcePeer->torrent->statusData.dataIntervalTotal +=
             package.data.size();
 
-    //crude download speed calc
-    calcDownloadSpeed(package);
-
     std::lock_guard<std::mutex> incomingGuard(mtx_incoming);
 
     //add to deque for processing
@@ -936,6 +1027,8 @@ void WorkingTorrents::processPeers(Torrent* torrent)
 {
 //    LOG_F(INFO, "Processing peers for torrent %s.",
 //          torrent->generalData.fileName.c_str());
+
+    calcDownloadSpeed(torrent);
 
     //locking mutex because this method can be run on multiple threads
     std::lock_guard<std::mutex> processGuard(mtx_process);
@@ -1442,25 +1535,24 @@ std::vector<std::shared_ptr<Peer>> WorkingTorrents::sortPeers(Torrent* torrent)
 
 }
 
-void WorkingTorrents::calcDownloadSpeed(const Peer::dataPackage& package)
+void WorkingTorrents::calcDownloadSpeed(Torrent* torrent)
 {
     if (std::chrono::high_resolution_clock::now() >=
-            package.sourcePeer->torrent->statusData.lastReceivedTime +
-            std::chrono::seconds{1})
+            torrent->statusData.lastReceivedTime + std::chrono::seconds{1})
     {
         auto timeDelta = std::chrono::duration_cast<std::chrono::seconds>(
                     std::chrono::high_resolution_clock::now() -
-                    package.sourcePeer->torrent->statusData.lastReceivedTime);
+                    torrent->statusData.lastReceivedTime);
 
-        package.sourcePeer->torrent->statusData.downloadSpeed =
-        static_cast<int>(package.sourcePeer->torrent->
-                         statusData.dataIntervalTotal /
+        torrent->statusData.downloadSpeed =
+                static_cast<int>(torrent->
+                                 statusData.dataIntervalTotal /
                 static_cast<int>(timeDelta.count()));
 
         //update tracking variables
-        package.sourcePeer->torrent->statusData.lastReceivedTime =
+        torrent->statusData.lastReceivedTime =
                 std::chrono::high_resolution_clock::now();
-        package.sourcePeer->torrent->statusData.dataIntervalTotal = 0;
+        torrent->statusData.dataIntervalTotal = 0;
     }
 }
 
