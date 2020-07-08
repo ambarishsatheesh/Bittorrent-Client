@@ -17,23 +17,12 @@ namespace Bittorrent
         WorkingTorrents WorkingTorrents;
 		std::vector<byte> localID;
 
-		//context and acceptor for accepting peer connections
-		boost::asio::io_context acc_io_context;
-		tcp::acceptor acceptor;
-
-		//peer connection
-		void handlePeerListUpdated(std::vector<peer> peerList);
-		void enablePeerConnections();
-		void doAccept();
-
-
 		//slots
 		void handleBlockRequested();
 		void handleBlockCancelled();
 		void handleBlockReceived();
 		void handlePeerDisconnected();
 		void handlePeerStateChanged();
-
 
 		Client();
 
