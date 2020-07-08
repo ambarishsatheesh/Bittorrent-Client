@@ -84,10 +84,11 @@ void AddTorrentDialog::on_buttonCreate_clicked()
                 storedTorrentPath.toStdString() + "/" +
                 modifiedTorrent.generalData.fileName;
 
+        //close before emitting signal so program doesnt hang
+        this->close();
+
         //send back to MainWindow
         emit sendModifiedTorrent(modifiedTorrent);
-
-        this->close();
     }
 }
 
