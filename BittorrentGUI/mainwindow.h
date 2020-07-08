@@ -113,6 +113,8 @@ private slots:
 
     void on_actionMin_Priority_triggered();
 
+    void openTorrentFolder(const QModelIndex& index);
+
 private:
     Ui::MainWindow* ui;
     Ui::generalInfo* generalInfoTab;

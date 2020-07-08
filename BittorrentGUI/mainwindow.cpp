@@ -11,6 +11,7 @@
 #include <QAbstractItemModelTester>
 #include <QMessageBox>
 #include <QtConcurrent>
+#include <QDesktopServices>
 
 namespace Bittorrent
 {
@@ -57,8 +58,6 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     //initialise windows
     initWindows();
 
-    initSpeedInfo();
-
     //initialise log tab
     initLogTab();
 
@@ -74,6 +73,9 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
 
     //initialise content tree
     initContentTree();
+
+    //init transfer speed graph
+    initSpeedInfo();
 
     //initialise tabs
     initTransfersTab();
@@ -144,78 +146,6 @@ void MainWindow::initWindows()
     m_dockWidget2->show();
     m_dockWidget2->raise();
 }
-
-void MainWindow::initSpeedInfo()
-{
-    transferSpeed->customPlot->addGraph(); // blue line
-    transferSpeed->customPlot->graph(0)->setPen(QPen(QColor(40, 110, 255)));
-    transferSpeed->customPlot->addGraph(); // red line
-    transferSpeed->customPlot->graph(1)->setPen(QPen(QColor(255, 110, 40)));
-
-    //axes data
-    transferSpeed->customPlot->xAxis->setTicker(timeTicker);
-    transferSpeed->customPlot->axisRect()->setupFullAxesBox();
-    transferSpeed->customPlot->xAxis->setRange(0, 4000);
-
-    //axes labels
-    transferSpeed->customPlot->yAxis->setLabel("Transfer Speed (KiB/s)");
-    transferSpeed->customPlot->xAxis->setTickLabels(false);
-
-    //legend
-    transferSpeed->customPlot->legend->setVisible(true);
-    transferSpeed->customPlot->graph(0)->setName("Total Download Speed");
-    transferSpeed->customPlot->graph(1)->setName("Total Upload Speed");
-    transferSpeed->customPlot->axisRect()->insetLayout()->
-            setInsetAlignment(0, Qt::AlignLeft|Qt::AlignTop);
-
-    //interaction
-    transferSpeed->customPlot->setInteraction(QCP::iRangeDrag, true);
-    transferSpeed->customPlot->axisRect()->
-            setRangeDrag(Qt::Horizontal);
-
-    //timer that repeatedly calls realtimeDataSlot() with selected row
-    connect(&dataTimer, &QTimer::timeout, this, &MainWindow::realtimeDataSlot);
-    dataTimer.start(0);
-
-    m_dockWidget5->setWidget(transferSpeed->customPlot);
-}
-
-void MainWindow::realtimeDataSlot()
-{
-    // calculate two new data points:
-    double key = time.elapsed() / 1000.0; // time elapsed since start in seconds
-    static double lastPointKey = 0;
-
-    //make sure torrent list isnt empty
-    if (key - lastPointKey > 0.5 &&
-            !ioClient->WorkingTorrents.torrentList.empty())
-    {
-        int dlSpeedSum =
-                std::accumulate(ioClient->WorkingTorrents.torrentList.begin(),
-                                ioClient->WorkingTorrents.torrentList.end(), 0,
-                                [](int sum, std::shared_ptr<Torrent>& t)
-                {
-                    return sum + t->statusData.downloadSpeed;
-                });
-
-      // add download speed
-      transferSpeed->customPlot->graph(0)->addData(key, dlSpeedSum / 1024);
-
-      //add upload speed
-//      transferSpeed->customPlot->graph(1)->addData(
-//                  key, qCos(key)+qrand()/(double)RAND_MAX*0.5*qSin(key/0.4364));
-
-      // rescale value (vertical) axis to fit the current data:
-      transferSpeed->customPlot->yAxis->rescale(true);
-
-      lastPointKey = key;
-    }
-
-    // make key axis range scroll with the data (at a constant range size of 8):
-    transferSpeed->customPlot->xAxis->setRange(key, 30, Qt::AlignRight);
-    transferSpeed->customPlot->replot();
-}
-
 
 void MainWindow::initLogTab()
 {
@@ -384,6 +314,10 @@ void MainWindow::initTorrentTable()
             [&]
             () { torrentTable->viewport()->repaint();});
 
+    //connect double click to slot that open folder
+    connect(torrentTable, &QTableView::doubleClicked, this,
+            &MainWindow::openTorrentFolder);
+
     m_dockWidget1->setWidget(torrentTable);
 }
 
@@ -466,6 +400,77 @@ void MainWindow::initContentTree()
     m_dockWidget4->setWidget(contentTreeStack);
 }
 
+void MainWindow::initSpeedInfo()
+{
+    transferSpeed->customPlot->addGraph(); // blue line
+    transferSpeed->customPlot->graph(0)->setPen(QPen(QColor(40, 110, 255)));
+    transferSpeed->customPlot->addGraph(); // red line
+    transferSpeed->customPlot->graph(1)->setPen(QPen(QColor(255, 110, 40)));
+
+    //axes data
+    transferSpeed->customPlot->xAxis->setTicker(timeTicker);
+    transferSpeed->customPlot->axisRect()->setupFullAxesBox();
+    transferSpeed->customPlot->xAxis->setRange(0, 4000);
+
+    //axes labels
+    transferSpeed->customPlot->yAxis->setLabel("Transfer Speed (KiB/s)");
+    transferSpeed->customPlot->xAxis->setTickLabels(false);
+
+    //legend
+    transferSpeed->customPlot->legend->setVisible(true);
+    transferSpeed->customPlot->graph(0)->setName("Total Download Speed");
+    transferSpeed->customPlot->graph(1)->setName("Total Upload Speed");
+    transferSpeed->customPlot->axisRect()->insetLayout()->
+            setInsetAlignment(0, Qt::AlignLeft|Qt::AlignTop);
+
+    //interaction
+    transferSpeed->customPlot->setInteraction(QCP::iRangeDrag, true);
+    transferSpeed->customPlot->axisRect()->
+            setRangeDrag(Qt::Horizontal);
+
+    //timer that repeatedly calls realtimeDataSlot() with selected row
+    connect(&dataTimer, &QTimer::timeout, this, &MainWindow::realtimeDataSlot);
+    dataTimer.start(0);
+
+    m_dockWidget5->setWidget(transferSpeed->customPlot);
+}
+
+void MainWindow::realtimeDataSlot()
+{
+    // calculate two new data points:
+    double key = time.elapsed() / 1000.0; // time elapsed since start in seconds
+    static double lastPointKey = 0;
+
+    //make sure torrent list isnt empty
+    if (key - lastPointKey > 0.5 &&
+            !ioClient->WorkingTorrents.torrentList.empty())
+    {
+        int dlSpeedSum =
+                std::accumulate(ioClient->WorkingTorrents.torrentList.begin(),
+                                ioClient->WorkingTorrents.torrentList.end(), 0,
+                                [](int sum, std::shared_ptr<Torrent>& t)
+                {
+                    return sum + t->statusData.downloadSpeed;
+                });
+
+      // add download speed
+      transferSpeed->customPlot->graph(0)->addData(key, dlSpeedSum / 1024);
+
+      //add upload speed
+//      transferSpeed->customPlot->graph(1)->addData(
+//                  key, qCos(key)+qrand()/(double)RAND_MAX*0.5*qSin(key/0.4364));
+
+      // rescale value (vertical) axis to fit the current data:
+      transferSpeed->customPlot->yAxis->rescale(true);
+
+      lastPointKey = key;
+    }
+
+    // make key axis range scroll with the data (at a constant range size of 8):
+    transferSpeed->customPlot->xAxis->setRange(key, 30, Qt::AlignRight);
+    transferSpeed->customPlot->replot();
+}
+
 void MainWindow::initTransfersTab()
 {
     infoList = new QListView(this);
@@ -485,6 +490,23 @@ void MainWindow::initTransfersTab()
 
     connect(infoList, &QListView::clicked, this,
             &MainWindow::trackerListItemSelected);
+}
+
+void MainWindow::openTorrentFolder(const QModelIndex& index)
+{
+    using namespace utility;
+
+    //map clicked index to source model index
+    auto mappedIndex = proxyModel->mapToSource(index);
+
+    auto dir = QString::fromStdString(getFileDirectory(ioClient->
+            WorkingTorrents.torrentList.at(mappedIndex.row())->
+            generalData.downloadDirectory.c_str()));
+
+    if (QDir(dir).exists())
+    {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(dir));
+    }
 }
 
 void MainWindow::showAllTorrents()
