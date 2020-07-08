@@ -23,7 +23,7 @@ WorkingTorrents::WorkingTorrents()
       rand{}, rng{rand()}, peerTimeout{std::chrono::seconds{30}},
       threadPoolSize{15},
       work{boost::asio::make_work_guard(io_context)}, acceptor_{io_context},
-      t_processDL{}, t_processUL{}, t_processPeers{},
+      t_processDL{}, t_processUL{}, t_processPeers{}, t_checkComplete{},
       masterProcessCondition{true}, isProcessing{false}
 {
     //Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
@@ -82,7 +82,7 @@ void WorkingTorrents::initProcessing()
     t_processPeers = std::thread([&]()
             {
                 loguru::set_thread_name("Process Peers");
-                LOG_F(INFO, "Initiated peers-processing thread.");
+                LOG_F(INFO, "Initiated Peers-Processing Thread.");
 
                 while (masterProcessCondition)
                 {
@@ -97,15 +97,13 @@ void WorkingTorrents::initProcessing()
                     }
 
                     torListGuard.unlock();
-
-                    //std::this_thread::sleep_for(std::chrono::seconds(10));
                 }
             });
 
     t_processDL = std::thread([&]()
         {
             loguru::set_thread_name("Process Downloads 1");
-            LOG_F(INFO, "Initiated downloads-processing thread.");
+            LOG_F(INFO, "Initiated Downloads-Processing Thread.");
 
             while (masterProcessCondition)
             {
@@ -113,21 +111,20 @@ void WorkingTorrents::initProcessing()
                 cv.wait(lck, [&] {return isProcessing; });
 
                 processDownloads();
-                //std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         });
 
     t_processUL = std::thread([&]()
         {
             loguru::set_thread_name("Process Uploads");
-            LOG_F(INFO, "Initiated uploads-processing thread.");
+            LOG_F(INFO, "Initiated Uploads-Processing Thread.");
 
             while (masterProcessCondition)
             {
                 std::unique_lock<std::mutex> lck(mtx_condition);
                 cv.wait(lck, [&] {return isProcessing; });
 
-                //processUploads();
+                processUploads();
                 //std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         });
@@ -216,6 +213,24 @@ void WorkingTorrents::addNewTorrent(Torrent* modifiedTorrent)
 
     LOG_F(INFO, "Added Torrent '%s' to client!",
           modifiedTorrent->generalData.fileName.c_str());
+
+    //verify torrent in case its files already exist (partly or fully)
+    //and mark as complete if all pieces are verified
+    modifiedTorrent->statusData.isVerifying = true;
+
+    for (size_t i = 0; i < modifiedTorrent->piecesData.pieces.size();
+         ++i)
+    {
+        verify(*modifiedTorrent, i);
+    }
+
+    modifiedTorrent->statusData.isVerifying = false;
+
+    if (modifiedTorrent->statusData.isCompleted())
+    {
+        modifiedTorrent->statusData.currentState =
+                    TorrentStatus::currentStatus::completed;
+    }
 }
 
 void WorkingTorrents::removeTorrent(int position)
@@ -355,7 +370,7 @@ void WorkingTorrents::start(int position)
     {
         statusGuard.unlock();
 
-        startSeeding(position);
+        startSeeding(torrentList.at(position).get());
 
         return;
     }
@@ -542,12 +557,10 @@ void WorkingTorrents::stop(int position)
 }
 
 //only allow seeding of one torrent at a time
-void WorkingTorrents::startSeeding(int position)
+void WorkingTorrents::startSeeding(Torrent* torrent)
 {
-    std::lock_guard<std::mutex> torListGuard(mtx_torrentList);
-
-    torrentList.at(position)->isSeeding = true;
-    acceptNewConnection(torrentList.at(position).get());
+    torrent->statusData.isSeeding = true;
+    acceptNewConnection(torrent);
 }
 
 //peers for downloading
@@ -732,9 +745,9 @@ void WorkingTorrents::disableTorrentConnection(Torrent* torrent)
         statusGuard.unlock();
 
         //change seeding status
-        if (torrent->isSeeding)
+        if (torrent->statusData.isSeeding)
         {
-            torrent->isSeeding = 0;
+            torrent->statusData.isSeeding = false;
         }
 
         std::lock_guard<std::mutex> mapGuard(mtx_map);
@@ -774,13 +787,11 @@ void WorkingTorrents::handlePieceVerified(Torrent* torrent, int piece)
 
 void WorkingTorrents::handleBlockRequested(Peer::dataRequest request)
 {
-    {
-        std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
+    LOG_F(INFO, "Handling requested block...");
 
-        outgoingBlocks.push_back(request);
-    }
+    std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
 
-    //processUploads();
+    outgoingBlocks.push_back(request);
 }
 
 void WorkingTorrents::handleBlockCancelled(Peer::dataRequest request)
@@ -912,21 +923,6 @@ void WorkingTorrents::handlePeerDisconnected(Peer* senderPeer)
         }
     }
 
-//    range = peerConnMap.equal_range(infoHash);
-
-//    for (auto it = range.first; it != range.second;)
-//    {
-//        if (it->second->peerHost == senderPeer->peerHost &&
-//                it->second->peerPort == senderPeer->peerPort)
-//        {
-//            it = peerConnMap.erase(it);
-//        }
-//        else
-//        {
-//            ++it;
-//        }
-//    }
-
     LOG_F(INFO, "(%s:%s) Successfully disconnected from peer.",
           tempHost.c_str(), tempPort.c_str());
 }
@@ -986,7 +982,7 @@ void WorkingTorrents::processPeers(Torrent* torrent)
         }
 
         //send interested message if we want to request data
-        if (peer->torrent->statusData.isCompleted())
+        if (torrent->statusData.isCompleted())
         {
             peer->sendNotInterested();
         }
@@ -995,10 +991,22 @@ void WorkingTorrents::processPeers(Torrent* torrent)
             peer->sendInterested();
         }
 
-        //torrent completed so can disconnect
-        if (peer->isCompleted() && peer->torrent->statusData.isCompleted())
+        //torrent completed so disconnect peer,
+        //update torrent status and start seeding
+        if (peer->isCompleted() && torrent->statusData.isCompleted())
         {
             peer->disconnect();
+
+            std::unique_lock<std::mutex> statusGuard(mtx_status);
+
+
+            torrent->statusData.currentState =
+                    TorrentStatus::currentStatus::completed;
+
+            statusGuard.unlock();
+
+            startSeeding(torrent);
+
             continue;
         }
 
@@ -1046,10 +1054,9 @@ void WorkingTorrents::processPeers(Torrent* torrent)
 void WorkingTorrents::processUploads()
 {
 //    LOG_F(INFO, "Processing uploads...");
+    Peer::dataRequest tempBlock;
 
     std::lock_guard<std::mutex> outgoingGuard(mtx_outgoing);
-
-    Peer::dataRequest tempBlock;
 
     while (!uploadThrottle.isThrottled() && !outgoingBlocks.empty())
     {
@@ -1149,34 +1156,6 @@ void WorkingTorrents::processDownloads()
                     {
                         continue;
                     }
-
-                    //only request one block from each seeder at a time
-//                    if (seeder->blocksRequested() > 0)
-//                    {
-//                        continue;
-//                    }
-
-                    //std::unique_lock<std::mutex> mapGuard(mtx_map);
-
-                    //only request block from one peer at a time
-//                    auto range = peerConnMap.equal_range(
-//                                torrent->hashesData.urlEncodedInfoHash);
-//                    int count = 0;
-
-//                    for (auto it = range.first; it != range.second; ++it)
-//                    {
-//                        if (it->second->isBlockRequested.at(piece).at(block))
-//                        {
-//                            ++count;
-//                        }
-//                    }
-
-//                    mapGuard.unlock();
-
-//                    if (count > 0)
-//                    {
-//                        continue;
-//                    }
 
                     //send data request to peer
                     int blockSize = torrent->piecesData.getBlockSize(
@@ -1375,7 +1354,7 @@ void WorkingTorrents::startProcessing()
         {
             if (t->statusData.currentState == status::started ||
                     (t->statusData.currentState == status::completed &&
-                     t->isSeeding))
+                     t->statusData.isSeeding))
             {
                 return true;
             }
@@ -1408,7 +1387,7 @@ void WorkingTorrents::pauseProcessing()
         {
             if (t->statusData.currentState == status::started ||
                     (t->statusData.currentState == status::completed &&
-                     t->isSeeding))
+                     t->statusData.isSeeding))
             {
                 return true;
             }

@@ -77,6 +77,7 @@ HEADERS += \
     ../include/trackerObj.h \
     ../include/trackerUrl.h \
     ../include/workingTorrents.h \
+    ProgressDelegate.h \
     addtorrentdialog.h \
     contenttree.h \
     contenttreemodel.h \

@@ -134,8 +134,8 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
     //Progress
     case 4:
     {
-        return 100 * (torrent->statusData.downloaded() /
-                      torrent->piecesData.totalSize);
+        return std::floor(100 * (torrent->statusData.downloaded() /
+                      static_cast<float>(torrent->piecesData.totalSize)));
     }
     //Status
     case 5:
@@ -148,6 +148,20 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
             return "Downloading";
         }
         else if (torrent->statusData.currentState ==
+                 TorrentStatus::currentStatus::completed)
+        {
+            if (torrent->statusData.isSeeding)
+            {
+                return "Seeding";
+            }
+
+            return "Completed";
+        }
+        else if (torrent->statusData.isVerifying)
+        {
+            return "Verifying";
+        }
+        else if (torrent->statusData.currentState ==
                  TorrentStatus::currentStatus::stopped)
         {
             if (torrent->statusData.downloadSpeed == 0)
@@ -156,20 +170,6 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
             }
 
             return "Paused";
-        }
-        else if (torrent->statusData.currentState ==
-                 TorrentStatus::currentStatus::completed)
-        {
-            if (torrent->isSeeding)
-            {
-                return "Seeding";
-            }
-
-            return "Completed";
-        }
-        else
-        {
-            return "Queued";
         }
     }
     //seeds

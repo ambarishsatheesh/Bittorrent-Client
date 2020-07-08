@@ -285,6 +285,10 @@ void MainWindow::initTorrentTable()
 
     torrentModel = new TorrentTableModel(ioClient, this);
 
+    //progress bar
+    progressDelegate = new ProgressDelegate();
+    torrentTable->setItemDelegateForColumn(4, progressDelegate);
+
     //sort/filter
     proxyModel = new TorrentSortFilterProxyModel(ioClient, this);
     proxyModel->setSourceModel(torrentModel);
@@ -378,12 +382,6 @@ void MainWindow::initGeneralInfo()
     generalInfoMapper->addMapping(generalInfoTab->peers_val, 17, "text");
 
     m_dockWidget2->setWidget(generalInfoTab->generalBox);
-
-    //connect model dataChanged signal to view update
-    //(allows real-time view updates)
-    connect(generalDataModel, &generalInfoModel::dataChanged, generalInfoTab->generalBox,
-            [&]
-            () { generalInfoTab->generalBox->update();});
 }
 
 void MainWindow::initContentTree()

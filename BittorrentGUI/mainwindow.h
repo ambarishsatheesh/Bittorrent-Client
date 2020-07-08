@@ -14,6 +14,7 @@
 #include "addtorrentdialog.h"
 #include "settingsdialog.h"
 #include "TorrentManipulation.h"
+#include "progressDelegate.h"
 #include "qcustomplot.h"
 #include "ui_transferSpeed.h"
 
@@ -146,6 +147,7 @@ private:
     void initTorrentTable();
     QPointer<QTableView> torrentTable;
     QPointer<TorrentTableModel> torrentModel;
+    QPointer<ProgressDelegate> progressDelegate;
 
     //general info
     void initGeneralInfo();
