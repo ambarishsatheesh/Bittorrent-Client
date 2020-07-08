@@ -28,6 +28,9 @@ namespace Bittorrent
 		//no default constructor - requires parameter
 		TorrentStatus() = delete;
 
+        bool isSeeding;
+        bool isVerifying;
+
         int verifiedPiecesCount();
         float verifiedRatio();
         bool isCompleted();
@@ -38,7 +41,6 @@ namespace Bittorrent
         int pieceSize;
         int blockSize;
         int totalSize;
-        long acquiredBlocksCount;
         long long uploaded;
 
         //speed calculation

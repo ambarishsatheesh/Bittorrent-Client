@@ -21,7 +21,6 @@ namespace Bittorrent
     public:
         //ranking
         int clientRank;
-        bool isSeeding;
 
 		//general info
 		TorrentGeneral generalData;

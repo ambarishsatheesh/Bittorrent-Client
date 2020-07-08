@@ -4,8 +4,9 @@ namespace Bittorrent
 {
     TorrentStatus::TorrentStatus(TorrentPieces& pieces)
         : currentState{currentStatus::stopped}, ptr_piecesData(&pieces),
+          isSeeding{false}, isVerifying{false},
           pieceCount{0}, pieceSize{0}, blockSize{0}, totalSize{0},
-          acquiredBlocksCount{0}, uploaded{0}, dataIntervalTotal{0},
+          uploaded{0}, dataIntervalTotal{0},
           lastReceivedTime{std::chrono::high_resolution_clock::time_point::min()},
           downloadSpeed{0}
 	{
@@ -50,8 +51,14 @@ namespace Bittorrent
 
     long long TorrentStatus::downloaded()
     {
+        auto acquiredBlocksCount =
+                std::accumulate(isBlockAcquired.begin(), isBlockAcquired.end(),
+                                0, [](int sum, const std::vector<bool>& b)
+        {
+            return sum + std::count(b.begin(), b.end(), true);
+        });
+
         return acquiredBlocksCount * blockSize;
-        //return pieceSize * verifiedPiecesCount();
     }
 
     long long TorrentStatus::remaining()
