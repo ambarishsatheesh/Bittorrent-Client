@@ -158,14 +158,15 @@ void MainWindow::initSpeedInfo()
     transferSpeed->customPlot->xAxis->setRange(0, 4000);
 
     //axes labels
-    transferSpeed->customPlot->yAxis->setLabel("Transfer Speed (Kib/s)");
-    transferSpeed->customPlot->xAxis->setLabel("Time");
+    transferSpeed->customPlot->yAxis->setLabel("Transfer Speed (KiB/s)");
     transferSpeed->customPlot->xAxis->setTickLabels(false);
 
     //legend
     transferSpeed->customPlot->legend->setVisible(true);
     transferSpeed->customPlot->graph(0)->setName("Total Download Speed");
     transferSpeed->customPlot->graph(1)->setName("Total Upload Speed");
+    transferSpeed->customPlot->axisRect()->insetLayout()->
+            setInsetAlignment(0, Qt::AlignLeft|Qt::AlignTop);
 
     //interaction
     transferSpeed->customPlot->setInteraction(QCP::iRangeDrag, true);
@@ -211,7 +212,7 @@ void MainWindow::realtimeDataSlot()
     }
 
     // make key axis range scroll with the data (at a constant range size of 8):
-    transferSpeed->customPlot->xAxis->setRange(key, 24, Qt::AlignRight);
+    transferSpeed->customPlot->xAxis->setRange(key, 30, Qt::AlignRight);
     transferSpeed->customPlot->replot();
 }
 
