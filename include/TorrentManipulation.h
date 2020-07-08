@@ -376,7 +376,6 @@ namespace Bittorrent
 
             //update block info
 			torrent.statusData.isBlockAcquired.at(piece).at(block) = true;
-            torrent.statusData.acquiredBlocksCount++;
 
 			verify(torrent, piece);
 		}
@@ -421,7 +420,6 @@ namespace Bittorrent
 					i < torrent.statusData.isBlockAcquired.at(piece).size(); ++i)
 				{
 					torrent.statusData.isBlockAcquired[piece][i] = false;
-                    torrent.statusData.acquiredBlocksCount--;
 				}
 
                 LOG_F(WARNING, "Piece %d failed verification for torrent %s. "
