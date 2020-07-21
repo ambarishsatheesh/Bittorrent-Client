@@ -9,8 +9,16 @@ namespace Bittorrent
 {
 
 TorrentTableModel::TorrentTableModel(Client* client, QPointer<QObject> parent)
-    : QAbstractTableModel(parent), ioClientModel(client)
+    : QAbstractTableModel(parent), ioClientModel(client), timer{new QTimer(this)}
 {
+    //timer to refresh table every second
+    connect(timer, &QTimer::timeout , this, &TorrentTableModel::timerHit);
+    timer->start(2000);
+}
+
+void TorrentTableModel::timerHit()
+{
+    emit this->dataChanged(QModelIndex(), QModelIndex());
 }
 
 int TorrentTableModel::rowCount(const QModelIndex &parent) const
@@ -22,7 +30,7 @@ int TorrentTableModel::rowCount(const QModelIndex &parent) const
 
 int TorrentTableModel::columnCount(const QModelIndex &parent) const
 {
-    return parent.isValid() ? 0 : 16;
+    return parent.isValid() ? 0 : 14;
 }
 
 QVariant TorrentTableModel::data(const QModelIndex &index, int role) const
@@ -79,13 +87,9 @@ QVariant TorrentTableModel::headerData(int section,
         case 11:
             return QString("Ratio");
         case 12:
-            return QString("Tracker");
-        case 13:
             return QString("Downloaded");
-        case 14:
+        case 13:
             return QString("Uploaded");
-        case 15:
-            return QString("Time Active");
         default:
             break;
         }
@@ -108,7 +112,8 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
 {
     using namespace utility;
 
-    auto entry = ioClientModel->WorkingTorrents.torrentList.at(index.row());
+    std::shared_ptr<Torrent> torrent =
+            ioClientModel->WorkingTorrents.torrentList.at(index.row());
 
     switch (index.column())
     {
@@ -118,74 +123,113 @@ QVariant TorrentTableModel::generateData(const QModelIndex &index) const
                     WorkingTorrents.addedOnList.at(index.row());
     //Priority
     case 1:
-        return ioClientModel->
-                WorkingTorrents.torrentList.at(index.row())->clientRank;
+        return torrent->clientRank;
     //Name
     case 2:
-        return QString::fromStdString(entry->generalData.fileName);
+        return QString::fromStdString(torrent->generalData.fileName);
     //Size
     case 3:
-        return QString::fromStdString(
-                    humanReadableBytes(entry->piecesData.totalSize));
+        return QString::fromStdString(humanReadableBytes(torrent->
+                                                         piecesData.totalSize));
     //Progress
     case 4:
     {
-        auto downloadedBytes = entry->statusData.downloaded();
-
-        auto totalBytes = entry->piecesData.totalSize;
-
-        return downloadedBytes/totalBytes;
+        return std::floor(100 * (torrent->statusData.downloaded() /
+                      static_cast<float>(torrent->piecesData.totalSize)));
     }
     //Status
     case 5:
-         //implement using progress
-        return 0;
+    {
+        if (ioClientModel->
+                WorkingTorrents.torrentList.at(index.row())->
+                statusData.currentState ==
+                TorrentStatus::currentStatus::started)
+        {
+            return "Downloading";
+        }
+        else if (torrent->statusData.currentState ==
+                 TorrentStatus::currentStatus::completed)
+        {
+            if (torrent->statusData.isSeeding)
+            {
+                return "Seeding";
+            }
+
+            return "Completed";
+        }
+        else if (torrent->statusData.isVerifying)
+        {
+            return "Verifying";
+        }
+        else if (torrent->statusData.currentState ==
+                 TorrentStatus::currentStatus::stopped)
+        {
+            if (torrent->statusData.downloadSpeed == 0)
+            {
+                return "Stalled";
+            }
+
+            return "Paused";
+        }
+    }
     //seeds
     case 6:
-        //implement properly
-        return 0;
+    {
+        return ioClientModel->WorkingTorrents.seedersMap.count(
+                    torrent->hashesData.urlEncodedInfoHash);
+    }
     //peers
     case 7:
-        //implement properly
-        return 0;
+        return ioClientModel->WorkingTorrents.leechersMap.count(
+                    torrent->hashesData.urlEncodedInfoHash);
     //download speed
     case 8:
-        //implement properly
-        return 0;
+        return QString::fromStdString(humanReadableBytes(
+                                          torrent->
+                                          statusData.downloadSpeed)) + "/s";
     //upload speed
     case 9:
         //implement properly
         return 0;
     //ETA
     case 10:
-        //implement properly
-        return 0;
+    {
+        if (torrent->statusData.currentState ==
+                TorrentStatus::currentStatus::completed ||
+                torrent->statusData.currentState ==
+                                TorrentStatus::currentStatus::stopped ||
+                torrent->statusData.downloaded() == 0 ||
+                torrent->statusData.downloadSpeed == 0)
+        {
+            return QString("\u221E");
+        }
+        else
+        {
+            return QDateTime::currentDateTime().addSecs(
+                        torrent->statusData.remaining() /
+                        torrent->statusData.downloadSpeed).toString(
+                        "hh:mm:ss dd/MM/yyyy");
+        }
+    }
     //Ratio
     case 11:
     {
-        auto downloadedBytes = entry->statusData.downloaded();
-        if (downloadedBytes != 0)
+        if (torrent->statusData.downloaded() != 0)
         {
-            return entry->statusData.uploaded / downloadedBytes;
+            return ioClientModel->
+                    WorkingTorrents.torrentList.at(index.row())->
+                    statusData.uploaded / torrent->statusData.downloaded();
         }
         return 0;
     }
-    //Tracker
-    case 12:
-        //implement properly
-        return 0;
     //Downloaded
-    case 13:
-        return QString::fromStdString(humanReadableBytes(entry->
-                statusData.downloaded()));
+    case 12:
+        return QString::fromStdString(humanReadableBytes(
+                                          torrent->statusData.downloaded()));
     //Uploaded
-    case 14:
-        return QString::fromStdString(humanReadableBytes(entry->
-                statusData.uploaded));
-    //Time Active
-    case 15:
-        //implement properly
-        return 0;
+    case 13:
+        return QString::fromStdString(humanReadableBytes(
+                                          torrent->statusData.uploaded));
     default:
         break;
     }

@@ -10,11 +10,11 @@ namespace Bittorrent
 		downloadDirectory{ "" },
 		comment{ "" }, createdBy{ "" },
 		creationDate{ },
-        encoding{ "" }, isPrivate{ false }, urlEncodedClientID{""},
-        sig_peersUpdated{
-            std::make_shared<boost::signals2::signal<void(peer*)>>()}
+        encoding{ "" }, isPrivate{ false }, urlEncodedClientID{""}
+//        sig_peersUpdated{
+//            std::make_shared<boost::signals2::signal<void(peer)>>()}
 	{
-
+        sig_peersUpdated = std::make_shared<boost::signals2::signal<void(peer)>>();
 	}
 
 	valueDictionary TorrentGeneral::generalDataToDictionary(valueDictionary& dict)
@@ -132,42 +132,4 @@ namespace Bittorrent
 			tracker.resetLastRequest();
 		}
 	}
-
-    void TorrentGeneral::getPeerList()
-    {
-        for (auto& tracker : trackerList)
-        {
-            for (auto singlePeer : tracker.peerList)
-            {
-                if (uniquePeerList.insert(singlePeer).second == true)
-                {
-                    if (!sig_peersUpdated->empty())
-                    {
-                        sig_peersUpdated->operator()(&singlePeer);
-                    }
-                }
-            }
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }

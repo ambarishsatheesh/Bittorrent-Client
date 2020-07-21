@@ -5,14 +5,15 @@
 #include <iostream>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/dynamic_bitset.hpp>
+#include <bitset>
 
 namespace Bittorrent
 {
 using tcp = boost::asio::ip::tcp;
 using namespace utility;
 
-Peer::Peer(Torrent* torrent, std::vector<byte>& localID,
-    boost::asio::io_context& io_context, int localPort)
+Peer::Peer(std::shared_ptr<Torrent> torrent, std::vector<byte>& localID,
+    boost::asio::io_context& io_context, int tcpPort)
     : sig_disconnected{std::make_shared<boost::signals2::signal<void(
                        Peer*)>>()},
     sig_stateChanged{std::make_shared<boost::signals2::signal<void(
@@ -24,35 +25,22 @@ Peer::Peer(Torrent* torrent, std::vector<byte>& localID,
     sig_blockReceived{std::make_shared<boost::signals2::signal<void(
                            dataPackage)>>()},
     peerHost{""}, peerPort{""}, localID{ localID }, peerID{ "" },
-    torrent{ torrent->getPtr() }, endpointKey(),
+    torrent{ torrent }, endpointKey(),
     isPieceDownloaded(torrent->piecesData.pieceCount),
-    isDisconnected{}, isHandshakeSent{}, isPositionSent{},
-    isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{},
-    IsChokeReceived{ true }, IsInterestedReceived{ false },
-    lastActive{ std::chrono::high_resolution_clock::time_point::min() },
+    disconnectTime{std::chrono::high_resolution_clock::time_point::max()},
+    isDisconnected{ false }, isHandshakeSent{ false }, isBitfieldSent{ false },
+    isChokeSent{ true }, isInterestedSent{ false }, isHandshakeReceived{ false },
+    isChokeReceived{ true }, isInterestedReceived{ false },
+    lastActive{ std::chrono::high_resolution_clock::now() },
     lastKeepAlive{ std::chrono::high_resolution_clock::time_point::min() },
     uploaded{ 0 }, downloaded{ 0 },
-    context(io_context), socket(context),
-    recBuffer(68)
+    strand_(io_context), socket_(io_context),
+    recBuffer(68), isAccepted{false}
 {
-
-    try
-    {
-        //open socket, allow reuse of address+port and bind
-        socket.open(tcp::v4());
-        socket.set_option(tcp::socket::reuse_address(true));
-        socket.bind(tcp::endpoint(tcp::v4(), localPort));
-    }
-    catch(const boost::system::system_error& error)
-    {
-        LOG_F(ERROR, "Failed to bind TCP socket to port %d", localPort);
-
-        disconnect();
-    }
-
+    setSocketOptions(tcpPort);
 
     isBlockRequested.resize(torrent->piecesData.pieceCount);
-    for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
+    for (int i = 0; i < torrent->piecesData.pieceCount; ++i)
     {
         isBlockRequested.at(i).resize(
             torrent->piecesData.getBlockCount(i));
@@ -63,7 +51,7 @@ Peer::Peer(Torrent* torrent, std::vector<byte>& localID,
     messageType.insert({ "handshake", -2 });
     messageType.insert({ "keepAlive", -1 });
     messageType.insert({ "choke", 0 });
-    messageType.insert({ "unchoke", 0 });
+    messageType.insert({ "unchoke", 1 });
     messageType.insert({ "interested", 2 });
     messageType.insert({ "notInterested", 3 });
     messageType.insert({ "have", 4 });
@@ -72,13 +60,12 @@ Peer::Peer(Torrent* torrent, std::vector<byte>& localID,
     messageType.insert({ "piece", 7 });
     messageType.insert({ "cancel", 8 });
     messageType.insert({ "port", 9 });
-
 }
 
 //construct peer from accepted connection started by another peer
 Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
            std::vector<byte>& localID, boost::asio::io_context& io_context,
-           tcp::socket tcpClient, int localPort)
+           int tcpPort)
     : sig_disconnected{std::make_shared<boost::signals2::signal<void(
                        Peer*)>>()},
     sig_stateChanged{std::make_shared<boost::signals2::signal<void(
@@ -89,25 +76,23 @@ Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
                        dataRequest)>>()},
     sig_blockReceived{std::make_shared<boost::signals2::signal<void(
                        dataPackage)>>()},
-    localID{ localID }, peerID{ "" },
+    peerHost{""}, peerPort{""}, localID{ localID }, peerID{ "" },
     torrent{ std::make_shared<Torrent>() }, endpointKey(),
     isPieceDownloaded(torrent->piecesData.pieceCount),
-    isDisconnected{}, isHandshakeSent{}, isPositionSent{},
-    isChokeSent{ true }, isInterestSent{ false }, isHandshakeReceived{},
-    IsChokeReceived{ true }, IsInterestedReceived{ false },
-    lastActive{ std::chrono::high_resolution_clock::time_point::min() },
+    disconnectTime{std::chrono::high_resolution_clock::time_point::max()},
+    isDisconnected{ false }, isHandshakeSent{ false }, isBitfieldSent{ false },
+    isChokeSent{ true }, isInterestedSent{ false }, isHandshakeReceived{ false },
+    isChokeReceived{ true }, isInterestedReceived{ false },
+    lastActive{ std::chrono::high_resolution_clock::now() },
     lastKeepAlive{ std::chrono::high_resolution_clock::time_point::min() },
     uploaded{ 0 }, downloaded{ 0 },
-    context(io_context), socket(std::move(tcpClient)), recBuffer(68),
-    ptr_torrentList{torrentList}
+    strand_(io_context), socket_(io_context), recBuffer(68),
+    ptr_torrentList{torrentList}, isAccepted{true}
 {
-   //open socket, allow reuse of address+port and bind
-   socket.open(tcp::v4());
-   socket.set_option(tcp::socket::reuse_address(true));
-   socket.bind(tcp::endpoint(tcp::v4(), localPort));
+    setSocketOptions(tcpPort);
 
     isBlockRequested.resize(torrent->piecesData.pieceCount);
-    for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
+    for (int i = 0; i < torrent->piecesData.pieceCount; ++i)
     {
         isBlockRequested.at(i).resize(
             torrent->piecesData.getBlockCount(i));
@@ -127,15 +112,32 @@ Peer::Peer(std::vector<std::shared_ptr<Torrent>>* torrentList,
     messageType.insert({ "piece", 7 });
     messageType.insert({ "cancel", 8 });
     messageType.insert({ "port", 9 });
+}
 
-    //get endpoint from accepted connection
-    endpointKey = socket.remote_endpoint();
+//also used when resuming to reopen socket and set options
+void Peer::setSocketOptions(int tcpPort)
+{
+    try
+    {
+       //open socket_, allow reuse of address+port and bind
+        if (!socket_.is_open())
+        {
+            socket_.open(tcp::v4());
+            socket_.set_option(tcp::socket::reuse_address(true));
+            socket_.bind(tcp::endpoint(tcp::v4(), tcpPort));
+        }
+    }
+    catch (const boost::system::system_error& error)
+    {
+       LOG_F(ERROR, "Failed to bind TCP socket to port %d", tcpPort);
 
-    peerHost = socket.remote_endpoint().address().to_string();
-    peerHost = std::to_string(socket.remote_endpoint().port());
+       disconnect();
+    }
+}
 
-    isAccepted = true;
-    readFromCreatedPeer();
+boost::asio::ip::tcp::socket& Peer::socket()
+{
+    return socket_;
 }
 
 std::string Peer::piecesDownloaded()
@@ -193,127 +195,92 @@ int Peer::blocksRequested()
     return sum;
 }
 
-//When a torrent is first started
-void Peer::startNew(const std::string& host, const std::string& port)
+void Peer::restartResolve(std::shared_ptr<tcp::resolver> presolver)
 {
-    peerHost = host;
-    peerPort = port;
-
-    auto presolver = std::make_shared<tcp::resolver>(context);
-
-    auto self(shared_from_this());
-    presolver->async_resolve(tcp::resolver::query(host, port),
-        [self, presolver](auto&& ec, auto iter)
-        {
-        self->connectToNewPeer(ec, presolver, iter);
-        });
+    presolver->async_resolve(
+                tcp::resolver::query(peerHost, peerPort),
+                [presolver, self = shared_from_this()]
+                (const boost::system::error_code& ec,
+                const tcp::resolver::results_type results)
+                {
+                    self->connectToPeer(ec, results);
+                });
+//                boost::asio::bind_executor(strand_,
+//                boost::bind(&Peer::connectToPeer, shared_from_this(),
+//                            boost::asio::placeholders::error,
+//                            boost::asio::placeholders::results)));
 }
 
-//When a torrent is resumed
-void Peer::resume()
+void Peer::connectToPeer(const boost::system::error_code& ec,
+                            const tcp::resolver::results_type results)
 {
-    auto presolver = std::make_shared<tcp::resolver>(context);
-
-    auto self(shared_from_this());
-    presolver->async_resolve(tcp::resolver::query(peerHost, peerPort),
-        [self, presolver](auto&& ec, auto iter)
-        {
-        self->connectToNewPeer(ec, presolver, iter);
-        });
-}
-
-void Peer::readFromCreatedPeer()
-{
-    //increase the shared_ptr reference count so when original shared_ptr
-    //in Client is destroyed, this Peer object is not destroyed until
-    //lambda function is called and its arguments are destructed
-    auto self(shared_from_this());
-    socket.async_read_some(boost::asio::buffer(recBuffer),
-        [self](boost::system::error_code ec, std::size_t receivedBytes)
-        {
-            if (!ec)
-            {
-                self->handleRead(ec, receivedBytes);
-            }
-            else
-            {
-                std::cout << "Error on receive: " << ec.message() << "\n";
-
-                self->disconnect();
-            }
-        });
-}
-
-void Peer::acc_sendNewBytes(std::vector<byte> sendBuffer)
-{
-    if (isDisconnected)
+    if (!ec)
     {
-        return;
+        boost::asio::async_connect(socket_, results,
+            boost::asio::bind_executor(strand_,
+                boost::bind(&Peer::handleNewConnect, shared_from_this(),
+                            boost::asio::placeholders::error,
+                            boost::asio::placeholders::endpoint)));
     }
+    else
+    {
+        LOG_F(ERROR, "(%s:%s) Error resolving peer: %s.",
+              peerHost.c_str(), peerPort.c_str(), ec.message().c_str());
 
-    auto self(shared_from_this());
-    boost::asio::async_write(socket, boost::asio::buffer(sendBuffer),
-        [self](boost::system::error_code ec, std::size_t sentBytes)
-        {
-            if (!ec)
-            {
-                std::cout << "Sent " << sentBytes << " bytes" << "\n";
-            }
-            else
-            {
-                std::cout << "Error on send: " << ec.message() << "\n";
-
-                self->disconnect();
-            }
-        });
-}
-
-void Peer::connectToNewPeer(boost::system::error_code const& ec,
-    std::shared_ptr<tcp::resolver> presolver, tcp::resolver::iterator iter)
-{
-    if (ec) {
-        std::cerr << "error resolving: " << ec.message() << std::endl;
-    }
-    else {
-        auto self(shared_from_this());
-        boost::asio::async_connect(socket, iter,
-            [self, presolver]
-            (auto&& ec, auto iter)
-            {
-            self->handleNewConnect(ec, iter);
-            //dropping presolver here - we don't need it any more
-            });
+        disconnect();
     }
 }
 
 void Peer::handleNewConnect(const boost::system::error_code& ec,
-    tcp::resolver::results_type::iterator endpointItr)
+    const tcp::endpoint& endpoint)
 {
-    if (ec)
+    if (!ec)
     {
-        std::cout << "Connect error: " << ec.message() << "\n";
-    }
-    // else connection successful
-    else
-    {
-        std::cout << "Connected to " << endpointItr->endpoint() << "\n";
+//        LOG_F(INFO, "(%s:%s) Connected.", peerHost.c_str(), peerPort.c_str());
 
-        endpointKey = endpointItr->endpoint();
+        isDisconnected = false;
+        endpointKey = endpoint;
+
+        //prepare read buffer for handshake
+        recBuffer.clear();
+        recBuffer.resize(68);
 
         startNewRead();
         sendHandShake();
     }
+    else
+    {
+        LOG_F(ERROR, "(%s:%s) Connect error.",
+              peerHost.c_str(), peerPort.c_str(), ec.message().c_str());
 
+        disconnect();
+    }
 }
 
 void Peer::startNewRead()
 {
-    auto self(shared_from_this());
-    boost::asio::async_read(socket, boost::asio::buffer(recBuffer),
-        [self](auto&& ec, auto size)
-        {
-            self->handleRead(ec, size);
-        });
+    boost::asio::async_read(socket_, boost::asio::buffer(recBuffer),
+        boost::asio::bind_executor(strand_,
+            boost::bind(&Peer::handleRead, shared_from_this(),
+                        boost::asio::placeholders::error,
+                        boost::asio::placeholders::bytes_transferred)));
+}
+
+void Peer::readFromAcceptedPeer()
+{
+    if (peerHost.empty() || peerPort.empty())
+    {
+        //get endpoint info from accepted connection
+        endpointKey = socket_.remote_endpoint();
+        peerHost = socket_.remote_endpoint().address().to_string();
+        peerHost = std::to_string(socket_.remote_endpoint().port());
+    }
+
+    socket_.async_read_some(boost::asio::buffer(recBuffer),
+        boost::asio::bind_executor(strand_,
+            boost::bind(&Peer::handleRead, shared_from_this(),
+                        boost::asio::placeholders::error,
+                        boost::asio::placeholders::bytes_transferred)));
 }
 
 void Peer::handleRead(const boost::system::error_code& ec,
@@ -337,19 +304,15 @@ void Peer::handleRead(const boost::system::error_code& ec,
             recBuffer.clear();
             recBuffer.resize(4);
 
-            if (isAccepted)
-            {
-                readFromCreatedPeer();
-            }
-            else
-            {
-                startNewRead();
-            }
+            startNewRead();
         }
         //if header, copy data, clear recBuffer and wait for entire message
         //use header data to find remaining message length
         else if (receivedBytes == 4)
         {
+//            LOG_F(INFO, "(%s:%s) Received message header.",
+//                  peerHost.c_str(), peerPort.c_str());
+
             processBuffer = recBuffer;
             int messageLength = getMessageLength();
 
@@ -360,14 +323,7 @@ void Peer::handleRead(const boost::system::error_code& ec,
                 recBuffer.clear();
                 recBuffer.resize(4);
 
-                if (isAccepted)
-                {
-                    readFromCreatedPeer();
-                }
-                else
-                {
-                    startNewRead();
-                }
+                startNewRead();
 
                 //process keep alive message
                 handleMessage();
@@ -378,19 +334,15 @@ void Peer::handleRead(const boost::system::error_code& ec,
                 recBuffer.clear();
                 recBuffer.resize(messageLength);
 
-                if (isAccepted)
-                {
-                    readFromCreatedPeer();
-                }
-                else
-                {
-                    startNewRead();
-                }
+                startNewRead();
             }
         }
         //rest of the message
         else
         {
+//            LOG_F(INFO, "(%s:%s) Received message body.",
+//                  peerHost.c_str(), peerPort.c_str());
+
             //insert rest of message after stored header
             processBuffer.insert(processBuffer.begin() + 4,
                 recBuffer.begin(), recBuffer.end());
@@ -402,23 +354,85 @@ void Peer::handleRead(const boost::system::error_code& ec,
             recBuffer.clear();
             recBuffer.resize(4);
 
-            if (isAccepted)
-            {
-                readFromCreatedPeer();
-            }
-            else
-            {
-                startNewRead();
-            }
+            startNewRead();
         }
     }
     else
     {
-        std::cout << "Error on receive: " << ec.message() << "\n";
+        LOG_F(ERROR, "(%s:%s) Error on receive: %s.",
+              peerHost.c_str(), peerPort.c_str(), ec.message().c_str());
 
         disconnect();
     }
 }
+
+void Peer::sendNewBytes(std::vector<byte> sendBuffer)
+{
+    if (isDisconnected)
+    {
+        return;
+    }
+
+    //store the payload in shared_ptr and captue in async callback
+    //to guarantee lifetime
+    auto message = std::make_shared<std::vector<byte>>(sendBuffer);
+
+    // start async send and immediately call the handler
+    boost::asio::async_write(socket_, boost::asio::buffer(*message),
+        boost::asio::bind_executor(strand_,
+            boost::bind(&Peer::handleNewSend, shared_from_this(),
+                        boost::asio::placeholders::error,
+                        boost::asio::placeholders::bytes_transferred,
+                        message)));
+}
+
+void Peer::handleNewSend(const boost::system::error_code& ec,
+    std::size_t sentBytes, std::shared_ptr<std::vector<byte>> message)
+{
+    if (isDisconnected)
+    {
+        return;
+    }
+
+    if (!ec)
+    {
+//        LOG_F(INFO, "(%s:%s) Sent %d bytes.",
+//              peerHost.c_str(), peerPort.c_str(),
+//              static_cast<int>(sentBytes));
+    }
+    else
+    {
+        LOG_F(ERROR, "(%s:%s) Error on send: %s.",
+              peerHost.c_str(), peerPort.c_str(),
+              ec.message().c_str());
+
+        disconnect();
+    }
+}
+
+void Peer::disconnect()
+{
+    isDisconnected = true;
+    disconnectTime = std::chrono::high_resolution_clock::now();
+
+    boost::system::error_code ec;
+    socket_.close(ec);
+    if (ec)
+    {
+        LOG_F(ERROR, "(%s:%s) Failed to close socket",
+              peerHost.c_str(), peerPort.c_str());
+    }
+
+    LOG_F(INFO, "(%s:%s) Disconnecting from peer; "
+                "Downloaded %s, uploaded %s.",
+          peerHost.c_str(), peerPort.c_str(),
+          humanReadableBytes(downloaded).c_str(),
+          humanReadableBytes(uploaded).c_str());
+
+    //call slot
+    sig_disconnected->operator()(this);
+}
+
 
 int Peer::getMessageLength()
 {
@@ -433,63 +447,11 @@ int Peer::getMessageLength()
     return length;
 }
 
-void Peer::sendNewBytes(std::vector<byte> sendBuffer)
-{
-    if (isDisconnected)
-    {
-        return;
-    }
-
-    //capture the payload so it continues to exist during async send
-    auto payload = std::make_shared<std::vector<byte>>(sendBuffer);
-
-    // start async send and immediately call the handler func
-    auto self = shared_from_this();
-    boost::asio::async_write(socket, boost::asio::buffer(*payload),
-        [self,payload]
-            (auto&& ec, auto size)
-        {
-            self->handleNewSend(ec, size);
-        });
-}
-
-void Peer::handleNewSend(const boost::system::error_code& ec,
-    std::size_t sentBytes)
-{
-    if (isDisconnected)
-    {
-        return;
-    }
-
-    if (!ec)
-    {
-        std::cout << "Sent " << sentBytes << " bytes"<< "\n";
-    }
-    else
-    {
-        std::cout << "Error on send: " << ec.message() << "\n";
-
-        disconnect();
-    }
-}
-
-void Peer::disconnect()
-{
-    std::cout << "\n" << "Disconnecting peer..." << "\n";
-
-    isDisconnected = true;
-    boost::system::error_code ignored_ec;
-    socket.close(ignored_ec);
-
-    std::cout << "\n" << "Disconnected from peer, downloaded: " << downloaded
-        << ", uploaded: " << uploaded << "\n";
-
-    //call slot
-    sig_disconnected->operator()(this);
-}
-
 void Peer::handleMessage()
 {
+//    LOG_F(INFO, "(%s:%s) Handling message...",
+//          peerHost.c_str(), peerPort.c_str());
+
     //update clock
     lastActive = std::chrono::high_resolution_clock::now();
 
@@ -501,6 +463,9 @@ void Peer::handleMessage()
     }
     else if (deducedtype == messageType.left.at("handshake"))
     {
+//        LOG_F(INFO, "(%s:%s) Received 'handshake' message.",
+//              peerHost.c_str(), peerPort.c_str());
+
         std::vector<byte> hash;
         std::string id;
         if (decodeHandshake(hash, id))
@@ -512,35 +477,53 @@ void Peer::handleMessage()
     else if (deducedtype == messageType.left.at("keepAlive")
         && decodeKeepAlive())
     {
+//        LOG_F(INFO, "(%s:%s) Received 'keep-alive' message.",
+//              peerHost.c_str(), peerPort.c_str());
+
         handleKeepAlive();
         return;
     }
     else if (deducedtype == messageType.left.at("choke")
         && decodeChoke())
     {
+//        LOG_F(INFO, "(%s:%s) Received 'choke' message.",
+//              peerHost.c_str(), peerPort.c_str());
+
         handleChoke();
         return;
     }
     else if (deducedtype == messageType.left.at("unchoke")
         && decodeUnchoke())
     {
+//        LOG_F(INFO, "(%s:%s) Received 'unchoke' message.",
+//              peerHost.c_str(), peerPort.c_str());
+
         handleUnchoke();
         return;
     }
     else if (deducedtype == messageType.left.at("interested")
         && decodeInterested())
     {
+//        LOG_F(INFO, "(%s:%s) Received 'interested' message.",
+//              peerHost.c_str(), peerPort.c_str());
+
         handleInterested();
         return;
     }
     else if (deducedtype == messageType.left.at("notInterested")
         && decodeNotInterested())
     {
+//        LOG_F(INFO, "(%s:%s) Received 'not interested' message.",
+//              peerHost.c_str(), peerPort.c_str());
+
         handleNotInterested();
         return;
     }
     else if (deducedtype == messageType.left.at("have"))
     {
+//        LOG_F(INFO, "(%s:%s) Received 'have' message.",
+//              peerHost.c_str(), peerPort.c_str());
+
         int index;
         if (decodeHave(index))
         {
@@ -553,12 +536,18 @@ void Peer::handleMessage()
         std::vector<bool> recIsPieceDownloaded;
         if (decodeBitfield(isPieceDownloaded.size(), recIsPieceDownloaded))
         {
+//            LOG_F(INFO, "(%s:%s) Received 'bitfield' message.",
+//                  peerHost.c_str(), peerPort.c_str());
+
             handleBitfield(recIsPieceDownloaded);
             return;
         }
     }
     else if (deducedtype == messageType.left.at("request"))
     {
+//        LOG_F(INFO, "(%s:%s) Received 'request' message.",
+//              peerHost.c_str(), peerPort.c_str());
+
         int index;
         int offset;
         int dataSize;
@@ -570,6 +559,9 @@ void Peer::handleMessage()
     }
     else if (deducedtype == messageType.left.at("cancel"))
     {
+//        LOG_F(INFO, "(%s:%s) Received 'cancel' message.",
+//              peerHost.c_str(), peerPort.c_str());
+
         int index;
         int offset;
         int dataSize;
@@ -581,6 +573,9 @@ void Peer::handleMessage()
     }
     else if (deducedtype == messageType.left.at("piece"))
     {
+//        LOG_F(INFO, "(%s:%s) Received 'piece' message.",
+//              peerHost.c_str(), peerPort.c_str());
+
         int index;
         int offset;
         std::vector<byte> data;
@@ -596,11 +591,10 @@ void Peer::handleMessage()
         return;
     }
 
-    //get hex representation of data
-    std::cout << "Received an unhandled message: " << toHex(processBuffer)
-        << "\n";
-
     //if unhandled message, disconnect from peer
+    LOG_F(ERROR, "(%s:%s) Received an unhandled message: %s.",
+          peerHost.c_str(), peerPort.c_str(), toHex(processBuffer).c_str());
+
     disconnect();
 }
 
@@ -609,10 +603,13 @@ bool Peer::decodeHandshake(std::vector<byte>& hash, std::string& id)
     hash.resize(20);
     id = "";
 
-    if (processBuffer.size() != 68 || processBuffer.at(0) != 19)
+    if (processBuffer.size() != 68)
     {
-        std::cout << "Invalid Handshake! Must be 68 bytes long and the " <<
-            "byte must equal 19." << "\n";
+
+        LOG_F(ERROR, "(%s:%s) Invalid handshake! Must be 68 bytes long and the "
+                     "byte value must equal 19.",
+              peerHost.c_str(), peerPort.c_str());
+
         return false;
     }
 
@@ -620,16 +617,21 @@ bool Peer::decodeHandshake(std::vector<byte>& hash, std::string& id)
     std::string protocolStr(processBuffer.begin() + 1,
         processBuffer.begin() + 20);
 
-    if (protocolStr != "Bittorrent protocol")
+    if (protocolStr != "BitTorrent protocol")
     {
-        std::cout << "Invalid Handshake! Protocol must equal " <<
-            "\"Bittorrent protocol\"." << "\n";
+        LOG_F(ERROR, "(%s:%s) Invalid handshake! Protocol value must equal "
+                     "'Bittorrent protocol'. Received: %s",
+              peerHost.c_str(), peerPort.c_str(), protocolStr.c_str());
+
         return false;
     }
 
     //byte 21-28 represent flags (all 0) - can be ignored
     hash = { processBuffer.begin() + 28, processBuffer.begin() + 48 };
     id = { processBuffer.begin() + 48, processBuffer.end()};
+
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'handshake' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     return true;
 }
@@ -647,9 +649,15 @@ bool Peer::decodeKeepAlive()
 
     if (processBuffer.size() != 4 || lengthVal != 0)
     {
-        std::cout << "Invalid Keep Alive message!" << "\n";
+        LOG_F(ERROR, "(%s:%s) Invalid 'keep-alive' message!",
+              peerHost.c_str(), peerPort.c_str());
+
         return false;
     }
+
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'keep-alive' message.",
+//          peerHost.c_str(), peerPort.c_str());
+
     return true;
 }
 
@@ -689,10 +697,16 @@ bool Peer::decodeState(int typeVal)
     if (processBuffer.size() != 5 || lengthVal != 1 ||
         processBuffer.at(4) != static_cast<byte>(typeVal))
     {
-        std::cout << "Invalid state of type " <<
-            messageType.right.at(typeVal) << "\n";
+        LOG_F(ERROR, "(%s:%s) Invalid 'state' message of type %s.",
+              peerHost.c_str(), peerPort.c_str(),
+              messageType.right.at(typeVal).c_str());
+
         return false;
     }
+
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'state' message of type %s.",
+//          peerHost.c_str(), peerPort.c_str(),
+//          messageType.right.at(typeVal).c_str());
 
     return true;
 }
@@ -710,8 +724,9 @@ bool Peer::decodeHave(int& index)
 
     if (processBuffer.size() != 9 || lengthVal != 5)
     {
-        std::cout << "Invalid Have message! First four bytes must equal "
-            << "0x05" << "\n";
+        LOG_F(ERROR, "(%s:%s) Invalid 'have' message!",
+              peerHost.c_str(), peerPort.c_str());
+
         return false;
     }
 
@@ -723,13 +738,16 @@ bool Peer::decodeHave(int& index)
         index |= processBuffer.at(i);
     }
 
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'have' message.",
+//          peerHost.c_str(), peerPort.c_str());
+
     return index;
 }
 
 bool Peer::decodeBitfield(int pieces,
     std::vector<bool>& recIsPieceDownloaded)
 {
-    recIsPieceDownloaded.resize(pieces);
+    recIsPieceDownloaded.reserve(pieces);
 
     //get length of data after header packet
     //if number of pieces is not divisible by 8, the end of the bitfield is
@@ -748,25 +766,33 @@ bool Peer::decodeBitfield(int pieces,
     if (processBuffer.size() != expectedLength + 4 ||
         lengthVal != expectedLength)
     {
-        std::cout << "Invalid Bitfield! Expected length is " <<
-            expectedLength << "\n";
+        LOG_F(ERROR, "(%s:%s) Invalid 'bitfield' message! "
+                     "Expected length: %d. Received length: %d",
+              peerHost.c_str(), peerPort.c_str(), expectedLength, lengthVal);
+
         return false;
     }
 
-    //iterate through bitfield and set piece status based on bit value
-    size_t k = 0;
-    for (size_t i = 5; i < pieces; ++i)
-    {
-        //create set of bits representing each byte's value
-        boost::dynamic_bitset<> bitArray(8,
-            static_cast<unsigned int>(processBuffer.at(i)));
+//    LOG_F(INFO, "(%s:%s) Decoded step A.",
+//          peerHost.c_str(), peerPort.c_str());
 
-        //set bools based on bit values (every 8 bits, restart iterator at 0)
-        for (size_t j = 0; j < bitArray.size(); ++j, ++k)
-        {
-            recIsPieceDownloaded.at(k) = bitArray[bitArray.size() - j - 1];
-        }
+    std::string binaryAsString = "";
+    for (size_t i = 5; i < processBuffer.size(); ++i)
+    {
+        std::bitset<8> bit(processBuffer.at(i));
+        binaryAsString += bit.to_string();
     }
+
+//    LOG_F(INFO, "(%s:%s) Decoded step B.",
+//          peerHost.c_str(), peerPort.c_str());
+
+    for (int i = 0; i < pieces; ++i)
+    {
+        recIsPieceDownloaded.push_back(binaryAsString.at(i) == '1');
+    }
+
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'bitfield' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     return true;
 }
@@ -784,8 +810,9 @@ bool Peer::decodeDataRequest(int& index, int& offset, int& dataSize)
 
     if (processBuffer.size() != 17 || lengthVal != 13)
     {
-        std::cout << "Invalid Data Request! Expected total length is "
-            << "17 bytes." << "\n";
+        LOG_F(ERROR, "(%s:%s) Invalid 'request' message!",
+              peerHost.c_str(), peerPort.c_str());
+
         return false;
     }
 
@@ -812,6 +839,9 @@ bool Peer::decodeDataRequest(int& index, int& offset, int& dataSize)
         dataSize <<= 8;
         dataSize |= processBuffer.at(i);
     }
+
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'request' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     return true;
 }
@@ -829,8 +859,9 @@ bool Peer::decodeCancel(int& index, int& offset, int& dataSize)
 
     if (processBuffer.size() != 17 || lengthVal != 13)
     {
-        std::cout << "Invalid Cancel message! Expected total length is "
-            << "17 bytes." << "\n";
+        LOG_F(ERROR, "(%s:%s) Invalid Cancel message!",
+              peerHost.c_str(), peerPort.c_str());
+
         return false;
     }
 
@@ -858,6 +889,9 @@ bool Peer::decodeCancel(int& index, int& offset, int& dataSize)
         dataSize |= processBuffer.at(i);
     }
 
+//    LOG_F(INFO, "(%s:%s) Successfully decoded 'cancel' message.",
+//          peerHost.c_str(), peerPort.c_str());
+
     return true;
 }
 
@@ -865,8 +899,10 @@ bool Peer::decodePiece(int& index, int& offset, std::vector<byte>& data)
 {
     if (processBuffer.size() < 13)
     {
-        std::cout << "Invalid Piece message! Minimum length is 13 bytes."
-            << "\n";
+        LOG_F(ERROR, "(%s:%s) Invalid piece data message! "
+                     "Minimum length is 13 bytes.",
+              peerHost.c_str(), peerPort.c_str());
+
         return false;
     }
 
@@ -903,14 +939,18 @@ bool Peer::decodePiece(int& index, int& offset, std::vector<byte>& data)
     std::copy(processBuffer.begin() + 13, processBuffer.end(),
         data.begin());
 
+//    LOG_F(INFO, "(%s:%s) Successfully decoded piece data message.",
+//          peerHost.c_str(), peerPort.c_str());
+
     return true;
 }
 
 std::vector<byte> Peer::encodeHandshake(std::vector<byte>& hash,
     std::vector<byte>& id)
 {
+
     std::vector<byte> message(68);
-    std::string protocolStr = "Bittorrent protocol";
+    std::string protocolStr = "BitTorrent protocol";
 
     message.at(0) = static_cast<byte>(19);
 
@@ -918,10 +958,9 @@ std::vector<byte> Peer::encodeHandshake(std::vector<byte>& hash,
         message.begin() + 1);
 
     //bytes 21-28 are already 0 due to initialisation, can skip to byte 29
-    last = std::copy(torrent->hashesData.infoHash.begin(),
-        torrent->hashesData.infoHash.end(), message.begin() + 28);
+    last = std::copy(hash.begin(), hash.end(), message.begin() + 28);
 
-    last = std::copy(localID.begin(), localID.end(), last);
+    last = std::copy(id.begin(), id.end(),  message.begin() + 48);
 
     return message;
 }
@@ -929,6 +968,7 @@ std::vector<byte> Peer::encodeHandshake(std::vector<byte>& hash,
 std::vector<byte> Peer::encodeKeepAlive()
 {
     std::vector<byte> newKeepAlive(4, 0);
+
     return newKeepAlive;
 }
 
@@ -985,9 +1025,9 @@ std::vector<byte> Peer::encodeHave(int index)
 }
 
 std::vector<byte> Peer::encodeBitfield(
-    std::vector<bool> recIsPieceDownloaded)
+    std::vector<bool> isPieceVerified)
 {
-    const int numPieces = recIsPieceDownloaded.size();
+    const int numPieces = isPieceVerified.size();
     const int numBytes = std::ceil(numPieces / 8.0);
     const int numBits = numBytes * 8;
     const int length = numBytes + 1;
@@ -1003,32 +1043,35 @@ std::vector<byte> Peer::encodeBitfield(
     //type byte
     newBitfield.at(4) = static_cast<byte>(messageType.left.at("bitfield"));
 
-    //create bitset based on bools (+ extra 0s at end if numBits > numPieces)
-    boost::dynamic_bitset<> downloadedBitArr(numBits);
-    for (size_t i = 0; i < numBits; ++i)
+    //convert bools to binary in string representation
+    std::string binaryAsString = "";
+    for (int i = 0; i < numPieces; ++i)
     {
-        downloadedBitArr[i] = recIsPieceDownloaded.at(numBits - 1 - i);
+        binaryAsString += isPieceVerified.at(i) ? '1' : '0';
     }
 
-    //iterate through bitset and convert binary to decimal every 8 bits
-    //store in temporary vector
-    std::vector<byte> tempBitfieldVec(numBytes);
-    std::string bitStr = "";
-    size_t k = 0;
-    for (size_t i = 0; i < numBits; i += 8)
+    //add trailing 0s (as per spec)
+    const int extraBits = (numBits) - numPieces;
+    for (int i = 0; i < extraBits; ++i)
     {
-        for (size_t j = 0; j < 8; ++j, ++k)
-        {
-            bitStr += std::to_string(downloadedBitArr[numBits - k - 1]);
-        }
-        auto numVal = std::stoi(bitStr, nullptr, 2);
-        tempBitfieldVec.at(i / 8) = static_cast<byte>(numVal);
-        bitStr = "";
+        binaryAsString += '0';
+    }
+
+    //covert to byte vector
+    std::vector<byte> tempBitfieldVec;
+    tempBitfieldVec.reserve(numBytes);
+    for (size_t i = 0; i < binaryAsString.size(); i+=8)
+    {
+        std::bitset<8> x(binaryAsString.substr(i, 8));
+        tempBitfieldVec.push_back(static_cast<int>(x.to_ulong() & 0xFF));
     }
 
     //copy vector to complete bitfield vector
     std::copy(tempBitfieldVec.begin(), tempBitfieldVec.end(),
         newBitfield.begin() + 5);
+
+//    LOG_F(INFO, "(%s:%s) Successfully encoded 'bitfield' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     return newBitfield;
 }
@@ -1139,18 +1182,11 @@ void Peer::sendHandShake()
         return;
     }
 
-    std::cout << "Sending Handshake message..." << "...\n";
+//    LOG_F(INFO, "(%s:%s) Sending 'handshake' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
-    if (isAccepted)
-    {
-        acc_sendNewBytes(
-            (encodeHandshake(torrent->hashesData.infoHash, localID)));
-    }
-    else
-    {
-        sendNewBytes(encodeHandshake(torrent->hashesData.infoHash, localID));
-    }
+    sendNewBytes(encodeHandshake(torrent->hashesData.infoHash, localID));
 
     isHandshakeSent = true;
 }
@@ -1163,12 +1199,13 @@ void Peer::sendKeepAlive()
         return;
     }
 
-    std::cout << "Sending Keep Alive message..." << "...\n";
+//    LOG_F(INFO, "(%s:%s) Sending 'keep-alive' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
     if (isAccepted)
     {
-        acc_sendNewBytes((encodeKeepAlive()));
+        sendNewBytes((encodeKeepAlive()));
     }
     else
     {
@@ -1185,12 +1222,13 @@ void Peer::sendChoke()
         return;
     }
 
-    std::cout << "Sending Choke message..." << "...\n";
+//    LOG_F(INFO, "(%s:%s) Sending 'choke' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
     if (isAccepted)
     {
-        acc_sendNewBytes((encodeChoke()));
+        sendNewBytes((encodeChoke()));
     }
     else
     {
@@ -1207,12 +1245,13 @@ void Peer::sendUnchoke()
         return;
     }
 
-    std::cout << "Sending Unchoke message..." << "...\n";
+//    LOG_F(INFO, "(%s:%s) Sending 'unchoke' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
     if (isAccepted)
     {
-        acc_sendNewBytes((encodeUnchoke()));
+        sendNewBytes((encodeUnchoke()));
     }
     else
     {
@@ -1224,68 +1263,50 @@ void Peer::sendUnchoke()
 
 void Peer::sendInterested()
 {
-    if (isInterestSent)
+    if (isInterestedSent)
     {
         return;
     }
 
-    std::cout << "Sending Interested message..." << "...\n";
+//    LOG_F(INFO, "(%s:%s) Sending 'interested' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
-    if (isAccepted)
-    {
-        acc_sendNewBytes((encodeInterested()));
-    }
-    else
-    {
-        sendNewBytes(encodeInterested());
-    }
+    sendNewBytes(encodeInterested());
 
-    isInterestSent = true;
+    isInterestedSent = true;
 }
 
 void Peer::sendNotInterested()
 {
-    if (!isInterestSent)
+    if (!isInterestedSent)
     {
         return;
     }
 
-    std::cout << "Sending Not Interested message..." << "...\n";
+//    LOG_F(INFO, "(%s:%s) Sending 'not interested' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
-    if (isAccepted)
-    {
-        acc_sendNewBytes((encodeNotInterested()));
-    }
-    else
-    {
-        sendNewBytes(encodeNotInterested());
-    }
+    sendNewBytes(encodeNotInterested());
 
-    isInterestSent = false;
+    isInterestedSent = false;
 }
 
 void Peer::sendHave(int index)
 {
-    std::cout << "Sending Have message..." << "...\n";
+//    LOG_F(INFO, "(%s:%s) Sending 'have' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
-    if (isAccepted)
-    {
-        acc_sendNewBytes((encodeHave(index)));
-    }
-    else
-    {
-        sendNewBytes(encodeHave(index));
-    }
+    sendNewBytes(encodeHave(index));
 }
 
-void Peer::sendBitfield(std::vector<bool> isPieceDownloaded)
+void Peer::sendBitfield(std::vector<bool> isPieceVerified)
 {
     //create temp vec to store string bool, then return all as single string
-    std::vector<std::string> tempVec(isPieceDownloaded.size());
-    for (auto i : isPieceDownloaded)
+    std::vector<std::string> tempVec(isPieceVerified.size());
+    for (auto i : isPieceVerified)
     {
         if (i == 1)
         {
@@ -1298,78 +1319,56 @@ void Peer::sendBitfield(std::vector<bool> isPieceDownloaded)
     }
     std::string bitfieldStr = boost::algorithm::join(tempVec, "");
 
-    std::cout << "Sending Bitfield message: " << bitfieldStr << "...\n";
+//    LOG_F(INFO, "(%s:%s) Sending 'bitfield' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
-    if (isAccepted)
-    {
-        acc_sendNewBytes((encodeBitfield(isPieceDownloaded)));
-    }
-    else
-    {
-        sendNewBytes(encodeBitfield(isPieceDownloaded));
-    }
+    sendNewBytes(encodeBitfield(isPieceVerified));
+
+    isBitfieldSent = true;
 }
 
 void Peer::sendDataRequest(int index, int offset, int dataSize)
 {
-    std::cout << "Sending Data request message..." << "...\n";
+//    LOG_F(INFO, "(%s:%s) Sending 'request' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
-    if (isAccepted)
-    {
-        acc_sendNewBytes((encodeDataRequest(index, offset, dataSize)));
-    }
-    else
-    {
-        sendNewBytes(encodeDataRequest(index, offset, dataSize));
-    }
+    sendNewBytes(encodeDataRequest(index, offset, dataSize));
 }
 
 void Peer::sendCancel(int index, int offset, int dataSize)
 {
-    std::cout << "Sending Cancel message..." << "...\n";
+//    LOG_F(INFO, "(%s:%s) Sending 'cancel' message.",
+//          peerHost.c_str(), peerPort.c_str());
 
     //create buffer and send
-    if (isAccepted)
-    {
-        acc_sendNewBytes((encodeCancel(index, offset, dataSize)));
-    }
-    else
-    {
-        sendNewBytes(encodeCancel(index, offset, dataSize));
-    }
+    sendNewBytes(encodeCancel(index, offset, dataSize));
 }
 
 void Peer::sendPiece(int index, int offset, std::vector<byte> data)
 {
-    std::cout << "Sending Piece message... " << "index: " << index
-        << ", offset: " << offset << ", data size: " << data.size()
-        <<  "...\n";
+//    LOG_F(INFO, "(%s:%s) Sending piece data... Index: %d, Offset: %d, "
+//                "data size: %d.",
+//          peerHost.c_str(), peerPort.c_str(), index, offset,
+//          static_cast<int>(data.size()));
 
     //create buffer and send
-    if (isAccepted)
-    {
-        acc_sendNewBytes((encodePiece(index, offset, data)));
-    }
-    else
-    {
-        sendNewBytes(encodePiece(index, offset, data));
-    }
+    sendNewBytes(encodePiece(index, offset, data));
 
     uploaded += data.size();
 }
 
 int Peer::getMessageType(std::vector<byte> data)
 {
-    if (!isHandshakeReceived)
+    if (!isHandshakeReceived && static_cast<int>(data.at(0)) == 19)
     {
         return messageType.left.at("handshake");
     }
 
     //keep alive message is handled by handleRead()
 
-    //check if message type exists in map
+    //get message type from message and return if it exists in map
     if (data.size() > 4 && messageType.right.find(
         static_cast<int>(data.at(4))) != messageType.right.end())
     {
@@ -1381,35 +1380,48 @@ int Peer::getMessageType(std::vector<byte> data)
 
 void Peer::handleHandshake(std::vector<byte> hash, std::string id)
 {
-    std::cout << "Handling Handshake message..." << "...\n";
-
     //check which torrent the accepted peer connection is referencing
     if (isAccepted)
     {
         for (auto& ptr_torrent : *ptr_torrentList)
         {
-            if (hash == ptr_torrent->hashesData.infoHash)
+            if (std::equal(hash.begin(), hash.end(),
+                            torrent->hashesData.infoHash.begin()))
             {
+//                LOG_F(INFO, "(%s:%s) Setting peer torrent...",
+//                      peerHost.c_str(), peerPort.c_str());
+
                 //set this Peer object's associated Torrent object
-                //by assigning a new shared ptr to that Torrent object
-                torrent = ptr_torrent->getPtr();
+                //by assigning the shared ptr to that Torrent object
+                torrent = ptr_torrent;
                 break;
             }
         }
         if (!torrent)
         {
-            std::cout << "Invalid handshake! No local torrent info hash "
-                         "matches received info hash." << "\n";
+            LOG_F(ERROR, "(%s:%s) Local torrent not found!",
+                  peerHost.c_str(), peerPort.c_str());
+
             disconnect();
             return;
         }
+        else
+        {
+            LOG_F(ERROR, "(%s:%s) Invalid handshake! No local torrent info hash "
+                        "matches received info hash.",
+                  peerHost.c_str(), peerPort.c_str());
+        }
     }
-    else if(hash == torrent->hashesData.infoHash)
+    //operator== seems to give incorrect result with vector<byte>
+    else if(!std::equal(hash.begin(), hash.end(),
+                        torrent->hashesData.infoHash.begin()))
     {
-        std::cout << "Invalid handshake! Incorrect infohash. Expected " <<
-            "\"" << torrent->hashesData.hexStringInfoHash << "\", " <<
-            "received " << "\"" << toHex(hash) << "\" "
-            << "(hex representation)" << "\n";
+        LOG_F(ERROR, "(%s:%s) Invalid handshake! Incorrect infohash. "
+                     "Expected: %s; "
+                     "Received %s.",
+              peerHost.c_str(), peerPort.c_str(),
+              torrent->hashesData.hexStringInfoHash.c_str(),
+              toHex(hash).c_str());
 
         disconnect();
         return;
@@ -1435,13 +1447,11 @@ void Peer::handleKeepAlive()
 {
     //don't need to do anything since lastActive variable is updated on
     //any message received
-    std::cout << "Handling Keep Alive message..." << "...\n";
 }
 
 void Peer::handleChoke()
 {
-    std::cout << "Handling Choke message..." << "...\n";
-    IsChokeReceived = true;
+    isChokeReceived = true;
 
     //call slot
     if (!sig_stateChanged->empty())
@@ -1452,8 +1462,7 @@ void Peer::handleChoke()
 
 void Peer::handleUnchoke()
 {
-    std::cout << "Handling Unchoke message..." << "...\n";
-    IsChokeReceived = false;
+    isChokeReceived = false;
 
     //call slot
     if (!sig_stateChanged->empty())
@@ -1464,8 +1473,7 @@ void Peer::handleUnchoke()
 
 void Peer::handleInterested()
 {
-    std::cout << "Handling Interested message..." << "...\n";
-    IsInterestedReceived = true;
+    isInterestedReceived = true;
 
     //call slot
     if (!sig_stateChanged->empty())
@@ -1476,8 +1484,7 @@ void Peer::handleInterested()
 
 void Peer::handleNotInterested()
 {
-    std::cout << "Handling Not Interested message..." << "...\n";
-    IsInterestedReceived = false;
+    isInterestedReceived = false;
 
     //call slot
     if (!sig_stateChanged->empty())
@@ -1489,9 +1496,6 @@ void Peer::handleNotInterested()
 void Peer::handleHave(int index)
 {
     isPieceDownloaded.at(index) = true;
-    std::cout << "Handling Have message: " << "Peer has index: " << index
-        << ", number of pieces downloaded: " << piecesDownloadedCount()
-        << ", pieces available: " << piecesDownloaded() << "\n";
 
     //call slot
     if (!sig_stateChanged->empty())
@@ -1504,15 +1508,11 @@ void Peer::handleBitfield(std::vector<bool> recIsPieceDownloaded)
 {
     //set true if we have either just been told that the peer has the
     //piece downloaded or already set to true
-    for (size_t i = 0; i < torrent->piecesData.pieceCount; ++i)
+    for (int i = 0; i < torrent->piecesData.pieceCount; ++i)
     {
         isPieceDownloaded.at(i) = isPieceDownloaded.at(i) ||
             recIsPieceDownloaded.at(i);
     }
-
-    std::cout << "Handling Bitfield message: "
-        << "Number of pieces downloaded: " << piecesDownloadedCount()
-        << ", pieces available: " << piecesDownloaded() << "\n";
 
     //call slot
     if (!sig_stateChanged->empty())
@@ -1523,8 +1523,9 @@ void Peer::handleBitfield(std::vector<bool> recIsPieceDownloaded)
 
 void Peer::handleDataRequest(int index, int offset, int dataSize)
 {
-    std::cout << "Handling data request: " << "index: " << index
-        << ", offset: " << offset << ", data size: " << dataSize << "\n";
+//    LOG_F(INFO, "(%s:%s) Handling 'request' message... Index: %d; "
+//                "offset: %d; data size: %d",
+//          peerHost.c_str(), peerPort.c_str(), index, offset, dataSize);
 
     dataRequest newDataRequest = { this, index, offset, dataSize, false };
 
@@ -1537,9 +1538,6 @@ void Peer::handleDataRequest(int index, int offset, int dataSize)
 
 void Peer::handleCancel(int index, int offset, int dataSize)
 {
-    std::cout << "Handling cancel request: " << "index: " << index
-        << ", offset: " << offset << ", data size: " << dataSize << "\n";
-
     dataRequest newDataRequest = { this, index, offset, dataSize, false };
 
     //pass struct and this peer's data to slot
@@ -1551,10 +1549,6 @@ void Peer::handleCancel(int index, int offset, int dataSize)
 
 void Peer::handlePiece(int index, int offset, std::vector<byte> data)
 {
-    std::cout << "Handling piece request: " << "index: " << index
-        << ", offset: " << offset << ", data size: " << data.size() << "\n";
-
-
     dataPackage newPackage = { this, index,
                                offset/torrent->piecesData.blockSize, data};
 

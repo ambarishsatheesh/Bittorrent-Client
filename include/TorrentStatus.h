@@ -18,12 +18,18 @@ namespace Bittorrent
 
 		std::vector<std::vector<bool>> isBlockAcquired;
 		std::vector<bool> isPieceVerified;
-        std::shared_ptr<TorrentPieces> ptr_piecesData;
+        TorrentPieces* ptr_piecesData;
+
+        //fill data using decoded data
+        void torrentToStatusData();
 
 		//constructor
-        TorrentStatus(const std::shared_ptr<TorrentPieces> pieces);
+        TorrentStatus(TorrentPieces& pieces);
 		//no default constructor - requires parameter
 		TorrentStatus() = delete;
+
+        bool isSeeding;
+        bool isVerifying;
 
         int verifiedPiecesCount();
         float verifiedRatio();
@@ -31,7 +37,16 @@ namespace Bittorrent
         bool isStarted();
         long long downloaded();
         long long remaining();
+        int pieceCount;
+        int pieceSize;
+        int blockSize;
+        int totalSize;
         long long uploaded;
+
+        //speed calculation
+        long long dataIntervalTotal;
+        std::chrono::high_resolution_clock::time_point lastReceivedTime;
+        int downloadSpeed;
 
 	private:
 	};

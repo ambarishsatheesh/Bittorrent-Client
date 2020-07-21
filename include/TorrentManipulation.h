@@ -6,6 +6,8 @@
 #include "encodeVisitor.h"
 #include "sha1.h"
 
+#include <mutex>
+#include <cstdio>
 
 namespace Bittorrent
 {
@@ -15,7 +17,10 @@ namespace Bittorrent
 	//need to declare inline for each function?
 
 	namespace torrentManipulation
-	{
+    {
+
+        static std::mutex mtx_file;
+
 		//forward declare
         std::string encode(const value& torrent);
         Torrent toTorrentObj(const char* fullFilePath,
@@ -62,6 +67,9 @@ namespace Bittorrent
             newTorrent.generalData.torrentToGeneralData(fullFilePath, torrentDict);
             //fill pieces data
             newTorrent.piecesData.torrentToPiecesData(newTorrent.fileList, torrentDict);
+            //fill status data
+            newTorrent.statusData.torrentToStatusData();
+            //fill hashes data
             newTorrent.hashesData.torrentToHashesData(torrentDict);
 
             //encode and create info section for use in new torrent
@@ -255,9 +263,10 @@ namespace Bittorrent
 				{
 					buffer.clear();
 					return buffer;
-					/*throw std::invalid_argument("The file path \"" + filePath +
-						"\" does not exist!");*/
 				}
+
+                //lock mutex
+                std::lock_guard<std::mutex> writeLock(mtx_file);
 
 				const auto fStart = std::max(static_cast<long long>(0),
 					start - file.fileOffset);
@@ -297,16 +306,22 @@ namespace Bittorrent
 				}
 
 				std::string filePath = torrent.generalData.downloadDirectory +
-					file.filePath;
+                    file.filePath;
 
-				const char* cstrPath = filePath.c_str();
-
-				std::string dir = getFileDirectory(cstrPath);
+                //create dir if it doesn't exist
+                std::string dir = getFileDirectory(filePath.c_str());
 				if (!boost::filesystem::is_directory(dir))
 				{
 					boost::filesystem::create_directory(dir);
 				}
 
+                //create file if it doesn't exist
+                if (!boost::filesystem::exists(filePath))
+                {
+                    std::ofstream(filePath.c_str());
+                }
+
+                //get write positions
 				const auto fStart = std::max(static_cast<long long>(0),
 					start - file.fileOffset);
 				const auto fEnd = std::min(end - static_cast<long long>(file.fileOffset),
@@ -315,14 +330,30 @@ namespace Bittorrent
 				const auto bStart = std::max(static_cast<long long>(0),
 					file.fileOffset - start);
 
-                std::ifstream stream(filePath, std::ios::binary);
-				//set position of next character to be extracted to fStart
-				stream.seekg(fStart, std::ifstream::beg);
-				//set offset in buffer at which to begin storing read data
-				auto bufferStart = &buffer.at(bStart);
-				//extract fLength characters from stream (starting at fStart) 
-				//into buffer (starting at bufferStart)
-				stream.read(reinterpret_cast<char*>(bufferStart), fLength);
+                //lock mutex
+                std::lock_guard<std::mutex> writeLock(mtx_file);
+
+                //open file in update (+binary) mode so write doesn't
+                //truncate file
+                FILE* f = fopen(filePath.c_str(), "r+b");
+                if (!f)
+                {
+                    LOG_F(ERROR, "Could not open the file to write "
+                                 "contents to disk!");
+                    return;
+                }
+
+                // use "unbuffered mode" since this is random access
+                setbuf(f, nullptr);
+
+                // move to offset from beginning of file
+                fseek(f, fStart, SEEK_SET);
+
+                // write data from bStart, for fLength bytes
+                fwrite(&buffer[bStart], sizeof(byte), fLength, f);
+
+                // disconnect from the file
+                fclose(f);
 			}
 		}
 
@@ -342,7 +373,10 @@ namespace Bittorrent
 		{
 			write(torrent, (piece * torrent.piecesData.pieceSize) +
 				(block * torrent.piecesData.blockSize), buffer);
+
+            //update block info
 			torrent.statusData.isBlockAcquired.at(piece).at(block) = true;
+
 			verify(torrent, piece);
 		}
 
@@ -353,7 +387,7 @@ namespace Bittorrent
 			//check if piece hash info matches currently generated hash
             bool isVerified = (!hash.empty() && hash == torrent.piecesData.pieces.at(piece));
 
-			//if piece passes verification, fill relevant vectors
+            //if piece passes verification, fill relevant data
 			if (isVerified)
 			{
 				torrent.statusData.isPieceVerified.at(piece) = true;
@@ -361,7 +395,7 @@ namespace Bittorrent
 				for (size_t i = 0; i <
 					(torrent.statusData.isBlockAcquired.at(piece)).size(); ++i)
 				{
-					torrent.statusData.isBlockAcquired[piece][i] = true;
+                    torrent.statusData.isBlockAcquired.at(piece).at(i) = true;
 				}
 
 				//if slots are connected to signal, call slots
@@ -377,8 +411,7 @@ namespace Bittorrent
 			//if they have (and piece fails verification above), 
 			//reload entire piece
 			torrent.statusData.isPieceVerified.at(piece) = false;
-			if (
-				std::all_of(
+			if (std::all_of(
 					torrent.statusData.isBlockAcquired.at(piece).begin(), 
 					torrent.statusData.isBlockAcquired.at(piece).end(),
 					[](bool v) {return v; }))
@@ -388,6 +421,10 @@ namespace Bittorrent
 				{
 					torrent.statusData.isBlockAcquired[piece][i] = false;
 				}
+
+                LOG_F(WARNING, "Piece %d failed verification for torrent %s. "
+                               "Reloading entire piece.",
+                      piece, torrent.generalData.fileName.c_str());
 			}
 		}
 

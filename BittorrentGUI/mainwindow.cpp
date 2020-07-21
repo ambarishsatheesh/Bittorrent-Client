@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "tableModel.h"
-#include "progressDelegate.h"
 #include "Decoder.h"
 #include "loguru.h"
 
@@ -12,6 +11,7 @@
 #include <QAbstractItemModelTester>
 #include <QMessageBox>
 #include <QtConcurrent>
+#include <QDesktopServices>
 
 namespace Bittorrent
 {
@@ -37,8 +37,9 @@ void logCallback(void* user_data, const loguru::Message& message)
 MainWindow::MainWindow(Client* client, QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow),
       generalInfoTab(new Ui::generalInfo),
-      ioClient(client), isFirstTorrentHeaderMenu{true},
-      isFirstTorrentTableMenuData{true},
+      transferSpeed(new Ui::transferSpeedWindow),
+      ioClient(client), timeTicker(new QCPAxisTickerTime),
+      isFirstTorrentHeaderMenu{true}, isFirstTorrentTableMenuData{true},
       isFirstTorrentTableMenuOutside{true},
       addTorrentDialog{nullptr}, addTorInfoDialog{nullptr},
       createTorDialog{nullptr}, settingsDialog{nullptr}
@@ -46,6 +47,7 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     //initialise ui forms
     ui->setupUi(this);
     generalInfoTab->setupUi(this);
+    transferSpeed->setupUi(this);
 
     //connect menu add torrent action to slot because default one is buggy
     connect(ui->actionAdd_NewTorrent, &QAction::triggered,
@@ -72,6 +74,9 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
     //initialise content tree
     initContentTree();
 
+    //init transfer speed graph
+    initSpeedInfo();
+
     //initialise tabs
     initTransfersTab();
 
@@ -86,8 +91,8 @@ MainWindow::MainWindow(Client* client, QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
-    loguru::remove_callback("logToWidget_WAR");
-    loguru::remove_callback("logToWidget_ERR");
+//    loguru::remove_callback("logToWidget_WAR");
+//    loguru::remove_callback("logToWidget_ERR");
 }
 
 void MainWindow::initWindows()
@@ -280,8 +285,9 @@ void MainWindow::initTorrentTable()
 
     torrentModel = new TorrentTableModel(ioClient, this);
 
-    progressDelegate* delegate = new progressDelegate(torrentTable);
-    torrentTable->setItemDelegateForColumn(5, delegate);
+    //progress bar
+    progressDelegate = new ProgressDelegate();
+    torrentTable->setItemDelegateForColumn(4, progressDelegate);
 
     //sort/filter
     proxyModel = new TorrentSortFilterProxyModel(ioClient, this);
@@ -305,6 +311,16 @@ void MainWindow::initTorrentTable()
     //connect duplicate torrent signal
     connect(torrentModel, &TorrentTableModel::duplicateTorrentSig, this,
             &MainWindow::duplicateTorrentSlot);
+
+    //connect model dataChanged signal to viewport repaint
+    //(allows real-time view updates)
+    connect(torrentModel, &TorrentTableModel::dataChanged, torrentTable,
+            [&]
+            () { torrentTable->viewport()->repaint();});
+
+    //connect double click to slot that open folder
+    connect(torrentTable, &QTableView::doubleClicked, this,
+            &MainWindow::openTorrentFolder);
 
     m_dockWidget1->setWidget(torrentTable);
 }
@@ -382,6 +398,77 @@ void MainWindow::initContentTree()
     m_dockWidget4->setWidget(contentTreeStack);
 }
 
+void MainWindow::initSpeedInfo()
+{
+    transferSpeed->customPlot->addGraph(); // blue line
+    transferSpeed->customPlot->graph(0)->setPen(QPen(QColor(40, 110, 255)));
+    transferSpeed->customPlot->addGraph(); // red line
+    transferSpeed->customPlot->graph(1)->setPen(QPen(QColor(255, 110, 40)));
+
+    //axes data
+    transferSpeed->customPlot->xAxis->setTicker(timeTicker);
+    transferSpeed->customPlot->axisRect()->setupFullAxesBox();
+    transferSpeed->customPlot->xAxis->setRange(0, 4000);
+
+    //axes labels
+    transferSpeed->customPlot->yAxis->setLabel("Transfer Speed (KiB/s)");
+    transferSpeed->customPlot->xAxis->setTickLabels(false);
+
+    //legend
+    transferSpeed->customPlot->legend->setVisible(true);
+    transferSpeed->customPlot->graph(0)->setName("Total Download Speed");
+    transferSpeed->customPlot->graph(1)->setName("Total Upload Speed");
+    transferSpeed->customPlot->axisRect()->insetLayout()->
+            setInsetAlignment(0, Qt::AlignLeft|Qt::AlignTop);
+
+    //interaction
+    transferSpeed->customPlot->setInteraction(QCP::iRangeDrag, true);
+    transferSpeed->customPlot->axisRect()->
+            setRangeDrag(Qt::Horizontal);
+
+    //timer that repeatedly calls realtimeDataSlot() with selected row
+    connect(&dataTimer, &QTimer::timeout, this, &MainWindow::realtimeDataSlot);
+    dataTimer.start(0);
+
+    m_dockWidget5->setWidget(transferSpeed->customPlot);
+}
+
+void MainWindow::realtimeDataSlot()
+{
+    // calculate two new data points:
+    double key = time.elapsed() / 1000.0; // time elapsed since start in seconds
+    static double lastPointKey = 0;
+
+    //make sure torrent list isnt empty
+    if (key - lastPointKey > 0.5 &&
+            !ioClient->WorkingTorrents.torrentList.empty())
+    {
+        int dlSpeedSum =
+                std::accumulate(ioClient->WorkingTorrents.torrentList.begin(),
+                                ioClient->WorkingTorrents.torrentList.end(), 0,
+                                [](int sum, std::shared_ptr<Torrent>& t)
+                {
+                    return sum + t->statusData.downloadSpeed;
+                });
+
+      // add download speed
+      transferSpeed->customPlot->graph(0)->addData(key, dlSpeedSum / 1024);
+
+      //add upload speed
+//      transferSpeed->customPlot->graph(1)->addData(
+//                  key, qCos(key)+qrand()/(double)RAND_MAX*0.5*qSin(key/0.4364));
+
+      // rescale value (vertical) axis to fit the current data:
+      transferSpeed->customPlot->yAxis->rescale(true);
+
+      lastPointKey = key;
+    }
+
+    // make key axis range scroll with the data (at a constant range size of 8):
+    transferSpeed->customPlot->xAxis->setRange(key, 30, Qt::AlignRight);
+    transferSpeed->customPlot->replot();
+}
+
 void MainWindow::initTransfersTab()
 {
     infoList = new QListView(this);
@@ -401,6 +488,23 @@ void MainWindow::initTransfersTab()
 
     connect(infoList, &QListView::clicked, this,
             &MainWindow::trackerListItemSelected);
+}
+
+void MainWindow::openTorrentFolder(const QModelIndex& index)
+{
+    using namespace utility;
+
+    //map clicked index to source model index
+    auto mappedIndex = proxyModel->mapToSource(index);
+
+    auto dir = QString::fromStdString(getFileDirectory(ioClient->
+            WorkingTorrents.torrentList.at(mappedIndex.row())->
+            generalData.downloadDirectory.c_str()));
+
+    if (QDir(dir).exists())
+    {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(dir));
+    }
 }
 
 void MainWindow::showAllTorrents()
@@ -468,8 +572,6 @@ void MainWindow::torrentSelected(const QItemSelection &selected,
 
         //set general info mapper to relevant row
         generalInfoMapper->setCurrentIndex(row);
-
-        //emit trackerTableVec.at(row).trackerModel->dataChanged(QModelIndex(), QModelIndex());
     }
 }
 

@@ -8,17 +8,14 @@ namespace Bittorrent
 {
 	//add tracker processing
     Torrent::Torrent()
-        : clientRank{0}, generalData(), piecesData(), hashesData(),
-          statusData(std::make_shared<TorrentPieces>(piecesData)),
+        : clientRank{0},generalData(), piecesData(), hashesData(),
+          statusData(piecesData),
           sig_addPeer{
-              std::make_shared<boost::signals2::signal<void(peer*, Torrent*)>>()},
+              std::make_shared<boost::signals2::signal<void(
+                  peer, std::shared_ptr<Torrent>)>>()},
           sig_pieceVerified{
               std::make_shared<boost::signals2::signal<void(Torrent*, int)>>()}
     {
-        //connect peer-list-updated signal
-        generalData.sig_peersUpdated->connect(
-                    boost::bind(&Torrent::handlePeerListUpdated,
-                                this, _1));
     }
 
 	valueDictionary Torrent::filesToDictionary(valueDictionary& dict)
@@ -135,11 +132,20 @@ namespace Bittorrent
 		//std::cout << test << std::endl;
 	}
 
-    void Torrent::handlePeerListUpdated(peer* singlePeer)
+    void Torrent::handlePeerListUpdated()
     {
-        if (!sig_addPeer->empty())
+        for (auto& tracker : generalData.trackerList)
         {
-            sig_addPeer->operator()(singlePeer, this);
+            for (auto singlePeer : tracker.peerList)
+            {
+                if (generalData.uniquePeerList.insert(singlePeer).second == true)
+                {
+                    if (!sig_addPeer->empty())
+                    {
+                        sig_addPeer->operator()(singlePeer, getPtr());
+                    }
+                }
+            }
         }
     }
 

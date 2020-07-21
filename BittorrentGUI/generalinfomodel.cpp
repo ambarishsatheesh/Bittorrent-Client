@@ -11,57 +11,23 @@ namespace Bittorrent
 {
 
 generalInfoModel::generalInfoModel(Client* client, QPointer<QObject> parent)
-    : QAbstractItemModel(parent), ioClient(client), columnSize{17}
+    : QAbstractItemModel(parent), ioClient(client), columnSize{17},
+      timer{new QTimer(this)}
+{
+    //timer to refresh table every second
+    connect(timer, &QTimer::timeout , this, &generalInfoModel::timerHit);
+    timer->start(2000);
+}
+
+void generalInfoModel::timerHit()
+{
+    emit this->dataChanged(QModelIndex(), QModelIndex());
+}
+
+void generalInfoModel::update()
 {
 
 }
-
-//int generalInfoModel::rowCount(const QModelIndex &parent) const
-//{
-//    return parent.isValid() ?
-//                0 : ioClient->WorkingTorrents.torrentList.size();
-//}
-
-//int generalInfoModel::columnCount(const QModelIndex &parent) const
-//{
-//    return parent.isValid() ? 0 : columnSize;
-//}
-
-//QVariant generalInfoModel::data(const QModelIndex &index, int role) const
-//{
-//    if (!index.isValid() || role != Qt::DisplayRole)
-//    {
-//        return QVariant();
-//    }
-
-//    if (index.row() >= ioClient->WorkingTorrents.torrentList.size() ||
-//            index.row() < 0)
-//    {
-//        return QVariant();
-//    }
-
-//    return generateData(index);
-//}
-
-
-//QVariant generalInfoModel::headerData(int section,
-//                               Qt::Orientation orientation, int role) const
-//{
-//    return QVariant();
-//}
-
-//bool generalInfoModel::setData(const QModelIndex &index,
-//                        const QVariant &value, int role)
-//{
-//        if (role == Qt::DisplayRole)
-//        {
-//            emit dataChanged(index, index);
-//        }
-
-//        return true;
-// }
-
-
 
 QVariant generalInfoModel::headerData(int section, Qt::Orientation orientation,
                                       int role) const
@@ -172,7 +138,7 @@ QVariant generalInfoModel::generateData(const QModelIndex &index) const
                                        piecesData.readablePieceSize());
         auto pHave = entry->statusData.verifiedPiecesCount();
 
-        return pieces + " x " + pSize + " (have " + pHave + ")";
+        return pieces + " x " + pSize + " (have " + QString::number(pHave) + ")";
     }
     //Torrent Hash
     case 7:

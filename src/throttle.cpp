@@ -1,4 +1,5 @@
 #include "throttle.h"
+#include "loguru.h"
 
 namespace Bittorrent{
 
@@ -22,12 +23,17 @@ bool Throttle::isThrottled()
                 std::remove_if(
                     transferPacketVec.begin(), transferPacketVec.end(),
                     [&]
-                    (const transferPacket& p){return p.dataTime < cutoff;}));
+                    (const transferPacket& p){return p.dataTime < cutoff;}),
+                transferPacketVec.end());
 
-    return std::accumulate(
+
+    auto dataSum = std::accumulate(
                 transferPacketVec.begin(), transferPacketVec.end(), 0,
-                    []
-                (int sum, const transferPacket& p){return sum + p.dataSize;});
+                    [&]
+                (int sum, const transferPacket& p)
+    {return sum + p.dataSize;});
+
+    return dataSum > maxDataSize;
 }
 
 }

@@ -44,18 +44,16 @@ namespace Bittorrent
         void setFileList(const valueDictionary& torrent);
 		valueDictionary filesToDictionary(valueDictionary& dict);
 
-        void handlePeerListUpdated(peer* singlePeer);
+        //update peer list from tracker response
+        void handlePeerListUpdated();
 
         //signals
         std::shared_ptr<boost::signals2::signal<void(
-                peer*, Torrent*)>> sig_addPeer;
+                peer, std::shared_ptr<Torrent>)>> sig_addPeer;
 
         //piece verification signal
         std::shared_ptr<boost::signals2::signal<void(
                 Torrent*, int)>> sig_pieceVerified;
-
-        //slot
-        void addPeer(peer* singlePeer, Torrent* torrent);
 
 		std::shared_ptr<Torrent> getPtr();
 

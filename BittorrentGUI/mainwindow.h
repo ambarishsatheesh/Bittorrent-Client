@@ -1,6 +1,23 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "ui_generalInfoTab.h"
+#include "Client.h"
+#include "tableModel.h"
+#include "torrentheadercheckbox.h"
+#include "createtorrent.h"
+#include "torrentsortfilterproxymodel.h"
+#include "torrentinfolist.h"
+#include "trackertablemodel.h"
+#include "generalinfomodel.h"
+#include "contenttreemodel.h"
+#include "addtorrentdialog.h"
+#include "settingsdialog.h"
+#include "TorrentManipulation.h"
+#include "progressDelegate.h"
+#include "qcustomplot.h"
+#include "ui_transferSpeed.h"
+
 #include <QMainWindow>
 #include <QAbstractTableModel>
 #include <QStandardItemModel>
@@ -27,20 +44,10 @@
 #include <QDataWidgetMapper>
 #include <QTreeView>
 #include <QTextBrowser>
+#include <QtCharts>
+#include <QLineSeries>
+#include <QStatusBar>
 
-#include "ui_generalInfoTab.h"
-#include "Client.h"
-#include "tableModel.h"
-#include "torrentheadercheckbox.h"
-#include "createtorrent.h"
-#include "torrentsortfilterproxymodel.h"
-#include "torrentinfolist.h"
-#include "trackertablemodel.h"
-#include "generalinfomodel.h"
-#include "contenttreemodel.h"
-#include "addtorrentdialog.h"
-#include "settingsdialog.h"
-#include "TorrentManipulation.h"
 
 namespace Ui {
 class MainWindow;
@@ -48,6 +55,8 @@ class MainWindow;
 
 
 namespace Bittorrent {
+
+using namespace QtCharts;
 
 class MainWindow : public QMainWindow
 {
@@ -105,9 +114,12 @@ private slots:
 
     void on_actionMin_Priority_triggered();
 
+    void openTorrentFolder(const QModelIndex& index);
+
 private:
     Ui::MainWindow* ui;
     Ui::generalInfo* generalInfoTab;
+    Ui::transferSpeedWindow* transferSpeed;
     Client* ioClient;
 
     //Windows
@@ -123,10 +135,19 @@ private:
     QPointer<QWidget> transfersTab;
     QPointer<QWidget> logTab;
 
+    //speed info
+    void initSpeedInfo();
+    void realtimeDataSlot();
+    QSharedPointer<QCPAxisTickerTime> timeTicker;
+    QTimer dataTimer;
+    QElapsedTimer time;
+
+
     //torrents table
     void initTorrentTable();
     QPointer<QTableView> torrentTable;
     QPointer<TorrentTableModel> torrentModel;
+    QPointer<ProgressDelegate> progressDelegate;
 
     //general info
     void initGeneralInfo();
