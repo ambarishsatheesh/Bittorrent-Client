@@ -749,6 +749,8 @@ void MainWindow::loadTorrent(std::string filePath, std::string& buffer)
     //create dialog
     addTorInfoDialog = new AddTorrentDialog(filePath, buffer, this);
 
+    addTorInfoDialog->setWindowTitle("Add a torrent");
+
     //remove question mark from dialog
     addTorInfoDialog->setWindowFlags(
                 addTorInfoDialog->windowFlags() &
