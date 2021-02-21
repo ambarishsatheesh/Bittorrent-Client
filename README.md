@@ -8,18 +8,31 @@ Bittorrent Client implementing [BTP/1.0](https://wiki.theory.org/BitTorrentSpeci
 * Asynchronous I/O (TCP and UDP networking) support using [Boost Asio](https://www.boost.org/doc/libs/1_72_0/doc/html/boost_asio/overview.html), with event handling aided by [Boost Signals2](https://www.boost.org/doc/libs/1_72_0/doc/html/signals2.html)
 * HTTP tracker support using [Boost Beast](https://github.com/boostorg/beast)
 * Multithreading support allows handling of multiple torrents, connections to peers, downloads/uploads, and GUI interaction to maximise network and file I/O performance
-* Features user-configurable network settings (TCP/UDP ports, max/min peers, max download/upload speed)
 * Simple network scheduling using a [token bucket](https://en.wikipedia.org/wiki/Token_bucket) to control bandwidth 
 * Real-time data updates including torrent, tracker, download progress, and network transfer information
 * Real-time network transfer speed graph implemented using [QCustomPlot plotting library](https://www.qcustomplot.com/)
 * Torrent filtering based on trackers and sorting using any of the columns
+* User-configurable network settings (TCP/UDP ports, max/min peers, max download/upload speed)
 * Logging to console implemented using Emil Ernerfeldt's [Loguru library](https://github.com/emilk/loguru)
 * Torrent piece and info_hash SHA1 hashing implemented using [Stephan Brumme's Hashing library](https://github.com/stbrumme/hash-library)
 * Supports Windows.
 
-![](/screenshots/screenshot1.png)
-![](/screenshots/creator.png)
-![](/screenshots/info.png)
-![](/screenshots/trackers.png)
-![](/screenshots/settings.jpg)
-![](/screenshots/console.png)
+### Screenshots
+
+###### *General GUI and real-time transfer speed tab:*
+>![](/screenshots/screenshot1.png)
+
+###### *Torrent creator:*
+>![](/screenshots/creator.png)
+
+###### *Torrent file adder:*
+>![](/screenshots/addTorrent.png)
+
+###### *Real-time tracker info:*
+>![](/screenshots/trackers.png)
+
+###### *User-modifiable configuration settings:*
+>![](/screenshots/settings.jpg)
+
+###### *Logging to console output:*
+>![](/screenshots/console.png)
