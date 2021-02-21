@@ -3,7 +3,7 @@ Bittorrent Client implementing [BTP/1.0](https://wiki.theory.org/BitTorrentSpeci
 
 ### Features
 * qBittorrent-inspired GUI written using Qt5
-* [Supports UDP Tracker Protocol](https://www.bittorrent.org/beps/bep_0015.html), [Peer ID Conventions](https://www.bittorrent.org/beps/bep_0020.html), [Compact Peer Lists](https://www.bittorrent.org/beps/bep_0023.html), and [Private Torrents](https://www.bittorrent.org/beps/bep_0027.html)
+* Supported extensions: [UDP Tracker Protocol](https://www.bittorrent.org/beps/bep_0015.html), [Peer ID Conventions](https://www.bittorrent.org/beps/bep_0020.html), [Compact Peer Lists](https://www.bittorrent.org/beps/bep_0023.html), and [Private Torrents](https://www.bittorrent.org/beps/bep_0027.html)
 * Bencode parser (implemented using [iterator-based parsing](https://gist.github.com/ambarishsatheesh/14b5122f0767944e19b4636800db4d75))
 * Asynchronous I/O (TCP and UDP networking) support using [Boost Asio](https://www.boost.org/doc/libs/1_72_0/doc/html/boost_asio/overview.html), with event handling aided by [Boost Signals2](https://www.boost.org/doc/libs/1_72_0/doc/html/signals2.html)
 * HTTP tracker support using [Boost Beast](https://github.com/boostorg/beast)
