@@ -6,7 +6,7 @@
 * Supports Asynchronous I/O (TCP and UDP networking) using [Boost Asio](https://www.boost.org/doc/libs/1_72_0/doc/html/boost_asio.html), with event handling aided by [Boost Signals2](https://www.boost.org/doc/libs/1_72_0/doc/html/signals2.html)
 * HTTP tracker support using [Boost Beast](https://www.boost.org/doc/libs/1_75_0/libs/beast/doc/html/index.html)
 * Multithreading implemented using std::thread
-* Features user-configurable settings to 
+* Features user-configurable network settings (TCP/UDP ports, max/min peers, max download/upload speed)
 * Supports Windows.
 
 ![](/screenshots/screenshot1.png)
