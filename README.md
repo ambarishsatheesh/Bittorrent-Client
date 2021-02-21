@@ -15,7 +15,7 @@ Bittorrent Client implementing [BTP/1.0](https://wiki.theory.org/BitTorrentSpeci
 * User-configurable network settings (TCP/UDP ports, max/min peers, max download/upload speed)
 * Logging to console implemented using Emil Ernerfeldt's [Loguru library](https://github.com/emilk/loguru)
 * Torrent piece and info_hash SHA1 hashing implemented using [Stephan Brumme's Hashing library](https://github.com/stbrumme/hash-library)
-* Supports Windows.
+* Supports Windows 10.
 
 ### Screenshots
 
