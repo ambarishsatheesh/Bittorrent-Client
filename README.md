@@ -10,7 +10,7 @@ Bittorrent Client implementing [BTP/1.0](https://wiki.theory.org/BitTorrentSpeci
 * Multithreading support allows handling of multiple torrents, connections to peers, downloads/uploads, and GUI interaction to maximise network and file I/O performance
 * Features user-configurable network settings (TCP/UDP ports, max/min peers, max download/upload speed)
 * Simple network scheduling using a [token bucket](https://en.wikipedia.org/wiki/Token_bucket) to control bandwidth 
-* Real-time data updates including torrent, tracker, network transfer, download ETA
+* Real-time data updates including torrent, tracker, download progress, and network transfer information
 * Real-time network transfer speed graph implemented using [QCustomPlot plotting library](https://www.qcustomplot.com/)
 * Torrent filtering based on trackers and sorting using any of the columns
 * Logging to console implemented using Emil Ernerfeldt's [Loguru library](https://github.com/emilk/loguru)
