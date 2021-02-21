@@ -19,20 +19,20 @@ Bittorrent Client implementing [BTP/1.0](https://wiki.theory.org/BitTorrentSpeci
 
 ### Screenshots
 
-##### _*General GUI and real-time transfer speed tab:*_
+##### __*General GUI and real-time transfer speed tab:*__
 >![](/screenshots/screenshot1.png)
 
-###### _*Torrent creator:*_
+###### __*Torrent creator:*__
 >![](/screenshots/creator.png)
 
-###### _*Torrent file adder:*_
+###### __*Torrent file adder:*__
 >![](/screenshots/addTorrent.png)
 
-###### _*Real-time tracker info:*_
+###### __*Real-time tracker info:*__
 >![](/screenshots/trackers.png)
 
-###### _*User-modifiable configuration settings:*_
+###### __*User-modifiable configuration settings:*__
 >![](/screenshots/settings.jpg)
 
-###### _*Logging to console output:*_
+###### __*Logging to console output:*__
 >![](/screenshots/console.png)
