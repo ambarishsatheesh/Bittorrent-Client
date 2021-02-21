@@ -80,7 +80,7 @@
              </size>
             </property>
             <property name="text">
-             <string>HTTP Port:</string>
+             <string>HTTP (tracker) Port:</string>
             </property>
            </widget>
           </item>
