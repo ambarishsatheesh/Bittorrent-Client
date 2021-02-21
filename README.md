@@ -7,6 +7,10 @@
 * HTTP tracker support using [Boost Beast](https://github.com/boostorg/beast)
 * Multithreading implemented using std::thread
 * Features user-configurable network settings (TCP/UDP ports, max/min peers, max download/upload speed)
+* Allows torrent filtering based on trackers and sorting using any of the columns
+* Features a live transfer speed graph
+* Logging to console available using Emil Ernerfeldt's [Loguru library](https://github.com/emilk/loguru)
+* Torrent piece and info_hash SHA1 hashing done using Stephan Brumme's Hashing library (https://github.com/stbrumme/hash-library)
 * Supports Windows.
 
 ![](/screenshots/screenshot1.png)
