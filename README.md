@@ -14,7 +14,7 @@ Bittorrent Client implementing [BTP/1.0](https://wiki.theory.org/BitTorrentSpeci
 * Real-time network transfer speed graph implemented using [QCustomPlot plotting library](https://www.qcustomplot.com/)
 * Torrent filtering based on trackers and sorting using any of the columns
 * Logging to console implemented using Emil Ernerfeldt's [Loguru library](https://github.com/emilk/loguru)
-* Torrent piece and info_hash SHA1 hashing implemented using Stephan Brumme's Hashing library (https://github.com/stbrumme/hash-library)
+* Torrent piece and info_hash SHA1 hashing implemented using [Stephan Brumme's Hashing library](https://github.com/stbrumme/hash-library)
 * Supports Windows.
 
 ![](/screenshots/screenshot1.png)
