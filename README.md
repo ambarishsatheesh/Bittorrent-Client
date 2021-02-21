@@ -1,4 +1,4 @@
-# Bittorrent-Client
+# Bittorrent Client
 * Bittorrent Client implementing [BTP/1.0](https://wiki.theory.org/BitTorrentSpecification) plus select extensions ([BEPs](https://www.bittorrent.org/beps/bep_0000.html) 0015, 0020, 0023, 0027)
 * Features QBittorrent-inspired GUI written using Qt5, using 
 * [Supports UDP Tracker Protocol](https://www.bittorrent.org/beps/bep_0015.html), [Peer ID Conventions](https://www.bittorrent.org/beps/bep_0020.html), [Compact Peer Lists](https://www.bittorrent.org/beps/bep_0023.html), and [Private Torrents](https://www.bittorrent.org/beps/bep_0027.html)
